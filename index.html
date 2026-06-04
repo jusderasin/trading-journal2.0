@@ -444,6 +444,9 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
           <div><div class="page-title">Mes <em>Comptes</em></div><div class="page-meta">Prop firms &amp; challenges actifs</div></div>
           <button class="btn btn-gold" onclick="openAccModal()">+ Ajouter un compte</button>
         </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">
+          💡 Les comptes avec le <strong style="color:var(--text2)">même nom de firme</strong> se regroupent automatiquement avec PnL consolidé. Ex: créer deux comptes nommés "Apex".
+        </div>
         <div class="ac-grid" id="ac-grid"><div class="empty" style="grid-column:1/-1">Aucun compte configuré</div></div>
       </div>
 
@@ -602,6 +605,20 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       <div class="fg"><label class="flabel">SL max / jour</label><input class="finput" id="ac-slmax" type="number" value="2"></div>
       <div class="fg"><label class="flabel">Seuil payout ($)</label><input class="finput" id="ac-payout" type="number" placeholder="500"></div>
     </div>
+    <div class="frow">
+      <div class="fg"><label class="flabel">Statut</label>
+        <select class="finput" id="ac-status">
+          <option value="challenge">Challenge en cours</option>
+          <option value="funded">Financé / Passé</option>
+          <option value="active">Actif</option>
+          <option value="failed">Échoué</option>
+        </select>
+      </div>
+      <div class="fg"><label class="flabel">Identifiant <span style="color:var(--text3);font-weight:400">(optionnel)</span></label>
+        <input class="finput" id="ac-label" placeholder="Ex: Apex 300K #2...">
+      </div>
+    </div>
+    <input type="hidden" id="ac-edit-id">
     <div id="acc-err" style="font-size:12px;color:var(--red);min-height:14px;margin-top:4px"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeM('modal-acc')">Annuler</button>
@@ -1246,6 +1263,7 @@ function renderAccountsGrid(){
     return`<div class="ac-card"><div class="ac-top"><div><div class="ac-firm">${ac.firm_name}</div><div class="ac-type">${ac.account_type}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="ac-status s-${smap[ac.status]||'active'}">${sl[ac.status]||ac.status}</span>
+        <button onclick="editAccount('${ac.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 6px" title="Modifier" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text3)'">✏️</button>
         <button onclick="deleteAccount('${ac.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 6px" title="Supprimer" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">🗑</button>
       </div></div>
       <div class="ac-row"><span class="ac-key">Balance initiale</span><span class="ac-val">${(ac.initial_balance||0).toLocaleString()} $</span></div>
@@ -1720,18 +1738,51 @@ async function deleteAccount(id){
   if(error){toast('Erreur: '+error.message,'err');return;}
   accounts=accounts.filter(a=>a.id!==id);renderAll();toast('Compte supprimé');
 }
-function openAccModal(){document.getElementById('acc-err').textContent='';document.getElementById('modal-acc').classList.add('open');}
+function openAccModal(){
+  document.getElementById('acc-err').textContent='';
+  document.getElementById('ac-edit-id').value='';
+  document.getElementById('ac-firm').value='';
+  document.getElementById('ac-type').value='challenge';
+  const st=document.getElementById('ac-status');if(st)st.value='challenge';
+  const lbl=document.getElementById('ac-label');if(lbl)lbl.value='';
+  ['ac-bal','ac-target','ac-ddl','ac-maxdd','ac-payout'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('ac-slmax').value='2';
+  document.querySelector('#modal-acc .modal-title').textContent='Ajouter un compte';
+  document.getElementById('acc-save-btn').textContent='Créer le compte';
+  document.getElementById('modal-acc').classList.add('open');
+}
+function editAccount(id){
+  const ac=accounts.find(a=>a.id===id);if(!ac)return;
+  const labels=JSON.parse(localStorage.getItem('tj_acc_labels_'+(user?.id||''))||'{}');
+  document.getElementById('acc-err').textContent='';
+  document.getElementById('ac-edit-id').value=id;
+  document.getElementById('ac-firm').value=ac.firm_name||'';
+  document.getElementById('ac-type').value=ac.account_type||'challenge';
+  const st=document.getElementById('ac-status');if(st)st.value=ac.status||'active';
+  const lbl=document.getElementById('ac-label');if(lbl)lbl.value=labels[id]||'';
+  document.getElementById('ac-bal').value=ac.initial_balance||'';
+  document.getElementById('ac-target').value=ac.profit_target||'';
+  document.getElementById('ac-ddl').value=ac.daily_loss_limit||'';
+  document.getElementById('ac-maxdd').value=ac.max_drawdown||'';
+  document.getElementById('ac-slmax').value=ac.max_sl_per_day||2;
+  document.getElementById('ac-payout').value=ac.payout_threshold||'';
+  document.querySelector('#modal-acc .modal-title').textContent='Modifier le compte';
+  document.getElementById('acc-save-btn').textContent='Sauvegarder';
+  document.getElementById('modal-acc').classList.add('open');
+}
 async function saveAcc(){
   const firm=document.getElementById('ac-firm').value.trim();
   const errEl=document.getElementById('acc-err');
   if(!firm){errEl.textContent='Le nom de la firme est requis';return;}
   errEl.textContent='';
   const btn=document.getElementById('acc-save-btn');
-  btn.textContent='Création...';btn.disabled=true;
+  const editId=document.getElementById('ac-edit-id')?.value||null;
+  btn.textContent=editId?'Sauvegarde...':'Création...';btn.disabled=true;
+  const acLabel=document.getElementById('ac-label')?.value.trim()||'';
   const payload={
-    user_id:user.id,firm_name:firm,
+    firm_name:firm,
     account_type:document.getElementById('ac-type').value,
-    status:'active',
+    status:document.getElementById('ac-status')?.value||'active',
     initial_balance:parseFloat(document.getElementById('ac-bal').value)||0,
     current_balance:parseFloat(document.getElementById('ac-bal').value)||0,
     profit_target:parseFloat(document.getElementById('ac-target').value)||0,
@@ -1740,11 +1791,24 @@ async function saveAcc(){
     max_sl_per_day:parseInt(document.getElementById('ac-slmax').value)||2,
     payout_threshold:parseFloat(document.getElementById('ac-payout').value)||0,
   };
-  const{error}=await sb.from('accounts').insert(payload).select();
-  btn.textContent='Créer le compte';btn.disabled=false;
-  if(error){errEl.textContent=error.message;return;}
-  toast('Compte créé ✓');closeM('modal-acc');
-  document.getElementById('ac-firm').value='';
+  let saveError=null, savedId=editId;
+  if(editId){
+    const res=await sb.from('accounts').update(payload).eq('id',editId).eq('user_id',user.id);
+    saveError=res.error;
+  } else {
+    payload.user_id=user.id;
+    const res=await sb.from('accounts').insert(payload).select().single();
+    saveError=res.error;
+    if(!saveError&&res.data)savedId=res.data.id;
+  }
+  btn.textContent=editId?'Sauvegarder':'Créer le compte';btn.disabled=false;
+  if(saveError){errEl.textContent=saveError.message;return;}
+  if(savedId){
+    const labels=JSON.parse(localStorage.getItem('tj_acc_labels_'+(user?.id||''))||'{}');
+    if(acLabel)labels[savedId]=acLabel;else delete labels[savedId];
+    localStorage.setItem('tj_acc_labels_'+(user?.id||''),JSON.stringify(labels));
+  }
+  toast(editId?'Compte modifié ✓':'Compte créé ✓');closeM('modal-acc');
   await loadAccounts();renderAll();
 }
 
