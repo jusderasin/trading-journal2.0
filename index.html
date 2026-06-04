@@ -399,7 +399,10 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       <div class="page active" id="page-journal">
         <div class="page-header">
           <div><div class="page-title">Journal de <em>Trading</em></div><div class="page-meta" id="journal-date"></div></div>
-          <button class="btn btn-gold" onclick="openTradeModal()">+ Nouveau trade</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="testMiroConnection()" title="Tester connexion Miro">🟦 Miro</button>
+            <button class="btn btn-gold" onclick="openTradeModal()">+ Nouveau trade</button>
+          </div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap">
           <div class="account-bar" id="account-bar" style="margin-bottom:0">
@@ -760,6 +763,57 @@ const _customStorage={
 const sb=createClient(SURL,SKEY,{auth:{storage:_customStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 
 let user=null,accounts=[],trades=[],btSessions=[],selAcc=null,ynVal=null;
+
+// ── MIRO ──
+const MIRO_TOKEN='eyJtaXJvLm9yaWdpbiI6ImV1MDEifQ_-ZP5_Wrt8TtihsorfhDsWHd3lMs';
+const MIRO_BOARD='uXjVG3OM5q4=';
+async function miroPost(path,body){
+  try{
+    const r=await fetch(`https://api.miro.com/v2/boards/${MIRO_BOARD}/${path}`,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+MIRO_TOKEN,'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok){const e=await r.text();console.warn('Miro error:',e);return null;}
+    return await r.json();
+  }catch(e){console.warn('Miro fetch error:',e);return null;}
+}
+
+async function testMiroConnection(){
+  try{
+    const r=await fetch(`https://api.miro.com/v2/boards/${MIRO_BOARD}`,{
+      headers:{'Authorization':'Bearer '+MIRO_TOKEN,'Accept':'application/json'}
+    });
+    if(r.ok){const d=await r.json();toast('🟦 Miro connecté : '+d.name,'ok');}
+    else toast('Miro : erreur '+r.status,'err');
+  }catch(e){toast('Miro : impossible de se connecter','err');}
+}
+async function createMiroTradeCard(tr){
+  // Couleur selon résultat + qualité
+  const colors={profit:'#1a9e6e',loss:'#c0392b',be:'#2980b9'};
+  const bgColor=tr.result==='profit'?(tr.checklist_respected===true?'#16a085':'#1a9e6e'):tr.result==='loss'?'#c0392b':'#2980b9';
+  const emoji=tr.result==='profit'?'✅':tr.result==='loss'?'🔴':'🟡';
+  const aplus=tr.checklist_respected===true?' ⭐ A++':'';
+  const dateStr=tr.entry_time?new Date(tr.entry_time).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
+  const timeStr=tr.entry_time?new Date(tr.entry_time).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+  const pnlStr=(tr.pnl||0)>=0?`+${(tr.pnl||0).toFixed(0)}$`:`${(tr.pnl||0).toFixed(0)}$`;
+  const rrStr=tr.rr_theoretical?`${tr.rr_theoretical}R`:'—';
+  const dir=tr.direction==='long'?'▲ Long':'▼ Short';
+
+  const content=`<p><strong>${emoji} ${tr.asset} · ${dir}${aplus}</strong></p><p>${dateStr} ${timeStr}</p><p>RR : ${rrStr} | PnL : ${pnlStr}</p>${tr.comment?`<p><em>${tr.comment}</em></p>`:''}<p>──────────────</p><p>Compte : ${accounts.find(a=>a.id===tr.account_id)?.firm_name||'—'}</p>`;
+
+  // Position aléatoire dans une zone trades
+  const x=Math.round(-800+Math.random()*400);
+  const y=Math.round(trades.length*-180);
+
+  const card=await miroPost('sticky_notes',{
+    data:{content,shape:'rectangle'},
+    style:{fillColor:bgColor,textAlign:'left',fontSize:14},
+    position:{x,y,origin:'center'},
+    geometry:{width:280,height:180}
+  });
+  return card;
+}
 let pendingScenarios=[]; // scenarios being built in the session modal
 
 // ── CHECKLIST stored in localStorage ──
@@ -1872,7 +1926,26 @@ async function saveTrade(){
   }
   loading(false);
   if(saveErr){toast('Erreur: '+saveErr.message,'err');console.error('trade save:',saveErr);return;}
-  toast(editId?'✓ Trade modifié':ynVal==='yes'?'⭐ Trade A++ enregistré !':'✓ Trade enregistré');
+  // Créer card Miro si nouveau trade
+  if(!editId){
+    const trForMiro={
+      result:document.getElementById('t-res').value,
+      asset:document.getElementById('t-asset').value,
+      direction:document.getElementById('t-dir').value,
+      rr_theoretical:parseFloat(document.getElementById('t-rr').value)||null,
+      pnl:parseFloat(document.getElementById('t-pnl').value)||0,
+      checklist_respected:ynVal==='yes'?true:ynVal==='no'?false:null,
+      comment:document.getElementById('t-comment').value||null,
+      account_id:accId,
+      entry_time:entry.toISOString(),
+    };
+    createMiroTradeCard(trForMiro).then(c=>{
+      if(c)toast('⭐ Trade enregistré + card Miro créée !');
+      else toast(ynVal==='yes'?'⭐ Trade A++ enregistré !':'✓ Trade enregistré');
+    });
+  } else {
+    toast('✓ Trade modifié');
+  }
   closeM('modal-trade');
   ynVal=null;
   const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
