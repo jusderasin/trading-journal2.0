@@ -273,6 +273,10 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
   .page-header{flex-direction:column;gap:14px}
 }
 
+.filter-pill{padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--text2);background:transparent;font-family:var(--sans)}
+.filter-pill:hover{border-color:rgba(212,168,67,0.3);color:var(--gold)}
+.filter-pill.active{background:var(--gold3);border-color:rgba(212,168,67,0.4);color:var(--gold)}
+
 /* ===== CALENDAR ===== */
 .cal-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:0;flex:1}
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
@@ -987,7 +991,7 @@ function renderDayDetail(ds){
               <button onclick="deleteTrade('${tr.id}','${ds}')" style="font-size:11px;padding:4px 10px;background:none;border:1px solid var(--red);border-radius:5px;color:var(--red);cursor:pointer">🗑 Sup.</button>
             </div>
           </div>
-          ${imgSrc?`<img src="${imgSrc}" style="margin-top:10px;max-height:140px;max-width:100%;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="viewImg('${imgSrc}')">`:``}
+          ${imgSrc?`<img src="${imgSrc}" style="margin-top:10px;max-height:140px;max-width:100%;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="event.stopPropagation();viewImg('${imgSrc}')">`:``}
           ${tr.comments?`<div style="margin-top:8px;font-size:11px;color:var(--text3);font-style:italic">${tr.comments}</div>`:''}
         </div>`;
       }).join('')}
@@ -1080,19 +1084,43 @@ function renderTrades(){
 }
 
 // ── STATS PAGE ──
+let statsFilter='all';
+function setStatsFilter(f,el){
+  statsFilter=f;
+  document.querySelectorAll('#page-stats .filter-pill').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderStats();
+}
+function getStatsFilteredTrades(){
+  const now=new Date();
+  const todayStr=now.toISOString().slice(0,10);
+  const dow=(now.getDay()+6)%7;
+  const mon=new Date(now);mon.setDate(now.getDate()-dow);mon.setHours(0,0,0,0);
+  const startOfMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  const d30=new Date(now);d30.setDate(d30.getDate()-30);d30.setHours(0,0,0,0);
+  return trades.filter(tr=>{
+    if(!tr.entry_time)return false;
+    const d=new Date(tr.entry_time);
+    if(statsFilter==='today')return tr.entry_time.startsWith(todayStr);
+    if(statsFilter==='week')return d>=mon;
+    if(statsFilter==='month')return d>=startOfMonth;
+    if(statsFilter==='30d')return d>=d30;
+    return true;
+  });
+}
 function renderStats(){
-  const t=trades;
+  const t=getStatsFilteredTrades();
   const wins=t.filter(x=>x.result==='profit'),losses=t.filter(x=>x.result==='loss');
   const avg1r=t.length?t.reduce((s,x)=>s+(x.value_1r||75),0)/t.length:75;
   const wr=t.length?wins.length/t.length:0;
   const aw=wins.length?wins.reduce((s,x)=>s+(x.pnl||0)/avg1r,0)/wins.length:0;
   const al=losses.length?Math.abs(losses.reduce((s,x)=>s+(x.pnl||0)/avg1r,0)/losses.length):0;
   const exp=wr*aw-(1-wr)*al;
-  const pf=losses.length>0&&wins.length>0?(wins.reduce((s,x)=>s+(x.pnl||0),0)/Math.abs(losses.reduce((s,x)=>s+(x.pnl||0),0))):null;
+  const totalR=t.reduce((s,x)=>s+(x.rr_realized||((x.pnl||0)/(x.value_1r||75))),0);
   const stExp=document.getElementById('st-exp');if(stExp)stExp.textContent=exp.toFixed(2)+' R';
   const stTotal=document.getElementById('st-total');if(stTotal)stTotal.textContent=t.length;
   const stAwr=document.getElementById('st-awr');if(stAwr)stAwr.textContent=t.length?(wr*100).toFixed(1)+'%':'—';
-  const stSwr=document.getElementById('st-swr');if(stSwr)stSwr.textContent=pf.toFixed(2);
+  const stSwr=document.getElementById('st-swr');if(stSwr)stSwr.textContent=(totalR>=0?'+':'')+totalR.toFixed(2)+' R';
   const stCount=document.getElementById('st-trade-count');
   if(stCount)stCount.textContent=t.length+' trade'+(t.length!==1?'s':'');
   const tbody=document.getElementById('st-trades-body');
@@ -1409,28 +1437,7 @@ function renderScs(scs){
 
 function toggleBts(id){document.getElementById('bts-'+id).classList.toggle('open');}
 function toggleSc(id){document.getElementById(id).classList.toggle('open');}
-function closeLightbox(){const l=document.getElementById('lightbox-overlay');if(l)l.style.display='none';}
-function viewImg(src){
-  let lb=document.getElementById('lightbox-overlay');
-  if(!lb){
-    lb=document.createElement('div');
-    lb.id='lightbox-overlay';
-    lb.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;cursor:zoom-out';
-    const img=document.createElement('img');
-    img.id='lightbox-img';
-    img.style.cssText='max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 0 60px rgba(0,0,0,0.8);object-fit:contain';
-    const btn=document.createElement('button');
-    btn.textContent='✕';
-    btn.style.cssText='position:absolute;top:20px;right:28px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;opacity:0.7;line-height:1';
-    btn.onclick=function(e){e.stopPropagation();closeLightbox();};
-    lb.appendChild(img);lb.appendChild(btn);
-    lb.onclick=function(e){if(e.target===lb)closeLightbox();};
-    document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLightbox();});
-    document.body.appendChild(lb);
-  }
-  document.getElementById('lightbox-img').src=src;
-  lb.style.display='flex';
-}
+function viewImg(src){window.open(src,'_blank');}
 
 // ── BACKTEST SESSION MODAL ──
 function scFormHTML(idx){
