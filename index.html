@@ -460,9 +460,15 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
         </div>
         <!-- PnL Chart -->
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-title">Courbe de capital</span></div>
-          <div style="padding:20px;position:relative;height:200px" id="pnl-chart-wrap">
+          <div class="card-header"><span class="card-title">Courbe de capital</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" id="chart-view-line" onclick="setChartView('line',this)" style="background:var(--bg3)">📈 Courbe</button>
+              <button class="btn btn-ghost btn-sm" id="chart-view-pie" onclick="setChartView('pie',this)">🥧 Répartition</button>
+            </div>
+          </div>
+          <div style="padding:20px;position:relative;height:220px;display:flex;align-items:center;justify-content:center" id="pnl-chart-wrap">
             <canvas id="pnl-chart" style="width:100%;height:100%"></canvas>
+            <canvas id="pie-chart" style="display:none;max-width:220px;max-height:220px"></canvas>
           </div>
         </div>
         <!-- Trades table -->
@@ -483,7 +489,10 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       <div class="page" id="page-backtests">
         <div class="page-header">
           <div><div class="page-title">Mes <em>Backtests</em></div><div class="page-meta">Sessions d'analyse CVD Divergence sur DeepChart</div></div>
-          <button class="btn btn-gold" onclick="openBtModal()">+ Nouvelle session</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="exportBacktests()" title="Exporter toutes les données">⬇ Export JSON</button>
+            <button class="btn btn-gold" onclick="openBtModal()">+ Nouvelle session</button>
+          </div>
         </div>
         <div class="bt-sessions" id="bt-sessions"><div class="empty">Aucune session enregistrée</div></div>
       </div>
@@ -524,8 +533,12 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       </div>
     </div>
     <div class="frow">
+      <div class="fg"><label class="flabel">Date du trade</label><input type="date" class="finput" id="t-date"></div>
       <div class="fg"><label class="flabel">Heure d'entrée</label><input type="time" class="finput" id="t-time"></div>
+    </div>
+    <div class="frow">
       <div class="fg"><label class="flabel">Valeur 1R ($)</label><input type="number" class="finput" id="t-1r" value="75"></div>
+      <div class="fg"></div>
     </div>
     <div class="frow">
       <div class="fg"><label class="flabel">RR Théorique</label><input type="number" class="finput" id="t-rr" placeholder="2.0" step="0.1"></div>
@@ -533,12 +546,10 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
     </div>
     <div class="fdivider"></div>
     <div class="fg" style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <label class="flabel">Checklist</label>
-        <span style="font-size:11px;color:var(--text3)" id="t-cl-score">0/0 coché</span>
-      </div>
-      <div id="t-cl-items" style="display:flex;flex-direction:column;gap:6px">
-        <!-- filled by JS -->
+      <label class="flabel">As-tu respecté ta checklist ?</label>
+      <div class="yn-row">
+        <button class="yn-btn yes" id="yn-yes" onclick="selYN('yes')">✓ Oui — Checklist respectée</button>
+        <button class="yn-btn no" id="yn-no" onclick="selYN('no')">✗ Non — Hors setup</button>
       </div>
     </div>
     <div class="frow full">
@@ -923,7 +934,7 @@ function renderDayDetail(ds){
       <span class="day-detail-kpi" style="color:${col}">${rVal>=0?'+':''}${rVal.toFixed(1)}R &nbsp; ${pnl>=0?'+':''}${pnl.toFixed(2)}$</span>
     </div>
     <table style="width:100%;border-collapse:collapse">
-      <thead><tr><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Actif</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Direction</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Résultat</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">RR</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">PnL</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Checklist</th></tr></thead>
+      <thead><tr><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Actif</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Direction</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Résultat</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">RR</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">PnL</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Checklist</th><th style="padding:10px 20px;border-bottom:1px solid var(--border)"></th></tr></thead>
       <tbody>${dayTrades.map(tr=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
         <td style="padding:12px 20px;font-size:13px;color:var(--text);font-weight:500">${tr.asset}</td>
         <td style="padding:12px 20px"><span class="badge b-${tr.direction}">${tr.direction==='long'?'▲ Long':'▼ Short'}</span></td>
@@ -931,6 +942,7 @@ function renderDayDetail(ds){
         <td style="padding:12px 20px;font-family:var(--mono);font-size:12px;color:var(--text2)">${tr.rr_theoretical?tr.rr_theoretical+'R':'—'}</td>
         <td style="padding:12px 20px;font-family:var(--mono);font-size:12px;font-weight:600;color:${(tr.pnl||0)>=0?'var(--green)':'var(--red)'}">${(tr.pnl||0)>=0?'+':''}${(tr.pnl||0).toFixed(2)} $</td>
         <td style="padding:12px 20px;font-size:12px;color:${tr.checklist_respected===true?'var(--green)':tr.checklist_respected===false?'var(--red)':'var(--text3)'}">${tr.checklist_respected===true?'✓ Oui':tr.checklist_respected===false?'✗ Non':'—'}</td>
+        <td style="padding:8px 20px">${tr.screenshot?`<img src="${tr.screenshot}" style="height:52px;border-radius:4px;cursor:pointer;border:1px solid var(--border)" onclick="viewImg('${tr.screenshot}')" title="Voir le screenshot">`:''}</td>
       </tr>`).join('')}</tbody>
     </table>
   </div>`;
@@ -1029,7 +1041,7 @@ function renderStats(){
   const aw=wins.length?wins.reduce((s,x)=>s+(x.pnl||0)/avg1r,0)/wins.length:0;
   const al=losses.length?Math.abs(losses.reduce((s,x)=>s+(x.pnl||0)/avg1r,0)/losses.length):0;
   const exp=wr*aw-(1-wr)*al;
-  const pf=losses.length>0&&wins.length>0?(wins.reduce((s,x)=>s+(x.pnl||0),0)/Math.abs(losses.reduce((s,x)=>s+(x.pnl||0),0))):wins.length>0?999:0;
+  const pf=losses.length>0&&wins.length>0?(wins.reduce((s,x)=>s+(x.pnl||0),0)/Math.abs(losses.reduce((s,x)=>s+(x.pnl||0),0))):null;
   const stExp=document.getElementById('st-exp');if(stExp)stExp.textContent=exp.toFixed(2)+' R';
   const stTotal=document.getElementById('st-total');if(stTotal)stTotal.textContent=t.length;
   const stAwr=document.getElementById('st-awr');if(stAwr)stAwr.textContent=t.length?(wr*100).toFixed(1)+'%':'—';
@@ -1082,9 +1094,56 @@ function renderStats(){
   const pats=[];
   for(let i=0;i<t.length-2;i++)if(t[i].result==='loss'&&t[i+1].result==='loss'&&t[i+2].result==='loss'){pats.push({type:'warn',msg:"3 SL consécutifs — risque d'overtrading"});break;}
   const card=document.getElementById('patterns-card'),body=document.getElementById('patterns-body');
-  if(!pats.length){if(card)card.style.display='none';return;}
-  if(card)card.style.display='block';
-  if(body)body.innerHTML=pats.map(p=>`<div class="pattern-item p-warn"><span>⚠️</span><span style="font-size:12px;color:var(--text2);line-height:1.6">${p.msg}</span></div>`).join('');
+  if(!pats.length){if(card)card.style.display='none';}
+  else{if(card)card.style.display='block';if(body)body.innerHTML=pats.map(p=>`<div class="pattern-item p-warn"><span>⚠️</span><span style="font-size:12px;color:var(--text2);line-height:1.6">${p.msg}</span></div>`).join('');}
+  // Store trades for pie chart
+  window._statsTrades=t;
+}
+
+let _chartView='line';
+function setChartView(v,el){
+  _chartView=v;
+  document.querySelectorAll('[id^="chart-view-"]').forEach(b=>b.style.background='');
+  if(el)el.style.background='var(--bg3)';
+  const lineC=document.getElementById('pnl-chart');
+  const pieC=document.getElementById('pie-chart');
+  if(v==='line'){if(lineC)lineC.style.display='block';if(pieC)pieC.style.display='none';}
+  else{if(lineC)lineC.style.display='none';if(pieC)pieC.style.display='block';drawPieChart(window._statsTrades||[]);}
+}
+
+function drawPieChart(t){
+  const canvas=document.getElementById('pie-chart');
+  if(!canvas)return;
+  const profits=t.filter(x=>x.result==='profit').length;
+  const losses=t.filter(x=>x.result==='loss').length;
+  const bes=t.filter(x=>x.result==='be').length;
+  const total=profits+losses+bes;
+  if(!total){canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);return;}
+  canvas.width=220;canvas.height=220;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,220,220);
+  const data=[{v:profits,c:'#34d399',l:'TP'},{v:losses,c:'#f87171',l:'SL'},{v:bes,c:'#818cf8',l:'BE'}].filter(d=>d.v>0);
+  let start=0;
+  const cx=110,cy=110,r=90,ri=50;
+  data.forEach(seg=>{
+    const angle=(seg.v/total)*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+angle);ctx.closePath();
+    ctx.fillStyle=seg.c+'cc';ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+angle);ctx.closePath();
+    ctx.strokeStyle='var(--bg2)';ctx.lineWidth=2;ctx.stroke();
+    // label
+    const midA=start+angle/2;
+    const lx=cx+Math.cos(midA)*(ri+28);
+    const ly=cy+Math.sin(midA)*(ri+28);
+    ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    const pct=((seg.v/total)*100).toFixed(0)+'%';
+    ctx.fillText(seg.l+' '+pct,lx,ly);
+    start+=angle;
+  });
+  // Center donut hole
+  ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.fillStyle='var(--bg2)';ctx.fill();
+  ctx.fillStyle='var(--text)';ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(total+' trades',cx,cy);
 }
 
 
@@ -1222,6 +1281,7 @@ function renderBtSessions(){
           <div class="bt-kpi"><div class="bt-kpi-val" style="color:var(--gold)">${wr}</div><div class="bt-kpi-key">Win Rate</div></div>
           <div class="bt-kpi"><div class="bt-kpi-val" style="color:${totalR>=0?'var(--green)':'var(--red)'}">${totalR>=0?'+':''}${totalR.toFixed(1)}R</div><div class="bt-kpi-key">Total R</div></div>
           <div class="bt-kpi"><div class="bt-kpi-val">${allTrades.length}</div><div class="bt-kpi-key">Trades</div></div>
+          <button onclick="deleteBtSession('${s.id}',event)" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--red);color:var(--red);background:none;cursor:pointer;margin-left:8px" title="Supprimer">🗑</button>
           <span class="bt-chevron">▾</span>
         </div>
       </div>
@@ -1443,7 +1503,9 @@ function fillAccSelect(){
   sel.innerHTML='<option value="">— Sélectionner un compte —</option>'+accounts.map(a=>`<option value="${a.id}">${a.firm_name} (${a.account_type})</option>`).join('');
 }
 function openTradeModal(){
-  document.getElementById('t-time').value=new Date().toTimeString().slice(0,5);
+  const now=new Date();
+  document.getElementById('t-date').value=now.toISOString().slice(0,10);
+  document.getElementById('t-time').value=now.toTimeString().slice(0,5);
   // Populate checklist in modal
   const cl=getCL();
   const allItems=[
@@ -1490,14 +1552,10 @@ async function saveTrade(){
   }
   const pnl=parseFloat(document.getElementById('t-pnl').value)||0;
   const v1r=parseFloat(document.getElementById('t-1r').value)||75;
+  const dateVal=document.getElementById('t-date').value||today();
   const timeVal=document.getElementById('t-time').value;
   const entry=new Date();
   if(timeVal){const[h,m]=timeVal.split(':');entry.setHours(+h,+m,0,0);}
-  // Compute checklist score
-  const _cl=getCL();
-  const _allCL=[..._cl.setup,..._cl.risk,..._cl.aplus];
-  const _clTotal=_allCL.length;
-  const _clChecked=_allCL.filter(i=>{const c=document.getElementById('cl-check-'+i.id);return c&&c.checked;}).length;
   const payload={
     user_id:user.id,account_id:accId,
     asset:document.getElementById('t-asset').value,
@@ -1506,8 +1564,8 @@ async function saveTrade(){
     rr_theoretical:parseFloat(document.getElementById('t-rr').value)||null,
     rr_realized:v1r>0?pnl/v1r:null,
     pnl,value_1r:v1r,
-    checklist_respected:_clChecked>0?(_clChecked===_clTotal?true:false):null,
-    is_aplus:_clChecked>0&&_clChecked===_clTotal,
+    checklist_respected:ynVal==='yes'?true:ynVal==='no'?false:null,
+    is_aplus:ynVal==='yes',
     checklist_score:0,checklist_max:10,
     screenshot_url:imgUrl,
     comment:document.getElementById('t-comment').value||null,
@@ -1519,9 +1577,9 @@ async function saveTrade(){
   if(error){toast('Erreur: '+error.message,'err');console.error('trade insert:',error);return;}
   toast(ynVal==='yes'?'⭐ Trade A++ enregistré !':'✓ Trade enregistré');
   closeM('modal-trade');
-  // Uncheck all checkboxes
-  document.querySelectorAll('[id^="cl-check-"]').forEach(c=>{if(c.type==='checkbox')c.checked=false;});
-  if(document.getElementById('t-cl-score'))document.getElementById('t-cl-score').textContent='0/0 coché';
+  ynVal=null;
+  const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
+  if(yy)yy.classList.remove('sel');if(yn)yn.classList.remove('sel');
   ['t-pnl','t-rr','t-comment'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
  
   document.getElementById('t-prev').style.display='none';if(imgInput)imgInput.value='';
