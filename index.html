@@ -483,6 +483,7 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
           <div style="padding:20px;position:relative;height:220px;display:flex;align-items:center;justify-content:center" id="pnl-chart-wrap">
             <canvas id="pnl-chart" style="width:100%;height:100%"></canvas>
             <canvas id="pie-chart" style="display:none;max-width:220px;max-height:220px"></canvas>
+            <div id="pnl-tooltip" style="display:none;position:absolute;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:11px;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10"></div>
           </div>
         </div>
         <!-- Trades table -->
@@ -492,6 +493,19 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
             <thead><tr><th>Date</th><th>Actif</th><th>Direction</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Checklist</th><th></th></tr></thead>
             <tbody id="st-trades-body"><tr><td colspan="7" class="empty">Aucun trade</td></tr></tbody>
           </table>
+        </div>
+        <!-- HEATMAP HEURES -->
+        <div class="card" style="margin-top:16px;margin-bottom:16px">
+          <div class="card-header"><span class="card-title">Heatmap — Performance par heure</span><span class="card-meta" id="hm-meta"></span></div>
+          <div style="padding:20px" id="heatmap-wrap">
+            <div style="display:grid;grid-template-columns:repeat(14,1fr);gap:4px" id="heatmap-grid"></div>
+            <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap" id="heatmap-legend"></div>
+          </div>
+        </div>
+        <!-- HEATMAP JOURS DE LA SEMAINE -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span class="card-title">Performance par jour de la semaine</span></div>
+          <div style="padding:20px;display:flex;gap:10px;flex-wrap:wrap" id="weekday-grid"></div>
         </div>
         <div class="card" id="patterns-card" style="display:none;margin-top:16px">
           <div class="card-header"><span class="card-title">Patterns détectés</span></div>
@@ -1195,6 +1209,24 @@ function renderStats(){
     pts.forEach((p,i)=>{i===0?ctx.moveTo(toX(i),toY(p.y)):ctx.lineTo(toX(i),toY(p.y));});
     ctx.strokeStyle=cum>=0?'#34d399':'#f87171';ctx.lineWidth=2;ctx.stroke();
     if(minY<0&&maxY>0){ctx.beginPath();ctx.moveTo(pad,toY(0));ctx.lineTo(w-pad,toY(0));ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);}
+    // Tooltip hover
+    canvas.onmousemove=function(ev){
+      const rect=canvas.getBoundingClientRect();
+      const mx=(ev.clientX-rect.left)*(canvas.width/rect.width);
+      const idx=Math.round((mx-pad)/scaleX);
+      if(idx>=0&&idx<pts.length){
+        const tip=document.getElementById('pnl-tooltip');
+        if(tip){
+          const p=pts[idx];
+          const tr=idx>0?sorted[idx-1]:null;
+          tip.style.display='block';
+          tip.style.left=(ev.clientX-rect.left+10)+'px';
+          tip.style.top=(ev.clientY-rect.top-30)+'px';
+          tip.textContent=tr?`${tr.asset} ${tr.result==='profit'?'✓':'✗'} · ${p.y>=0?'+':''}${p.y.toFixed(0)}$`:`Départ · 0$`;
+        }
+      }
+    };
+    canvas.onmouseleave=function(){const tip=document.getElementById('pnl-tooltip');if(tip)tip.style.display='none';};
     });// end rAF
   }
   const pats=[];
@@ -1204,6 +1236,100 @@ function renderStats(){
   else{if(card)card.style.display='block';if(body)body.innerHTML=pats.map(p=>`<div class="pattern-item p-warn"><span>⚠️</span><span style="font-size:12px;color:var(--text2);line-height:1.6">${p.msg}</span></div>`).join('');}
   // Store trades for pie chart
   window._statsTrades=t;
+  // Render heatmaps
+  renderHeatmap(t);
+  renderWeekdayChart(t);
+}
+
+function renderHeatmap(trades){
+  const grid=document.getElementById('heatmap-grid');
+  const meta=document.getElementById('hm-meta');
+  if(!grid)return;
+  // Heures de trading 7h → 20h
+  const hours=Array.from({length:14},(_,i)=>i+7);
+  // Agréger par heure
+  const byHour={};
+  hours.forEach(h=>{byHour[h]={pnl:0,count:0,wins:0};});
+  trades.forEach(tr=>{
+    if(!tr.entry_time)return;
+    const h=new Date(tr.entry_time).getHours();
+    if(h<7||h>20)return;
+    byHour[h]={
+      pnl:(byHour[h]?.pnl||0)+(tr.pnl||0),
+      count:(byHour[h]?.count||0)+1,
+      wins:(byHour[h]?.wins||0)+(tr.result==='profit'?1:0)
+    };
+  });
+  const maxAbs=Math.max(...hours.map(h=>Math.abs(byHour[h]?.pnl||0)),1);
+  grid.innerHTML=hours.map(h=>{
+    const d=byHour[h];
+    const pnl=d?.pnl||0;
+    const count=d?.count||0;
+    const wr=count>0?Math.round(d.wins/count*100):null;
+    const intensity=Math.min(1,Math.abs(pnl)/maxAbs);
+    let bg,color;
+    if(count===0){bg='var(--bg3)';color='var(--text3)';}
+    else if(pnl>0){bg=`rgba(52,211,153,${0.1+intensity*0.7})`;color='var(--green)';}
+    else if(pnl<0){bg=`rgba(248,113,113,${0.1+intensity*0.7})`;color='var(--red)';}
+    else{bg='var(--bg3)';color='var(--text3)';}
+    const label=h<10?`0${h}h`:`${h}h`;
+    const tooltip=count>0?`${count} trade${count>1?'s':''} · ${pnl>=0?'+':''}${pnl.toFixed(0)}$ · WR ${wr}%`:'Aucun trade';
+    return`<div style="background:${bg};border-radius:6px;padding:10px 4px;text-align:center;cursor:default;transition:all .15s;border:1px solid rgba(255,255,255,0.04)" title="${tooltip}">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:var(--mono)">${label}</div>
+      <div style="font-size:11px;font-weight:700;color:${color}">${count>0?(pnl>=0?'+':'')+pnl.toFixed(0):'—'}</div>
+      ${wr!==null?`<div style="font-size:9px;color:var(--text3);margin-top:2px">${wr}%</div>`:''}
+    </div>`;
+  }).join('');
+  // Sessions
+  const legend=document.getElementById('heatmap-legend');
+  if(legend)legend.innerHTML=[
+    {label:'Londres',h:[7,8,9,10,11],col:'rgba(96,165,250,0.15)',border:'rgba(96,165,250,0.3)'},
+    {label:'New York',h:[14,15,16,17,18,19],col:'rgba(212,168,67,0.15)',border:'rgba(212,168,67,0.3)'},
+  ].map(s=>{
+    const sTrades=trades.filter(tr=>{if(!tr.entry_time)return false;const h=new Date(tr.entry_time).getHours();return s.h.includes(h);});
+    const sPnl=sTrades.reduce((a,t)=>a+(t.pnl||0),0);
+    const sWr=sTrades.length?Math.round(sTrades.filter(t=>t.result==='profit').length/sTrades.length*100):null;
+    return`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:${s.col};border:1px solid ${s.border};border-radius:var(--r)">
+      <span style="font-size:12px;font-weight:600;color:var(--text)">${s.label}</span>
+      <span style="font-size:12px;font-family:var(--mono);color:${sPnl>=0?'var(--green)':'var(--red)'}">${sPnl>=0?'+':''}${sPnl.toFixed(0)}$</span>
+      ${sWr!==null?`<span style="font-size:11px;color:var(--text3)">${sWr}% WR</span>`:''}
+      <span style="font-size:11px;color:var(--text3)">${sTrades.length} trades</span>
+    </div>`;
+  }).join('');
+  if(meta)meta.textContent=trades.length+' trades analysés';
+}
+
+function renderWeekdayChart(trades){
+  const wrap=document.getElementById('weekday-grid');
+  if(!wrap)return;
+  const days=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const byDay=days.map((_,i)=>({pnl:0,count:0,wins:0}));
+  trades.forEach(tr=>{
+    if(!tr.entry_time)return;
+    const d=(new Date(tr.entry_time).getDay()+6)%7; // 0=Lundi
+    byDay[d].pnl+=(tr.pnl||0);
+    byDay[d].count++;
+    if(tr.result==='profit')byDay[d].wins++;
+  });
+  const maxAbs=Math.max(...byDay.map(d=>Math.abs(d.pnl)),1);
+  wrap.innerHTML=days.map((day,i)=>{
+    const d=byDay[i];
+    const pnl=d.pnl;
+    const count=d.count;
+    const wr=count>0?Math.round(d.wins/count*100):null;
+    const intensity=Math.min(1,Math.abs(pnl)/maxAbs);
+    let bg,col;
+    if(count===0){bg='var(--bg3)';col='var(--text3)';}
+    else if(pnl>0){bg=`rgba(52,211,153,${0.08+intensity*0.6})`;col='var(--green)';}
+    else if(pnl<0){bg=`rgba(248,113,113,${0.08+intensity*0.6})`;col='var(--red)';}
+    else{bg='var(--bg3)';col='var(--text3)';}
+    return`<div style="flex:1;min-width:90px;background:${bg};border:1px solid rgba(255,255,255,0.05);border-radius:var(--r);padding:14px 10px;text-align:center">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px">${day}</div>
+      <div style="font-size:18px;font-weight:800;color:${col};font-family:var(--mono)">${count>0?(pnl>=0?'+':'')+pnl.toFixed(0):'—'}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">${count} trade${count!==1?'s':''}</div>
+      ${wr!==null?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${wr}% WR</div>`:''}
+    </div>`;
+  }).join('');
 }
 
 let _chartView='line';
