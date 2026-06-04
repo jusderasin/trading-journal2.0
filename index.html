@@ -1844,10 +1844,21 @@ async function saveTrade(){
     entry_time:entry.toISOString(),
   };
   loading(true,'Enregistrement...');
-  const{error}=await sb.from('trades').insert(payload);
+  let saveErr;
+  if(editId){
+    // UPDATE — ne pas écraser user_id ni screenshot si pas de nouvelle image
+    const updatePayload=Object.assign({},payload);
+    delete updatePayload.user_id;
+    if(!imgUrl){delete updatePayload.screenshot_url;} // garder l'ancienne image
+    const res=await sb.from('trades').update(updatePayload).eq('id',editId).eq('user_id',user.id);
+    saveErr=res.error;
+  } else {
+    const res=await sb.from('trades').insert(payload);
+    saveErr=res.error;
+  }
   loading(false);
-  if(error){toast('Erreur: '+error.message,'err');console.error('trade insert:',error);return;}
-  toast(ynVal==='yes'?'⭐ Trade A++ enregistré !':'✓ Trade enregistré');
+  if(saveErr){toast('Erreur: '+saveErr.message,'err');console.error('trade save:',saveErr);return;}
+  toast(editId?'✓ Trade modifié':ynVal==='yes'?'⭐ Trade A++ enregistré !':'✓ Trade enregistré');
   closeM('modal-trade');
   ynVal=null;
   const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
