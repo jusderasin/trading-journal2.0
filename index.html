@@ -1467,7 +1467,20 @@ function renderScs(scs){
 
 function toggleBts(id){document.getElementById('bts-'+id).classList.toggle('open');}
 function toggleSc(id){document.getElementById(id).classList.toggle('open');}
-function viewImg(src){window.open(src,'_blank');}
+function viewImg(src){
+  let lb=document.getElementById('lightbox-overlay');
+  if(!lb){
+    lb=document.createElement('div');
+    lb.id='lightbox-overlay';
+    lb.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+    lb.innerHTML='<img id="lightbox-img" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 0 60px rgba(0,0,0,0.8);object-fit:contain"><button style="position:absolute;top:20px;right:28px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;opacity:0.7;line-height:1" onclick="document.getElementById('lightbox-overlay').style.display='none'">✕</button>';
+    lb.onclick=function(e){if(e.target===lb)lb.style.display='none';};
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'){const l=document.getElementById('lightbox-overlay');if(l)l.style.display='none';}});
+    document.body.appendChild(lb);
+  }
+  document.getElementById('lightbox-img').src=src;
+  lb.style.display='flex';
+}
 
 // ── BACKTEST SESSION MODAL ──
 function scFormHTML(idx){
