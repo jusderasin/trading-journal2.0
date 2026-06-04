@@ -813,6 +813,43 @@ sb.auth.onAuthStateChange(async(_,session)=>{
   }
 });
 
+// ── TRADE EDIT / DELETE ──
+async function deleteTrade(id, ds){
+  if(!confirm('Supprimer ce trade ?'))return;
+  const{error}=await sb.from('trades').delete().eq('id',id);
+  if(error){toast('Erreur : '+error.message);return;}
+  trades=trades.filter(t=>t.id!==id);
+  renderAll();
+  renderDayDetail(ds);
+  toast('Trade supprimé');
+}
+
+function editTrade(id){
+  const tr=trades.find(t=>t.id===id);
+  if(!tr)return;
+  // Pre-fill the trade modal
+  const now=new Date();
+  document.getElementById('t-date').value=tr.entry_time?tr.entry_time.slice(0,10):now.toISOString().slice(0,10);
+  document.getElementById('t-time').value=tr.entry_time?tr.entry_time.slice(11,16):now.toTimeString().slice(0,5);
+  document.getElementById('t-acc').value=tr.account_id||'';
+  document.getElementById('t-asset').value=tr.asset||'MNQ';
+  document.getElementById('t-dir').value=tr.direction||'long';
+  document.getElementById('t-res').value=tr.result||'profit';
+  document.getElementById('t-1r').value=tr.value_1r||75;
+  document.getElementById('t-rr').value=tr.rr_theoretical||'';
+  document.getElementById('t-pnl').value=tr.pnl||'';
+  document.getElementById('t-comment').value=tr.comments||'';
+  // YN
+  ynVal=tr.checklist_respected===true?'yes':tr.checklist_respected===false?'no':null;
+  const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
+  if(yy){yy.classList.toggle('sel',ynVal==='yes');}
+  if(yn){yn.classList.toggle('sel',ynVal==='no');}
+  // Store ID for save
+  document.getElementById('modal-trade').dataset.editId=id;
+  document.getElementById('modal-trade').querySelector('.modal-title').textContent='Modifier le trade';
+  document.getElementById('modal-trade').classList.add('open');
+}
+
 // ── SIDEBAR ──
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
@@ -933,18 +970,28 @@ function renderDayDetail(ds){
       <span class="day-detail-title">${dLabel}</span>
       <span class="day-detail-kpi" style="color:${col}">${rVal>=0?'+':''}${rVal.toFixed(1)}R &nbsp; ${pnl>=0?'+':''}${pnl.toFixed(2)}$</span>
     </div>
-    <table style="width:100%;border-collapse:collapse">
-      <thead><tr><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Actif</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Direction</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Résultat</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">RR</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">PnL</th><th style="text-align:left;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:10px 20px;border-bottom:1px solid var(--border)">Checklist</th><th style="padding:10px 20px;border-bottom:1px solid var(--border)"></th></tr></thead>
-      <tbody>${dayTrades.map(tr=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
-        <td style="padding:12px 20px;font-size:13px;color:var(--text);font-weight:500">${tr.asset}</td>
-        <td style="padding:12px 20px"><span class="badge b-${tr.direction}">${tr.direction==='long'?'▲ Long':'▼ Short'}</span></td>
-        <td style="padding:12px 20px"><span class="badge b-${tr.result}">${tr.result==='profit'?'Profit':tr.result==='loss'?'Loss':'BE'}</span></td>
-        <td style="padding:12px 20px;font-family:var(--mono);font-size:12px;color:var(--text2)">${tr.rr_theoretical?tr.rr_theoretical+'R':'—'}</td>
-        <td style="padding:12px 20px;font-family:var(--mono);font-size:12px;font-weight:600;color:${(tr.pnl||0)>=0?'var(--green)':'var(--red)'}">${(tr.pnl||0)>=0?'+':''}${(tr.pnl||0).toFixed(2)} $</td>
-        <td style="padding:12px 20px;font-size:12px;color:${tr.checklist_respected===true?'var(--green)':tr.checklist_respected===false?'var(--red)':'var(--text3)'}">${tr.checklist_respected===true?'✓ Oui':tr.checklist_respected===false?'✗ Non':'—'}</td>
-        <td style="padding:8px 20px">${tr.screenshot?`<img src="${tr.screenshot}" style="height:52px;border-radius:4px;cursor:pointer;border:1px solid var(--border)" onclick="viewImg('${tr.screenshot}')" title="Voir le screenshot">`:''}</td>
-      </tr>`).join('')}</tbody>
-    </table>
+    <div style="display:flex;flex-direction:column;gap:10px;padding:14px 20px">
+      ${dayTrades.map(tr=>{
+        const imgSrc=tr.screenshot_url||tr.screenshot||null;
+        return`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:11px;font-family:var(--mono);color:var(--text3)">${tr.entry_time?new Date(tr.entry_time).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}</span>
+            <span class="badge b-${tr.asset==='MNQ'?'long':'long'}" style="background:var(--bg2);border:1px solid var(--border);color:var(--text)">${tr.asset}</span>
+            <span class="badge b-${tr.direction}">${tr.direction==='long'?'▲ Long':'▼ Short'}</span>
+            <span class="badge b-${tr.result}">${tr.result==='profit'?'TP ✓':tr.result==='loss'?'SL ✗':'BE'}</span>
+            ${tr.rr_theoretical?`<span style="font-size:12px;font-family:var(--mono);color:var(--text2)">${tr.rr_theoretical}R</span>`:''}
+            <span style="font-size:13px;font-family:var(--mono);font-weight:700;color:${(tr.pnl||0)>=0?'var(--green)':'var(--red)'}">${(tr.pnl||0)>=0?'+':''}${(tr.pnl||0).toFixed(2)} $</span>
+            <span style="font-size:11px;color:${tr.checklist_respected===true?'var(--green)':tr.checklist_respected===false?'var(--red)':'var(--text3)'}">${tr.checklist_respected===true?'✓ Checklist':tr.checklist_respected===false?'✗ Hors setup':'—'}</span>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button onclick="editTrade('${tr.id}')" style="font-size:11px;padding:4px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer">✏️ Modifier</button>
+              <button onclick="deleteTrade('${tr.id}','${ds}')" style="font-size:11px;padding:4px 10px;background:none;border:1px solid var(--red);border-radius:5px;color:var(--red);cursor:pointer">🗑 Sup.</button>
+            </div>
+          </div>
+          ${imgSrc?`<img src="${imgSrc}" style="margin-top:10px;max-height:140px;max-width:100%;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="viewImg('${imgSrc}')">`:``}
+          ${tr.comments?`<div style="margin-top:8px;font-size:11px;color:var(--text3);font-style:italic">${tr.comments}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
   </div>`;
 }
 
@@ -1064,9 +1111,10 @@ function renderStats(){
   // PnL curve
   const canvas=document.getElementById('pnl-chart');
   if(canvas&&t.length>0){
+    requestAnimationFrame(()=>{
     const ctx=canvas.getContext('2d');
-    canvas.width=canvas.parentElement?canvas.parentElement.offsetWidth-40:800;
-    canvas.height=160;
+    canvas.width=canvas.parentElement?Math.max(canvas.parentElement.offsetWidth-40,400):800;
+    canvas.height=180;
     const w=canvas.width,h=canvas.height;
     ctx.clearRect(0,0,w,h);
     const sorted=[...t].sort((a,b)=>new Date(a.entry_time)-new Date(b.entry_time));
@@ -1090,6 +1138,7 @@ function renderStats(){
     pts.forEach((p,i)=>{i===0?ctx.moveTo(toX(i),toY(p.y)):ctx.lineTo(toX(i),toY(p.y));});
     ctx.strokeStyle=cum>=0?'#34d399':'#f87171';ctx.lineWidth=2;ctx.stroke();
     if(minY<0&&maxY>0){ctx.beginPath();ctx.moveTo(pad,toY(0));ctx.lineTo(w-pad,toY(0));ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);}
+    });// end rAF
   }
   const pats=[];
   for(let i=0;i<t.length-2;i++)if(t[i].result==='loss'&&t[i+1].result==='loss'&&t[i+2].result==='loss'){pats.push({type:'warn',msg:"3 SL consécutifs — risque d'overtrading"});break;}
@@ -1281,7 +1330,8 @@ function renderBtSessions(){
           <div class="bt-kpi"><div class="bt-kpi-val" style="color:var(--gold)">${wr}</div><div class="bt-kpi-key">Win Rate</div></div>
           <div class="bt-kpi"><div class="bt-kpi-val" style="color:${totalR>=0?'var(--green)':'var(--red)'}">${totalR>=0?'+':''}${totalR.toFixed(1)}R</div><div class="bt-kpi-key">Total R</div></div>
           <div class="bt-kpi"><div class="bt-kpi-val">${allTrades.length}</div><div class="bt-kpi-key">Trades</div></div>
-          <button onclick="deleteBtSession('${s.id}',event)" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--red);color:var(--red);background:none;cursor:pointer;margin-left:8px" title="Supprimer">🗑</button>
+          <button onclick="exportBtSession('${s.id}',event)" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);color:var(--text3);background:none;cursor:pointer;margin-left:8px" title="Exporter cette session">⬇</button>
+          <button onclick="deleteBtSession('${s.id}',event)" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--red);color:var(--red);background:none;cursor:pointer;margin-left:4px" title="Supprimer">🗑</button>
           <span class="bt-chevron">▾</span>
         </div>
       </div>
@@ -1540,6 +1590,7 @@ function selYN(v){
   document.getElementById('yn-no').classList.toggle('sel',v==='no');
 }
 async function saveTrade(){
+  const editId=document.getElementById('modal-trade').dataset.editId||null;
   const accId=document.getElementById('t-acc').value;
   if(!accId){toast('Sélectionne un compte','err');return;}
   let imgUrl=null;
@@ -1580,6 +1631,8 @@ async function saveTrade(){
   ynVal=null;
   const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
   if(yy)yy.classList.remove('sel');if(yn)yn.classList.remove('sel');
+  document.getElementById('modal-trade').dataset.editId='';
+  document.getElementById('modal-trade').querySelector('.modal-title').textContent='Enregistrer un trade';
   ['t-pnl','t-rr','t-comment'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
  
   document.getElementById('t-prev').style.display='none';if(imgInput)imgInput.value='';
