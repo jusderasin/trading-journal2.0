@@ -452,18 +452,18 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
         <div class="page-header">
           <div><div class="page-title"><em>Statistiques</em></div><div class="page-meta">Performance &amp; analyse</div></div>
           <div style="display:flex;gap:6px;align-items:center">
-            <button class="filter-pill" id="sf-today" onclick="setStatsFilter('today',this)">Aujourd'hui</button>
-            <button class="filter-pill" id="sf-week" onclick="setStatsFilter('week',this)">Cette semaine</button>
-            <button class="filter-pill" id="sf-month" onclick="setStatsFilter('month',this)">Ce mois-ci</button>
-            <button class="filter-pill" id="sf-30d" onclick="setStatsFilter('30d',this)">30 jours</button>
-            <button class="filter-pill active" id="sf-all" onclick="setStatsFilter('all',this)">Tout</button>
+            <button class="acc-pill" id="sf-today" onclick="setStatsFilter('today',this)">Aujourd'hui</button>
+            <button class="acc-pill" id="sf-week" onclick="setStatsFilter('week',this)">Cette semaine</button>
+            <button class="acc-pill" id="sf-month" onclick="setStatsFilter('month',this)">Ce mois-ci</button>
+            <button class="acc-pill" id="sf-30d" onclick="setStatsFilter('30d',this)">30 jours</button>
+            <button class="acc-pill active" id="sf-all" onclick="setStatsFilter('all',this)">Tout</button>
           </div>
         </div>
         <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
-          <div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-num gold" id="st-exp">0.00 R</div></div>
           <div class="stat-card"><div class="stat-label">Total Trades</div><div class="stat-num" id="st-total">0</div></div>
           <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-num green" id="st-awr">—</div></div>
-          <div class="stat-card"><div class="stat-label">Profit Factor</div><div class="stat-num" id="st-swr">—</div></div>
+          <div class="stat-card"><div class="stat-label">Total R</div><div class="stat-num" id="st-swr">—</div></div>
+          <div class="stat-card"><div class="stat-label">PnL Total</div><div class="stat-num" id="st-pnl-total">—</div></div>
         </div>
         <!-- PnL Chart -->
         <div class="card" style="margin-bottom:16px">
@@ -1112,7 +1112,7 @@ function renderTrades(){
 let statsFilter='all';
 function setStatsFilter(f,el){
   statsFilter=f;
-  document.querySelectorAll('#page-stats .filter-pill').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#page-stats .acc-pill').forEach(b=>b.classList.remove('active'));
   if(el)el.classList.add('active');
   renderStats();
 }
@@ -1141,10 +1141,12 @@ function renderStats(){
   const al=losses.length?Math.abs(losses.reduce((s,x)=>s+(x.pnl||0)/avg1r,0)/losses.length):0;
   const exp=wr*aw-(1-wr)*al;
   const totalR=t.reduce((s,x)=>s+(x.rr_realized||((x.pnl||0)/(x.value_1r||75))),0);
-  const stExp=document.getElementById('st-exp');if(stExp)stExp.textContent=exp.toFixed(2)+' R';
   const stTotal=document.getElementById('st-total');if(stTotal)stTotal.textContent=t.length;
-  const stAwr=document.getElementById('st-awr');if(stAwr)stAwr.textContent=t.length?(wr*100).toFixed(1)+'%':'—';
-  const stSwr=document.getElementById('st-swr');if(stSwr)stSwr.textContent=(totalR>=0?'+':'')+totalR.toFixed(2)+' R';
+  const stAwr=document.getElementById('st-awr');if(stAwr){stAwr.textContent=t.length?(wr*100).toFixed(1)+'%':'—';stAwr.className='stat-num '+(wr>=0.5?'green':wr>0?'gold':'red');}
+  const stSwr=document.getElementById('st-swr');if(stSwr){stSwr.textContent=(totalR>=0?'+':'')+totalR.toFixed(2)+' R';stSwr.className='stat-num '+(totalR>=0?'green':'red');}
+  const stPnl=document.getElementById('st-pnl-total');
+  const totalPnl=t.reduce((s,x)=>s+(x.pnl||0),0);
+  if(stPnl){stPnl.textContent=(totalPnl>=0?'+':'')+totalPnl.toFixed(2)+' $';stPnl.className='stat-num '+(totalPnl>=0?'green':'red');}
   const stCount=document.getElementById('st-trade-count');
   if(stCount)stCount.textContent=t.length+' trade'+(t.length!==1?'s':'');
   const tbody=document.getElementById('st-trades-body');
