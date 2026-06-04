@@ -262,13 +262,29 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       <div class="auth-icon">TJ</div>
       <div><div class="auth-name">Trading Journal</div><div class="auth-name-sub">Espace sécurisé</div></div>
     </div>
+    <div style="display:flex;gap:0;margin-bottom:24px;background:var(--bg3);border-radius:var(--r);padding:4px">
+    <button id="tab-login" onclick="switchTab('login')" style="flex:1;padding:9px;border:none;border-radius:6px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;background:var(--gold);color:#07080b;transition:all .2s">Connexion</button>
+    <button id="tab-signup" onclick="switchTab('signup')" style="flex:1;padding:9px;border:none;border-radius:6px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:all .2s">Inscription</button>
+  </div>
+  <!-- LOGIN -->
+  <div id="form-login">
     <div class="auth-h">Connexion</div>
     <div class="auth-sub">Accédez à votre journal de trading</div>
     <div class="field"><label>Email</label><input class="finput" id="a-email" type="email" placeholder="vous@email.com"></div>
     <div class="field"><label>Mot de passe</label><input class="finput" id="a-pass" type="password" placeholder="••••••••"></div>
     <button class="auth-btn" onclick="login()">Se connecter</button>
-    <div class="auth-err" id="a-err"></div>
   </div>
+  <!-- SIGNUP -->
+  <div id="form-signup" style="display:none">
+    <div class="auth-h">Créer un compte</div>
+    <div class="auth-sub">Rejoins le Trading Journal</div>
+    <div class="field"><label>Email</label><input class="finput" id="s-email" type="email" placeholder="vous@email.com"></div>
+    <div class="field"><label>Mot de passe</label><input class="finput" id="s-pass" type="password" placeholder="Minimum 6 caractères"></div>
+    <div class="field"><label>Confirmer</label><input class="finput" id="s-pass2" type="password" placeholder="Répéter le mot de passe"></div>
+    <button class="auth-btn" onclick="signup()">Créer mon compte</button>
+  </div>
+  <div class="auth-err" id="a-err"></div>
+</div>
 </div>
 
 <!-- APP -->
@@ -578,8 +594,35 @@ const uid=()=>crypto.randomUUID();
 const loading=(show,txt='Chargement...')=>{const l=document.getElementById('loader');l.classList.toggle('show',show);document.getElementById('loader-text').textContent=txt;};
 
 // ── AUTH ──
-async function login(){
+function switchTab(tab){
+  const isLogin=tab==='login';
+  document.getElementById('form-login').style.display=isLogin?'block':'none';
+  document.getElementById('form-signup').style.display=isLogin?'none':'block';
+  document.getElementById('a-err').textContent='';
+  const tl=document.getElementById('tab-login'),ts=document.getElementById('tab-signup');
+  tl.style.background=isLogin?'var(--gold)':'transparent';
+  tl.style.color=isLogin?'#07080b':'var(--text2)';
+  ts.style.background=isLogin?'transparent':'var(--gold)';
+  ts.style.color=isLogin?'var(--text2)':'#07080b';
+}
+async function signup(){
   const err=document.getElementById('a-err');err.textContent='';
+  const email=document.getElementById('s-email').value.trim();
+  const pass=document.getElementById('s-pass').value;
+  const pass2=document.getElementById('s-pass2').value;
+  if(!email||!pass){err.textContent='Email et mot de passe requis';return;}
+  if(pass.length<6){err.textContent='Mot de passe : minimum 6 caractères';return;}
+  if(pass!==pass2){err.textContent='Les mots de passe ne correspondent pas';return;}
+  loading(true,'Création du compte...');
+  const{error}=await sb.auth.signUp({email,password:pass});
+  loading(false);
+  if(error){err.textContent=error.message;return;}
+  err.style.color='var(--green)';
+  err.textContent='Compte créé ! Vérifie ton email pour confirmer, ou connecte-toi directement.';
+  setTimeout(()=>switchTab('login'),2000);
+}
+async function login(){
+  const err=document.getElementById('a-err');err.textContent='';err.style.color='var(--red)';
   loading(true,'Connexion...');
   const{error}=await sb.auth.signInWithPassword({email:document.getElementById('a-email').value.trim(),password:document.getElementById('a-pass').value});
   loading(false);
