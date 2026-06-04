@@ -1092,7 +1092,7 @@ function renderStats(){
   const stExp=document.getElementById('st-exp');if(stExp)stExp.textContent=exp.toFixed(2)+' R';
   const stTotal=document.getElementById('st-total');if(stTotal)stTotal.textContent=t.length;
   const stAwr=document.getElementById('st-awr');if(stAwr)stAwr.textContent=t.length?(wr*100).toFixed(1)+'%':'—';
-  const stSwr=document.getElementById('st-swr');if(stSwr)stSwr.textContent=pf.toFixed(2);
+  const stSwr=document.getElementById('st-swr');if(stSwr)stSwr.textContent=pf!=null?pf.toFixed(2):'—';
   const stCount=document.getElementById('st-trade-count');
   if(stCount)stCount.textContent=t.length+' trade'+(t.length!==1?'s':'');
   const tbody=document.getElementById('st-trades-body');
@@ -1305,6 +1305,18 @@ function saveCL(){
 }
 
 // ── BACKTESTS ──
+async function deleteBtSession(sessId,e){
+  if(e)e.stopPropagation();
+  if(!confirm('Supprimer cette session de backtest ?'))return;
+  const{error}=await sb.from('backtests').delete().eq('id',sessId).eq('user_id',user.id);
+  if(error){toast('Erreur: '+error.message,'err');return;}
+  // Supprimer aussi les scénarios en localStorage
+  const allSc=getAllSc().filter(s=>s.sessionId!==sessId);
+  localStorage.setItem('tj_sc_'+user.id,JSON.stringify(allSc));
+  toast('Session supprimée');
+  await loadBtSessions();
+  renderBtSessions();
+}
 function renderBtSessions(){
   const wrap=document.getElementById('bt-sessions');
   if(!btSessions.length){wrap.innerHTML='<div class="empty">Aucune session enregistrée</div>';return;}
@@ -1593,7 +1605,8 @@ async function saveTrade(){
   const editId=document.getElementById('modal-trade').dataset.editId||null;
   const accId=document.getElementById('t-acc').value;
   if(!accId){toast('Sélectionne un compte','err');return;}
-  let imgUrl=null;
+  // Conserver l'image existante si pas de nouvelle image sélectionnée
+  let imgUrl=editId?(trades.find(t=>t.id===editId)?.screenshot_url||null):null;
   const imgInput=document.getElementById('t-img');
   if(imgInput?.files[0]){
     const f=imgInput.files[0];
@@ -1605,7 +1618,7 @@ async function saveTrade(){
   const v1r=parseFloat(document.getElementById('t-1r').value)||75;
   const dateVal=document.getElementById('t-date').value||today();
   const timeVal=document.getElementById('t-time').value;
-  const entry=new Date();
+  const entry=new Date(dateVal);
   if(timeVal){const[h,m]=timeVal.split(':');entry.setHours(+h,+m,0,0);}
   const payload={
     user_id:user.id,account_id:accId,
@@ -1623,9 +1636,19 @@ async function saveTrade(){
     entry_time:entry.toISOString(),
   };
   loading(true,'Enregistrement...');
-  const{error}=await sb.from('trades').insert(payload);
+  let error;
+  if(editId){
+    // UPDATE : on exclut user_id du payload pour éviter un conflit RLS
+    const{user_id:_,account_id:__,...updatePayload}=payload;
+    updatePayload.account_id=accId;
+    const res=await sb.from('trades').update(updatePayload).eq('id',editId).eq('user_id',user.id);
+    error=res.error;
+  } else {
+    const res=await sb.from('trades').insert(payload);
+    error=res.error;
+  }
   loading(false);
-  if(error){toast('Erreur: '+error.message,'err');console.error('trade insert:',error);return;}
+  if(error){toast('Erreur: '+error.message,'err');console.error('trade save:',error);return;}
   toast(ynVal==='yes'?'⭐ Trade A++ enregistré !':'✓ Trade enregistré');
   closeM('modal-trade');
   ynVal=null;
