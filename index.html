@@ -498,7 +498,7 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
         <div class="card" style="margin-top:16px;margin-bottom:16px">
           <div class="card-header"><span class="card-title">Heatmap — Performance par heure</span><span class="card-meta" id="hm-meta"></span></div>
           <div style="padding:20px" id="heatmap-wrap">
-            <div style="display:grid;grid-template-columns:repeat(14,1fr);gap:4px" id="heatmap-grid"></div>
+            <div style="display:grid;grid-template-columns:repeat(19,1fr);gap:3px" id="heatmap-grid"></div>
             <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap" id="heatmap-legend"></div>
           </div>
         </div>
@@ -1241,19 +1241,24 @@ function renderStats(){
   renderWeekdayChart(t);
 }
 
+function getLocalHour(entry_time){
+  // Retourne l'heure locale (Paris = UTC+1 hiver / UTC+2 été)
+  const d=new Date(entry_time);
+  return parseInt(d.toLocaleTimeString('fr-FR',{hour:'2-digit',hour12:false}).slice(0,2));
+}
 function renderHeatmap(trades){
   const grid=document.getElementById('heatmap-grid');
   const meta=document.getElementById('hm-meta');
   if(!grid)return;
-  // Heures de trading 7h → 20h
-  const hours=Array.from({length:14},(_,i)=>i+7);
-  // Agréger par heure
+  // Heures de trading 2h → 20h (inclure Asie)
+  const hours=Array.from({length:19},(_,i)=>i+2);
+  // Agréger par heure locale
   const byHour={};
   hours.forEach(h=>{byHour[h]={pnl:0,count:0,wins:0};});
   trades.forEach(tr=>{
     if(!tr.entry_time)return;
-    const h=new Date(tr.entry_time).getHours();
-    if(h<7||h>20)return;
+    const h=getLocalHour(tr.entry_time);
+    if(h<2||h>20)return;
     byHour[h]={
       pnl:(byHour[h]?.pnl||0)+(tr.pnl||0),
       count:(byHour[h]?.count||0)+1,
@@ -1283,8 +1288,9 @@ function renderHeatmap(trades){
   // Sessions
   const legend=document.getElementById('heatmap-legend');
   if(legend)legend.innerHTML=[
-    {label:'Londres',h:[7,8,9,10,11],col:'rgba(96,165,250,0.15)',border:'rgba(96,165,250,0.3)'},
-    {label:'New York',h:[14,15,16,17,18,19],col:'rgba(212,168,67,0.15)',border:'rgba(212,168,67,0.3)'},
+    {label:'🌏 Asie',h:[2,3,4,5,6,7],col:'rgba(167,139,250,0.15)',border:'rgba(167,139,250,0.3)'},
+    {label:'🇬🇧 Londres',h:[8,9,10,11,12],col:'rgba(96,165,250,0.15)',border:'rgba(96,165,250,0.3)'},
+    {label:'🇺🇸 New York',h:[14,15,16,17,18,19],col:'rgba(212,168,67,0.15)',border:'rgba(212,168,67,0.3)'},
   ].map(s=>{
     const sTrades=trades.filter(tr=>{if(!tr.entry_time)return false;const h=new Date(tr.entry_time).getHours();return s.h.includes(h);});
     const sPnl=sTrades.reduce((a,t)=>a+(t.pnl||0),0);
@@ -1306,7 +1312,8 @@ function renderWeekdayChart(trades){
   const byDay=days.map((_,i)=>({pnl:0,count:0,wins:0}));
   trades.forEach(tr=>{
     if(!tr.entry_time)return;
-    const d=(new Date(tr.entry_time).getDay()+6)%7; // 0=Lundi
+    const _d=new Date(tr.entry_time);
+    const d=(_d.toLocaleDateString('fr-FR',{weekday:'long'})==='lundi'?0:_d.toLocaleDateString('fr-FR',{weekday:'long'})==='mardi'?1:_d.toLocaleDateString('fr-FR',{weekday:'long'})==='mercredi'?2:_d.toLocaleDateString('fr-FR',{weekday:'long'})==='jeudi'?3:_d.toLocaleDateString('fr-FR',{weekday:'long'})==='vendredi'?4:_d.toLocaleDateString('fr-FR',{weekday:'long'})==='samedi'?5:6);
     byDay[d].pnl+=(tr.pnl||0);
     byDay[d].count++;
     if(tr.result==='profit')byDay[d].wins++;
