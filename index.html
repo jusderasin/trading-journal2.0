@@ -525,8 +525,14 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
   <div class="modal">
     <div class="modal-title">Enregistrer un trade</div>
     <div class="modal-sub">Saisie post-trade</div>
+    <div class="frow full">
+      <div class="fg"><label class="flabel">Compte(s) concerné(s)</label>
+        <div id="t-acc-wrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+        <select class="finput" id="t-acc" style="display:none"></select>
+      </div>
+    </div>
     <div class="frow">
-      <div class="fg"><label class="flabel">Compte</label><select class="finput" id="t-acc"><option value="">— Sélectionner —</option></select></div>
+      <div class="fg" style="display:none"></div>
       <div class="fg"><label class="flabel">Actif</label>
         <select class="finput" id="t-asset"><option value="MNQ">MNQ</option><option value="NQ">NQ</option><option value="GC">GC</option><option value="CL">CL</option><option value="ES">ES</option></select>
       </div>
@@ -834,24 +840,40 @@ async function deleteTrade(id, ds){
 function editTrade(id){
   const tr=trades.find(t=>t.id===id);
   if(!tr)return;
-  // Pre-fill the trade modal
   const now=new Date();
   document.getElementById('t-date').value=tr.entry_time?tr.entry_time.slice(0,10):now.toISOString().slice(0,10);
   document.getElementById('t-time').value=tr.entry_time?tr.entry_time.slice(11,16):now.toTimeString().slice(0,5);
   document.getElementById('t-acc').value=tr.account_id||'';
+  // Pré-cocher le compte dans multi-select
+  document.querySelectorAll('#t-acc-wrap input').forEach(cb=>{
+    cb.checked=cb.value===tr.account_id;toggleAccLabel(cb.value,cb);
+  });
   document.getElementById('t-asset').value=tr.asset||'MNQ';
   document.getElementById('t-dir').value=tr.direction||'long';
   document.getElementById('t-res').value=tr.result||'profit';
   document.getElementById('t-1r').value=tr.value_1r||75;
   document.getElementById('t-rr').value=tr.rr_theoretical||'';
   document.getElementById('t-pnl').value=tr.pnl||'';
-  document.getElementById('t-comment').value=tr.comments||'';
+  document.getElementById('t-comment').value=tr.comment||tr.comments||'';
+  // Image existante
+  const prevEl=document.getElementById('t-prev');
+  const dropEl=document.getElementById('t-drop');
+  const imgSrc=tr.screenshot_url||tr.screenshot||null;
+  if(prevEl&&imgSrc){
+    prevEl.src=imgSrc;prevEl.style.display='block';
+    const txt=dropEl?.querySelector('.img-drop-txt'),ico=dropEl?.querySelector('.img-drop-ico');
+    if(txt)txt.style.display='none';if(ico)ico.style.display='none';
+  } else if(prevEl){
+    prevEl.src='';prevEl.style.display='none';
+    const txt=dropEl?.querySelector('.img-drop-txt'),ico=dropEl?.querySelector('.img-drop-ico');
+    if(txt)txt.style.display='';if(ico)ico.style.display='';
+  }
+  const fi=document.getElementById('t-img');if(fi)fi.value='';
   // YN
   ynVal=tr.checklist_respected===true?'yes':tr.checklist_respected===false?'no':null;
   const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
-  if(yy){yy.classList.toggle('sel',ynVal==='yes');}
-  if(yn){yn.classList.toggle('sel',ynVal==='no');}
-  // Store ID for save
+  if(yy)yy.classList.toggle('sel',ynVal==='yes');
+  if(yn)yn.classList.toggle('sel',ynVal==='no');
   document.getElementById('modal-trade').dataset.editId=id;
   document.getElementById('modal-trade').querySelector('.modal-title').textContent='Modifier le trade';
   document.getElementById('modal-trade').classList.add('open');
@@ -886,11 +908,11 @@ function setTimeFilter(f,el){
   timeFilter=f;
   document.querySelectorAll('[id^="tf-"]').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
-  // sync calendar to appropriate month
   const now=new Date();
   if(f==='today'||f==='week'||f==='month'||f==='30d'){calYear=now.getFullYear();calMonth=now.getMonth();}
   renderCal();
   updateStats();
+  if(selDay)renderDayDetail(selDay);
 }
 
 function getFilteredTrades(){
@@ -1028,7 +1050,7 @@ function renderAccountBar(){
   bar.innerHTML=`<button class="acc-pill ${!selAcc?'active':''}" onclick="selectAcc(null,this)">Tous les comptes</button>`;
   accounts.forEach(a=>{const b=document.createElement('button');b.className='acc-pill'+(selAcc===a.id?' active':'');b.textContent=a.firm_name;b.onclick=function(){selectAcc(a.id,this)};bar.appendChild(b);});
 }
-function selectAcc(id,el){selAcc=id;document.querySelectorAll('.acc-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderTrades();updateStats();renderDD();}
+function selectAcc(id,el){selAcc=id;document.querySelectorAll('.acc-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');updateStats();renderDD();renderCal();if(selDay)renderDayDetail(selDay);}
 
 // ── DD BAR ──
 function renderDD(){
@@ -1128,7 +1150,7 @@ function renderStats(){
   const tbody=document.getElementById('st-trades-body');
   if(tbody){
     if(!t.length){tbody.innerHTML='<tr><td colspan="7" class="empty">Aucun trade</td></tr>';}
-    else tbody.innerHTML=[...t].sort((a,b)=>new Date(b.entry_time)-new Date(a.entry_time)).map(tr=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+    else tbody.innerHTML=[...t].sort((a,b)=>new Date(b.entry_time)-new Date(a.entry_time)).map(tr=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer" ondblclick="editTrade('${tr.id}')" title="Double-clic pour modifier">
       <td style="padding:12px 20px;font-size:12px;font-family:var(--mono);color:var(--text2)">${new Date(tr.entry_time).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})}</td>
       <td style="padding:12px 20px;font-size:13px;color:var(--text);font-weight:500">${tr.asset}</td>
       <td style="padding:12px 20px"><span class="badge b-${tr.direction}">${tr.direction==='long'?'▲ Long':'▼ Short'}</span></td>
@@ -1616,6 +1638,27 @@ async function saveScenario(){
 function fillAccSelect(){
   const sel=document.getElementById('t-acc');
   sel.innerHTML='<option value="">— Sélectionner un compte —</option>'+accounts.map(a=>`<option value="${a.id}">${a.firm_name} (${a.account_type})</option>`).join('');
+  // Multi-checkbox
+  const wrap=document.getElementById('t-acc-wrap');
+  if(!wrap)return;
+  wrap.innerHTML=accounts.map(a=>`
+    <label style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s" id="acc-lbl-${a.id}">
+      <input type="checkbox" value="${a.id}" onchange="toggleAccLabel('${a.id}',this)" style="accent-color:var(--gold);width:13px;height:13px;flex-shrink:0;cursor:pointer">
+      ${a.firm_name}
+    </label>`).join('');
+}
+function toggleAccLabel(id,cb){
+  const lbl=document.getElementById('acc-lbl-'+id);
+  if(lbl)lbl.style.borderColor=cb.checked?'rgba(212,168,67,0.5)':'var(--border)';
+  if(lbl)lbl.style.color=cb.checked?'var(--gold)':'var(--text2)';
+  if(lbl)lbl.style.background=cb.checked?'var(--gold4)':'var(--bg3)';
+  // Sync t-acc (premier coché) pour compatibilité
+  const first=document.querySelector('#t-acc-wrap input:checked');
+  const sel=document.getElementById('t-acc');
+  if(sel&&first)sel.value=first.value;
+}
+function getSelectedAccounts(){
+  return Array.from(document.querySelectorAll('#t-acc-wrap input:checked')).map(cb=>cb.value);
 }
 function openTradeModal(){
   const now=new Date();
@@ -1656,8 +1699,9 @@ function selYN(v){
 }
 async function saveTrade(){
   const editId=document.getElementById('modal-trade').dataset.editId||null;
-  const accId=document.getElementById('t-acc').value;
-  if(!accId){toast('Sélectionne un compte','err');return;}
+  const accIds=getSelectedAccounts();
+  const accId=accIds[0]||(document.getElementById('t-acc').value||null);
+  if(!accId){toast('Sélectionne au moins un compte','err');return;}
   let imgUrl=null;
   const imgInput=document.getElementById('t-img');
   if(imgInput?.files[0]){
@@ -1670,7 +1714,8 @@ async function saveTrade(){
   const v1r=parseFloat(document.getElementById('t-1r').value)||75;
   const dateVal=document.getElementById('t-date').value||today();
   const timeVal=document.getElementById('t-time').value;
-  const entry=new Date();
+  // Construire la date depuis le champ date + heure
+  const entry=new Date(dateVal+'T12:00:00');
   if(timeVal){const[h,m]=timeVal.split(':');entry.setHours(+h,+m,0,0);}
   const payload={
     user_id:user.id,account_id:accId,
@@ -1688,12 +1733,33 @@ async function saveTrade(){
     entry_time:entry.toISOString(),
   };
   loading(true,'Enregistrement...');
-  const{error}=await sb.from('trades').insert(payload);
+  const editId2=document.getElementById('modal-trade').dataset.editId||null;
+  let error2;
+  if(editId2){
+    const res=await sb.from('trades').update(payload).eq('id',editId2).eq('user_id',user.id);
+    error2=res.error;
+  } else {
+    payload.user_id=user.id;
+    const res=await sb.from('trades').insert(payload);
+    error2=res.error;
+  }
   loading(false);
-  if(error){toast('Erreur: '+error.message,'err');console.error('trade insert:',error);return;}
-  toast(ynVal==='yes'?'⭐ Trade A++ enregistré !':'✓ Trade enregistré');
+  if(error2){toast('Erreur: '+error2.message,'err');console.error('trade save:',error2);return;}
+  // Si plusieurs comptes sélectionnés, dupliquer pour les autres
+  if(!editId2&&accIds.length>1){
+    for(let i=1;i<accIds.length;i++){
+      const p2=Object.assign({},payload,{account_id:accIds[i],user_id:user.id});
+      delete p2.user_id; p2.user_id=user.id;
+      await sb.from('trades').insert(p2);
+    }
+  }
+  toast(editId2?'✓ Trade modifié':ynVal==='yes'?'⭐ Trade A++ enregistré !':'✓ Trade enregistré '+(accIds.length>1?'('+accIds.length+' comptes)':''));
   closeM('modal-trade');
   ynVal=null;
+  document.getElementById('modal-trade').dataset.editId='';
+  document.getElementById('modal-trade').querySelector('.modal-title').textContent='Enregistrer un trade';
+  // Reset checkboxes comptes
+  document.querySelectorAll('#t-acc-wrap input').forEach(cb=>{cb.checked=false;toggleAccLabel(cb.value,cb);});
   const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
   if(yy)yy.classList.remove('sel');if(yn)yn.classList.remove('sel');
   document.getElementById('modal-trade').dataset.editId='';
