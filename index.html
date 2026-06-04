@@ -451,19 +451,19 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       <div class="page" id="page-stats">
         <div class="page-header">
           <div><div class="page-title"><em>Statistiques</em></div><div class="page-meta">Performance &amp; analyse</div></div>
-          <div style="display:flex;gap:6px">
-            <button class="filter-pill active" id="sf-today" onclick="setStatsFilter('today',this)">Aujourd'hui</button>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="filter-pill" id="sf-today" onclick="setStatsFilter('today',this)">Aujourd'hui</button>
             <button class="filter-pill" id="sf-week" onclick="setStatsFilter('week',this)">Cette semaine</button>
             <button class="filter-pill" id="sf-month" onclick="setStatsFilter('month',this)">Ce mois-ci</button>
             <button class="filter-pill" id="sf-30d" onclick="setStatsFilter('30d',this)">30 jours</button>
-            <button class="filter-pill" id="sf-all" onclick="setStatsFilter('all',this)">Tout</button>
+            <button class="filter-pill active" id="sf-all" onclick="setStatsFilter('all',this)">Tout</button>
           </div>
         </div>
         <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
           <div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-num gold" id="st-exp">0.00 R</div></div>
           <div class="stat-card"><div class="stat-label">Total Trades</div><div class="stat-num" id="st-total">0</div></div>
           <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-num green" id="st-awr">—</div></div>
-          <div class="stat-card"><div class="stat-label">Profit Factor</div><div class="stat-num" id="st-swr">—</div></div>
+          <div class="stat-card"><div class="stat-label">Total R</div><div class="stat-num gold" id="st-swr">0.00 R</div></div>
         </div>
         <!-- PnL Chart -->
         <div class="card" style="margin-bottom:16px">
@@ -845,7 +845,21 @@ function editTrade(id){
   document.getElementById('t-1r').value=tr.value_1r||75;
   document.getElementById('t-rr').value=tr.rr_theoretical||'';
   document.getElementById('t-pnl').value=tr.pnl||'';
-  document.getElementById('t-comment').value=tr.comments||'';
+  document.getElementById('t-comment').value=tr.comments||tr.comment||'';
+  // Image existante : afficher la preview
+  const prevEl=document.getElementById('t-prev');
+  const dropEl=document.getElementById('t-drop');
+  if(prevEl&&tr.screenshot_url){
+    prevEl.src=tr.screenshot_url;
+    prevEl.style.display='block';
+    const txt=dropEl?.querySelector('.img-drop-txt'),ico=dropEl?.querySelector('.img-drop-ico');
+    if(txt)txt.style.display='none';if(ico)ico.style.display='none';
+  } else if(prevEl){
+    prevEl.style.display='none';
+    const txt=dropEl?.querySelector('.img-drop-txt'),ico=dropEl?.querySelector('.img-drop-ico');
+    if(txt)txt.style.display='';if(ico)ico.style.display='';
+  }
+  const imgInput=document.getElementById('t-img');if(imgInput)imgInput.value='';
   // YN
   ynVal=tr.checklist_respected===true?'yes':tr.checklist_respected===false?'no':null;
   const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
@@ -1120,11 +1134,11 @@ function renderStats(){
   const aw=wins.length?wins.reduce((s,x)=>s+(x.pnl||0)/avg1r,0)/wins.length:0;
   const al=losses.length?Math.abs(losses.reduce((s,x)=>s+(x.pnl||0)/avg1r,0)/losses.length):0;
   const exp=wr*aw-(1-wr)*al;
-  const pf=losses.length>0&&wins.length>0?(wins.reduce((s,x)=>s+(x.pnl||0),0)/Math.abs(losses.reduce((s,x)=>s+(x.pnl||0),0))):null;
+  const totalR=t.reduce((s,x)=>s+(x.rr_realized||((x.pnl||0)/(x.value_1r||75))),0);
   const stExp=document.getElementById('st-exp');if(stExp)stExp.textContent=exp.toFixed(2)+' R';
   const stTotal=document.getElementById('st-total');if(stTotal)stTotal.textContent=t.length;
   const stAwr=document.getElementById('st-awr');if(stAwr)stAwr.textContent=t.length?(wr*100).toFixed(1)+'%':'—';
-  const stSwr=document.getElementById('st-swr');if(stSwr)stSwr.textContent=pf!=null?pf.toFixed(2):'—';
+  const stSwr=document.getElementById('st-swr');if(stSwr)stSwr.textContent=(totalR>=0?'+':'')+totalR.toFixed(2)+' R';
   const stCount=document.getElementById('st-trade-count');
   if(stCount)stCount.textContent=t.length+' trade'+(t.length!==1?'s':'');
   const tbody=document.getElementById('st-trades-body');
@@ -1642,21 +1656,41 @@ async function saveTrade(){
   const imgInput=document.getElementById('t-img');
   if(imgInput?.files[0]){
     const f=imgInput.files[0];
+    // Compresser l'image en canvas (max 800px, qualité 0.75)
+    const compressImg=async(file)=>{
+      return new Promise(res=>{
+        const img=new Image();
+        const url=URL.createObjectURL(file);
+        img.onload=()=>{
+          const maxW=800,maxH=600;
+          let w=img.width,h=img.height;
+          if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+          if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+          const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+          cv.getContext('2d').drawImage(img,0,0,w,h);
+          URL.revokeObjectURL(url);
+          res(cv.toDataURL('image/jpeg',0.75));
+        };
+        img.onerror=()=>{URL.revokeObjectURL(url);res(null);};
+        img.src=url;
+      });
+    };
     // Essayer d'abord Supabase Storage
     try {
       const fname=`${user.id}/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
       const{data:up,error:ue}=await sb.storage.from('trade-screenshots').upload(fname,f,{upsert:true});
-      if(!ue&&up){const{data:ud}=sb.storage.from('trade-screenshots').getPublicUrl(fname);imgUrl=ud?.publicUrl||null;}
-      else { console.warn('Storage upload error, fallback base64:',ue?.message); }
-    } catch(e){ console.warn('Storage exception:',e); }
-    // Fallback base64 si Storage a échoué
+      if(!ue&&up){
+        const{data:ud}=sb.storage.from('trade-screenshots').getPublicUrl(fname);
+        imgUrl=ud?.publicUrl||null;
+        console.log('Storage OK:',imgUrl);
+      } else {
+        console.warn('Storage upload error:',ue?.message,'→ fallback base64');
+      }
+    } catch(e){ console.warn('Storage exception:',e.message,'→ fallback base64'); }
+    // Fallback base64 compressé si Storage a échoué
     if(!imgUrl){
-      imgUrl=await new Promise(res=>{
-        const r=new FileReader();
-        r.onload=e=>res(e.target.result);
-        r.onerror=()=>res(null);
-        r.readAsDataURL(f);
-      });
+      imgUrl=await compressImg(f);
+      console.log('Base64 fallback, taille:',imgUrl?.length,'chars');
     }
   }
   const pnl=parseFloat(document.getElementById('t-pnl').value)||0;
@@ -1677,7 +1711,7 @@ async function saveTrade(){
     is_aplus:ynVal==='yes',
     checklist_score:0,checklist_max:10,
     screenshot_url:imgUrl,
-    comment:document.getElementById('t-comment').value||null,
+    comments:document.getElementById('t-comment').value||null,
     entry_time:entry.toISOString(),
   };
   loading(true,'Enregistrement...');
