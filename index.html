@@ -70,7 +70,8 @@ textarea.finput{resize:vertical;min-height:72px;line-height:1.5}
 .layout{display:flex;min-height:100vh}
 
 /* SIDEBAR */
-.sidebar{width:230px;min-width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar{width:230px;min-width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto;transition:width .2s,min-width .2s,padding .2s}
+.sidebar.collapsed{width:0;min-width:0;overflow:hidden;padding:0;border:none}
 .sb-brand{padding:0 18px 28px;display:flex;align-items:center;gap:10px}
 .sb-icon{width:34px;height:34px;background:var(--gold3);border:1px solid rgba(212,168,67,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold);flex-shrink:0}
 .sb-name{font-size:14px;font-weight:700}.sb-ver{font-size:10px;color:var(--text3)}
@@ -87,7 +88,7 @@ textarea.finput{resize:vertical;min-height:72px;line-height:1.5}
 
 /* MAIN */
 .main{flex:1;overflow-x:hidden}
-.page{display:none;padding:36px 40px;max-width:1280px}
+.page{display:none;padding:28px 36px}
 .page.active{display:block}
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px}
 .page-title{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1}
@@ -273,14 +274,14 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
 }
 
 /* ===== CALENDAR ===== */
-.cal-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:0}
+.cal-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:0;flex:1}
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
 .cal-month{font-size:15px;font-weight:700;letter-spacing:-0.3px}
 .cal-nav{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;line-height:1}
 .cal-nav:hover{border-color:var(--border2);color:var(--text)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid var(--border)}
 .cal-day-hdr{padding:10px 6px;text-align:center;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
-.cal-day{min-height:80px;padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;position:relative}
+.cal-day{min-height:110px;padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;position:relative}
 .cal-day:hover{background:rgba(255,255,255,0.025)}
 .cal-day.today{background:rgba(212,168,67,0.05);border-color:rgba(212,168,67,0.2)}
 .cal-day.empty-day{cursor:default}
@@ -351,20 +352,11 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
 <!-- APP -->
 <div id="app">
   <div class="layout">
-    <button id="sidebar-open-btn" onclick="toggleSidebar()" title="Ouvrir le menu" style="display:none;position:fixed;top:16px;left:16px;z-index:150;background:var(--bg2);border:1px solid var(--border);border-radius:8px;width:36px;height:36px;cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:3px">
-      <span style="display:block;width:16px;height:1.5px;background:var(--text2)"></span>
-      <span style="display:block;width:16px;height:1.5px;background:var(--text2)"></span>
-      <span style="display:block;width:16px;height:1.5px;background:var(--text2)"></span>
-    </button>
-    <nav class="sidebar">
-      <div class="sb-brand" style="justify-content:space-between;padding-right:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="sb-icon">TJ</div>
-          <div><div class="sb-name">Trading Journal</div><div class="sb-ver">v2.0</div></div>
-        </div>
-        <div class="sidebar-toggle" onclick="toggleSidebar()" title="Masquer le menu">
-          <span></span><span></span><span></span>
-        </div>
+    
+    <nav class="sidebar" id="sidebar">
+      <div class="sb-brand">
+        <div class="sb-icon">TJ</div>
+        <div><div class="sb-name">Trading Journal</div><div class="sb-ver">v2.0</div></div>
       </div>
       <div class="sb-section">Navigation</div>
       <div class="sb-item active" onclick="nav(this,'journal')">
@@ -397,24 +389,41 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       </div>
     </nav>
 
-    <main class="main">
+    <main class="main" id="main-content">
+      <div id="burger-btn" onclick="toggleSidebar()" title="Menu" style="position:fixed;top:14px;left:14px;z-index:300;width:34px;height:34px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;cursor:pointer">
+        <span style="display:block;width:15px;height:1.5px;background:var(--text2)"></span>
+        <span style="display:block;width:15px;height:1.5px;background:var(--text2)"></span>
+        <span style="display:block;width:15px;height:1.5px;background:var(--text2)"></span>
+      </div>
       <!-- JOURNAL -->
       <div class="page active" id="page-journal">
         <div class="page-header">
           <div><div class="page-title">Journal de <em>Trading</em></div><div class="page-meta" id="journal-date"></div></div>
           <button class="btn btn-gold" onclick="openTradeModal()">+ Nouveau trade</button>
         </div>
-        <div class="account-bar" id="account-bar">
-          <button class="acc-pill active" onclick="selectAcc(null,this)">Tous les comptes</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap">
+          <div class="account-bar" id="account-bar" style="margin-bottom:0">
+            <button class="acc-pill active" onclick="selectAcc(null,this)">Tous les comptes</button>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="acc-pill active" id="tf-today" onclick="setTimeFilter('today',this)">Aujourd'hui</button>
+            <button class="acc-pill" id="tf-week" onclick="setTimeFilter('week',this)">Cette semaine</button>
+            <button class="acc-pill" id="tf-month" onclick="setTimeFilter('month',this)">Ce mois-ci</button>
+            <button class="acc-pill" id="tf-30d" onclick="setTimeFilter('30d',this)">30 jours</button>
+            <button class="acc-pill" id="tf-all" onclick="setTimeFilter('all',this)">Tout</button>
+          </div>
         </div>
         <div id="dd-wrap"></div>
         <!-- Stats bar -->
-        <div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
-          <div class="stat-card"><div class="stat-label">PnL Total</div><div class="stat-num" id="s-pnl">+0 $</div><div class="stat-hint" id="s-pnl-r"></div></div>
-          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-num gold" id="s-wr">0%</div><div class="stat-hint" id="s-wr-h"></div></div>
-          <div class="stat-card"><div class="stat-label">Profit Factor</div><div class="stat-num" id="s-pf">0.00</div></div>
-          <div class="stat-card"><div class="stat-label">R Moyen</div><div class="stat-num" id="s-avgr">0.00 R</div></div>
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+          <div class="stat-card"><div class="stat-label">Trades</div><div class="stat-num" id="s-total">0</div></div>
+          <div class="stat-card"><div class="stat-label">R Total</div><div class="stat-num" id="s-avgr">0.00 R</div></div>
+          <div class="stat-card"><div class="stat-label">Profit Total</div><div class="stat-num" id="s-pnl">+0 $</div></div>
           <div class="stat-card"><div class="stat-label">SL aujourd'hui</div><div class="stat-num" id="s-sl">0</div><div class="stat-hint" id="s-sl-h"></div></div>
+        </div>
+        <!-- hidden elements kept for JS compat -->
+        <div style="display:none">
+          <span id="s-wr"></span><span id="s-wr-h"></span><span id="s-pf"></span><span id="s-pnl-r"></span><span id="s-total-h"></span>
         </div>
         <!-- Calendar view -->
         <div class="cal-wrap">
@@ -586,9 +595,9 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
 <div class="overlay" id="modal-bt">
   <div class="modal modal-lg">
     <div class="modal-title">Nouvelle session de backtest</div>
-    <div class="modal-sub">Crée la session puis ajoute tes scénarios directement</div>
+    <div class="modal-sub">Configure ta session puis tes scénarios à tester</div>
     <div class="frow full">
-      <div class="fg"><label class="flabel">Titre de la session</label><input class="finput" id="bts-title" placeholder="CVD Div NQ — Semaine 22 juin 2026"></div>
+      <div class="fg"><label class="flabel">Titre de la session</label><input class="finput" id="bts-title" placeholder="CVD Div NQ — Session Juin 2026"></div>
     </div>
     <div class="frow">
       <div class="fg"><label class="flabel">Date début</label><input class="finput" id="bts-from" type="date"></div>
@@ -603,12 +612,15 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       </div>
     </div>
     <div class="frow full">
-      <div class="fg"><label class="flabel">Notes macro</label><textarea class="finput" id="bts-notes" placeholder="Contexte macro, thèse principale..."></textarea></div>
+      <div class="fg"><label class="flabel">Notes macro</label><textarea class="finput" id="bts-notes" placeholder="Contexte général, thèse principale..."></textarea></div>
     </div>
 
     <div class="fdivider"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:700;color:var(--text)">Scénarios <span style="color:var(--text3);font-weight:400;font-size:11px">(optionnel — tu peux en ajouter après)</span></div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">Scénarios à tester</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Ex: Scénario A = Session Londres, Scénario B = Session New York</div>
+      </div>
       <button class="btn btn-ghost btn-sm" onclick="addScenarioInModal()">+ Scénario</button>
     </div>
     <div id="modal-sc-list" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -631,6 +643,49 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeM('modal-sc')">Annuler</button>
       <button class="btn btn-gold" onclick="saveScenario()">Ajouter le scénario</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ADD TRADE TO SCENARIO -->
+<div class="overlay" id="modal-sc-trade">
+  <div class="modal">
+    <div class="modal-title" id="sc-trade-title">Ajouter un trade</div>
+    <div class="modal-sub" id="sc-trade-label">Scénario —</div>
+    <input type="hidden" id="sc-trade-session-id">
+    <input type="hidden" id="sc-trade-sc-id">
+    <input type="hidden" id="sc-trade-sc-letter">
+    <div class="frow">
+      <div class="fg"><label class="flabel">Date</label><input class="finput" id="sct-date" type="date"></div>
+      <div class="fg"><label class="flabel">Direction</label>
+        <select class="finput" id="sct-dir"><option value="long">▲ Long</option><option value="short">▼ Short</option></select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="flabel">Résultat</label>
+        <select class="finput" id="sct-res"><option value="profit">TP ✓</option><option value="loss">SL ✗</option><option value="be">Break Even</option></select>
+      </div>
+      <div class="fg"><label class="flabel">R réalisé</label>
+        <input class="finput" id="sct-r" type="number" step="0.1" placeholder="2.0">
+      </div>
+    </div>
+    <div class="frow full">
+      <div class="fg"><label class="flabel">Notes</label>
+        <textarea class="finput" id="sct-notes" placeholder="Observations, confluences..."></textarea>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="flabel">Screenshot setup</label>
+      <div class="img-drop" id="sct-drop">
+        <span class="img-drop-ico">📎</span>
+        <span class="img-drop-txt">Clique ou glisse une image</span>
+        <input type="file" accept="image/*" id="sct-img" onchange="prevImg('sct-img','sct-prev','sct-drop')">
+      </div>
+      <img class="img-prev" id="sct-prev">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeM('modal-sc-trade')">Annuler</button>
+      <button class="btn btn-gold" onclick="saveTradeToSc()">Ajouter</button>
     </div>
   </div>
 </div>
@@ -750,9 +805,9 @@ sb.auth.onAuthStateChange(async(_,session)=>{
 // ── SIDEBAR ──
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
-  const btn=document.getElementById('sidebar-open-btn');
+  const burger=document.getElementById('burger-btn');
   const isCollapsed=sb.classList.toggle('collapsed');
-  btn.style.display=isCollapsed?'flex':'none';
+  if(burger)burger.style.display=isCollapsed?'flex':'none';
 }
 
 // ── NAV ──
@@ -770,6 +825,39 @@ function nav(el,page){
 // ── CALENDAR STATE ──
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let selDay=null;
+let timeFilter='month'; // today|week|month|30d|all
+
+function setTimeFilter(f,el){
+  timeFilter=f;
+  document.querySelectorAll('[id^="tf-"]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  // sync calendar to appropriate month
+  const now=new Date();
+  if(f==='today'||f==='week'||f==='month'||f==='30d'){calYear=now.getFullYear();calMonth=now.getMonth();}
+  renderCal();
+  updateStats();
+}
+
+function getFilteredTrades(){
+  const base=selAcc?trades.filter(t=>t.account_id===selAcc):trades;
+  const now=new Date();
+  const todayStr=now.toISOString().slice(0,10);
+  if(timeFilter==='today') return base.filter(t=>t.entry_time&&t.entry_time.startsWith(todayStr));
+  if(timeFilter==='week'){
+    const dow=(now.getDay()+6)%7;
+    const mon=new Date(now);mon.setDate(now.getDate()-dow);mon.setHours(0,0,0,0);
+    return base.filter(t=>t.entry_time&&new Date(t.entry_time)>=mon);
+  }
+  if(timeFilter==='month'){
+    const ms=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    return base.filter(t=>t.entry_time&&t.entry_time.startsWith(ms));
+  }
+  if(timeFilter==='30d'){
+    const d30=new Date(now);d30.setDate(now.getDate()-30);d30.setHours(0,0,0,0);
+    return base.filter(t=>t.entry_time&&new Date(t.entry_time)>=d30);
+  }
+  return base;
+}
 
 function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
 function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
@@ -891,7 +979,7 @@ function renderDD(){
 
 // ── STATS ──
 function updateStats(){
-  const t=selAcc?trades.filter(x=>x.account_id===selAcc):trades;
+  const t=getFilteredTrades();
   const wins=t.filter(x=>x.result==='profit'),losses=t.filter(x=>x.result==='loss');
   const pnl=t.reduce((s,x)=>s+(x.pnl||0),0);
   const wr=t.length?wins.length/t.length*100:0;
@@ -907,9 +995,9 @@ function updateStats(){
   document.getElementById('s-wr').textContent=wr.toFixed(1)+'%';
   document.getElementById('s-wr-h').textContent=wins.length+'W / '+losses.length+'L';
   document.getElementById('s-pf').textContent=pf.toFixed(2);
-  document.getElementById('s-avgr').textContent=avgR.toFixed(2)+' R';
-  document.getElementById('s-total').textContent=t.length;
-  document.getElementById('s-total-h').textContent=t.filter(x=>x.is_aplus).length+' A++';
+  const totalR=t.reduce((s,x)=>s+(x.pnl||0)/avg1r,0);const avgrEl=document.getElementById('s-avgr');if(avgrEl)avgrEl.textContent=(totalR>=0?'+':'')+totalR.toFixed(1)+' R';
+  const totalEl=document.getElementById('s-total');if(totalEl)totalEl.textContent=t.length;
+  const totalHEl=document.getElementById('s-total-h');if(totalHEl)totalHEl.textContent='';
   const slEl=document.getElementById('s-sl');slEl.textContent=todaySL;slEl.className='stat-num '+(todaySL>=maxSL?'red':todaySL===maxSL-1?'gold':'');
   document.getElementById('s-sl-h').textContent='Limite : '+maxSL+'/jour';
 }
@@ -1114,12 +1202,16 @@ function renderBtSessions(){
   if(!btSessions.length){wrap.innerHTML='<div class="empty">Aucune session enregistrée</div>';return;}
   const allSc=getAllSc();
   wrap.innerHTML=btSessions.map(s=>{
-    const scs=allSc.filter(sc=>sc.session_id===s.id);
-    const wins=scs.filter(sc=>sc.result==='profit').length;
-    const wr=scs.length?((wins/scs.length)*100).toFixed(0)+'%':'—';
-    const totalPnl=scs.reduce((a,sc)=>a+(parseFloat(sc.pnl)||0),0);
-    const fd=s.date_from?new Date(s.date_from).toLocaleDateString('fr-FR'):'—';
-    const td=s.date_to?new Date(s.date_to).toLocaleDateString('fr-FR'):'—';
+    // scenarios = strategy definitions stored in allSc with session_id
+    const scenariosForSess=allSc.filter(sc=>sc.session_id===s.id);
+    // compute stats from trades inside scenarios
+    const allTrades=scenariosForSess.flatMap(sc=>sc.trades||[]);
+    const wins=allTrades.filter(t=>t.result==='profit').length;
+    const losses=allTrades.filter(t=>t.result==='loss').length;
+    const totalR=allTrades.reduce((sum,t)=>sum+(t.r||0),0);
+    const wr=allTrades.length?((wins/allTrades.length)*100).toFixed(0)+'%':'—';
+    const fd=s.date_from?new Date(s.date_from+'T12:00:00').toLocaleDateString('fr-FR'):'—';
+    const td=s.date_to?new Date(s.date_to+'T12:00:00').toLocaleDateString('fr-FR'):'—';
     return`<div class="bt-sess" id="bts-${s.id}">
       <div class="bt-sess-hd" onclick="toggleBts('${s.id}')">
         <div>
@@ -1128,22 +1220,50 @@ function renderBtSessions(){
         </div>
         <div class="bt-sess-kpis">
           <div class="bt-kpi"><div class="bt-kpi-val" style="color:var(--gold)">${wr}</div><div class="bt-kpi-key">Win Rate</div></div>
-          <div class="bt-kpi"><div class="bt-kpi-val" style="color:${totalPnl>=0?'var(--green)':'var(--red)'}">${fmtPnl(totalPnl)}</div><div class="bt-kpi-key">PnL</div></div>
-          <div class="bt-kpi"><div class="bt-kpi-val">${scs.length}</div><div class="bt-kpi-key">Scénarios</div></div>
+          <div class="bt-kpi"><div class="bt-kpi-val" style="color:${totalR>=0?'var(--green)':'var(--red)'}">${totalR>=0?'+':''}${totalR.toFixed(1)}R</div><div class="bt-kpi-key">Total R</div></div>
+          <div class="bt-kpi"><div class="bt-kpi-val">${allTrades.length}</div><div class="bt-kpi-key">Trades</div></div>
           <span class="bt-chevron">▾</span>
         </div>
       </div>
       <div class="bt-sess-body">
         ${s.notes?.text?`<div class="bt-sess-notes">${s.notes.text}</div>`:''}
-        <div class="bt-scenarios" id="sc-list-${s.id}">
-          ${renderScs(scs)}
-        </div>
-        <div style="padding:0 22px 16px">
-          <button class="bt-add-sc" onclick="openScModal('${s.id}',this.dataset.title)" data-title="${s.title.replace(/'/g,'').replace(/"/g,'')}">
+        <!-- Scenarios list -->
+        <div style="padding:16px 22px;border-bottom:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Scénarios</div>
+          ${scenariosForSess.length?scenariosForSess.map(sc=>{
+            const scTrades=sc.trades||[];
+            const scWins=scTrades.filter(t=>t.result==='profit').length;
+            const scR=scTrades.reduce((s,t)=>s+(t.r||0),0);
+            return`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:var(--r);margin-bottom:6px;border:1px solid var(--border)">
+              <div>
+                <span style="font-size:12px;font-weight:700;color:var(--gold);margin-right:8px">${sc.letter||'?'}</span>
+                <span style="font-size:13px;color:var(--text)">${sc.name||'Scénario'}</span>
+                ${sc.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${sc.notes}</div>`:''}
+              </div>
+              <div style="display:flex;gap:16px;align-items:center">
+                <span style="font-size:12px;font-family:var(--mono);color:${scR>=0?'var(--green)':'var(--red)'}">${scR>=0?'+':''}${scR.toFixed(1)}R</span>
+                <span style="font-size:11px;color:var(--text3)">${scTrades.length} trades</span>
+                <button class="btn btn-ghost btn-sm" onclick="openAddTradeToSc('${s.id}','${sc.id}','${sc.name.replace(/'/g,'').replace(/"/g,'')}')">+ Trade</button>
+              </div>
+            </div>`;
+          }).join(''):`<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Aucun scénario — recrée une session avec des scénarios</div>`}
+          <button class="bt-add-sc" onclick="openScModal('${s.id}','')" style="margin-top:6px">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Ajouter un scénario à cette session
+            Ajouter un scénario
           </button>
         </div>
+        <!-- All trades for session -->
+        ${allTrades.length?`<div class="bt-scenarios">
+          <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Tous les trades</div>
+          ${allTrades.map((t,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);margin-bottom:6px;border:1px solid var(--border)">
+            <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">${t.date||''}</span>
+            <span style="font-size:11px;font-weight:700;color:var(--gold)">${t.scLetter||'?'}</span>
+            <span class="badge b-${t.direction==='long'?'long':'short'}">${t.direction==='long'?'▲ Long':'▼ Short'}</span>
+            <span class="badge b-${t.result}">${t.result==='profit'?'TP ✓':t.result==='loss'?'SL ✗':'BE'}</span>
+            <span style="font-size:12px;font-family:var(--mono);color:${(t.r||0)>=0?'var(--green)':'var(--red)'};">${(t.r||0)>=0?'+':''}${(t.r||0).toFixed(1)}R</span>
+            ${t.img?`<button class="btn-ghost btn-sm btn" style="font-size:10px;padding:3px 8px" onclick="viewImg('${t.img}')">📷</button>`:''}
+          </div>`).join('')}
+        </div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1183,27 +1303,18 @@ function viewImg(src){window.open(src,'_blank');}
 
 // ── BACKTEST SESSION MODAL ──
 function scFormHTML(idx){
-  return`<div class="bt-sc" id="psc-${idx}" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;position:relative">
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  return`<div id="psc-${idx}" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;position:relative">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <span style="font-size:12px;font-weight:700;color:var(--gold)">Scénario ${idx+1}</span>
+      <span style="font-size:12px;font-weight:700;color:var(--gold)">Scénario ${letters[idx]||idx+1}</span>
       <button class="btn-red" onclick="removePendingSc(${idx})">Supprimer</button>
     </div>
-    <div class="frow"><div class="fg"><label class="flabel">Nom</label><input class="finput" id="psc-name-${idx}" placeholder="Scénario A, Setup bullish..."></div>
-    <div class="fg"><label class="flabel">Direction</label><select class="finput" id="psc-dir-${idx}"><option value="long">▲ Long</option><option value="short">▼ Short</option></select></div></div>
-    <div class="frow"><div class="fg"><label class="flabel">Date</label><input class="finput" id="psc-date-${idx}" type="date" value="${today()}"></div>
-    <div class="fg"><label class="flabel">Heure</label><input class="finput" id="psc-time-${idx}" type="time"></div></div>
-    <div class="frow"><div class="fg"><label class="flabel">Résultat</label><select class="finput" id="psc-res-${idx}"><option value="profit">Profit (TP)</option><option value="loss">Loss (SL)</option><option value="be">Break Even</option></select></div>
-    <div class="fg"><label class="flabel">RR réalisé</label><input class="finput" id="psc-rr-${idx}" type="number" step="0.1" placeholder="2.0"></div></div>
-    <div class="frow"><div class="fg"><label class="flabel">Prix TP</label><input class="finput" id="psc-tp-${idx}" type="number" step="0.25" placeholder="21520"></div>
-    <div class="fg"><label class="flabel">Prix SL</label><input class="finput" id="psc-sl-${idx}" type="number" step="0.25" placeholder="21490"></div></div>
-    <div class="frow full"><div class="fg"><label class="flabel">Notes</label><textarea class="finput" id="psc-notes-${idx}" placeholder="Observations, confluences..."></textarea></div></div>
-    <div class="fg"><label class="flabel">Screenshot setup</label>
-      <div class="img-drop" id="psc-drop-${idx}">
-        <span class="img-drop-ico">📎</span><span class="img-drop-txt">Clique ou glisse une image</span>
-        <input type="file" accept="image/*" id="psc-img-${idx}" onchange="prevImg('psc-img-${idx}','psc-prev-${idx}','psc-drop-${idx}')">
-      </div>
-      <img class="img-prev" id="psc-prev-${idx}">
-    </div>
+    <div class="frow full"><div class="fg"><label class="flabel">Nom du scénario</label>
+      <input class="finput" id="psc-name-${idx}" placeholder="Ex: Session Londres, Long uniquement...">
+    </div></div>
+    <div class="frow full"><div class="fg"><label class="flabel">Description / règles</label>
+      <textarea class="finput" id="psc-notes-${idx}" placeholder="Décris les conditions d'entrée, les règles de ce scénario..." style="min-height:60px"></textarea>
+    </div></div>
   </div>`;
 }
 
@@ -1237,26 +1348,17 @@ async function saveBtSession(){
   errEl.textContent='';
   loading(true,'Création de la session...');
 
-  // Collect scenarios from modal
+  // Collect scenarios from modal (strategy definitions only)
   const scNodes=document.querySelectorAll('#modal-sc-list > div');
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const scenariosData=[];
   for(let i=0;i<scNodes.length;i++){
-    const imgInput=document.getElementById(`psc-img-${i}`);
-    let imgData=null;
-    if(imgInput?.files[0])imgData=await toB64(imgInput.files[0]);
     scenariosData.push({
       id:uid(),
-      name:document.getElementById(`psc-name-${i}`)?.value||'Scénario '+(i+1),
-      direction:document.getElementById(`psc-dir-${i}`)?.value||'long',
-      date:document.getElementById(`psc-date-${i}`)?.value||'',
-      time:document.getElementById(`psc-time-${i}`)?.value||'',
-      result:document.getElementById(`psc-res-${i}`)?.value||'profit',
-      rr:document.getElementById(`psc-rr-${i}`)?.value||'',
-      tp:document.getElementById(`psc-tp-${i}`)?.value||'',
-      sl:document.getElementById(`psc-sl-${i}`)?.value||'',
-      pnl:0,
+      letter:letters[i]||String(i+1),
+      name:document.getElementById(`psc-name-${i}`)?.value||'Scénario '+(letters[i]||i+1),
       notes:document.getElementById(`psc-notes-${i}`)?.value||'',
-      img:imgData,
+      trades:[],// trades added per-day after session creation
     });
   }
 
@@ -1468,6 +1570,52 @@ function prevImg(inputId,previewId,dropId){
   reader.readAsDataURL(input.files[0]);
 }
 
+// ── TRADE TO SCENARIO ──
+function openAddTradeToSc(sessId,scId,scName){
+  document.getElementById('sc-trade-session-id').value=sessId;
+  document.getElementById('sc-trade-sc-id').value=scId;
+  // Get letter from scenarios
+  const allSc=getAllSc();
+  const sc=allSc.find(s=>s.id===scId);
+  const letter=sc?.letter||'?';
+  document.getElementById('sc-trade-sc-letter').value=letter;
+  document.getElementById('sc-trade-label').textContent='Scénario '+letter+' — '+scName;
+  document.getElementById('sct-date').value=today();
+  document.getElementById('sct-r').value='';
+  document.getElementById('sct-notes').value='';
+  document.getElementById('sct-prev').style.display='none';
+  document.getElementById('modal-sc-trade').classList.add('open');
+}
+
+async function saveTradeToSc(){
+  const sessId=document.getElementById('sc-trade-session-id').value;
+  const scId=document.getElementById('sc-trade-sc-id').value;
+  const scLetter=document.getElementById('sc-trade-sc-letter').value;
+  const imgInput=document.getElementById('sct-img');
+  let imgData=null;
+  if(imgInput?.files[0])imgData=await toB64(imgInput.files[0]);
+  const trade={
+    id:uid(),
+    date:document.getElementById('sct-date').value,
+    direction:document.getElementById('sct-dir').value,
+    result:document.getElementById('sct-res').value,
+    r:parseFloat(document.getElementById('sct-r').value)||0,
+    notes:document.getElementById('sct-notes').value,
+    img:imgData,
+    scLetter:scLetter,
+  };
+  const all=getAllSc();
+  const sc=all.find(s=>s.id===scId);
+  if(sc){
+    if(!sc.trades)sc.trades=[];
+    sc.trades.push(trade);
+    setAllSc(all);
+  }
+  toast('Trade ajouté ✓');closeM('modal-sc-trade');
+  renderBtSessions();
+}
+
+// ── SCENARIO MODAL (for existing session — add strategy scenario) ──
 // Close on overlay click
 document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});});
 </script>
