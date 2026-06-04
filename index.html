@@ -574,7 +574,14 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
 const SURL='https://visgnczzfdvwxrttzupk.supabase.co';
 const SKEY='sb_publishable_gJHM6zlv5xaWYHGhWp8jGA_081KBOku';
 const{createClient}=supabase;
-const sb=createClient(SURL,SKEY);
+// Custom memory storage to bypass Edge Tracking Prevention
+const _memStore={};
+const _customStorage={
+  getItem:k=>_memStore[k]??null,
+  setItem:(k,v)=>{_memStore[k]=v},
+  removeItem:k=>{delete _memStore[k]}
+};
+const sb=createClient(SURL,SKEY,{auth:{storage:_customStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 
 let user=null,accounts=[],trades=[],btSessions=[],selAcc=null,ynVal=null;
 let pendingScenarios=[]; // scenarios being built in the session modal
