@@ -451,7 +451,8 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       <div class="page" id="page-stats">
         <div class="page-header">
           <div><div class="page-title"><em>Statistiques</em></div><div class="page-meta">Performance &amp; analyse</div></div>
-          <div style="display:flex;gap:6px;align-items:center">
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn btn-gold" onclick="openTradeModal()">+ Nouveau trade</button>
             <button class="acc-pill" id="sf-today" onclick="setStatsFilter('today',this)">Aujourd'hui</button>
             <button class="acc-pill" id="sf-week" onclick="setStatsFilter('week',this)">Cette semaine</button>
             <button class="acc-pill" id="sf-month" onclick="setStatsFilter('month',this)">Ce mois-ci</button>
@@ -482,7 +483,7 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
         <div class="card">
           <div class="card-header"><span class="card-title">Tous les trades</span><span class="card-meta" id="st-trade-count"></span></div>
           <table>
-            <thead><tr><th>Date</th><th>Actif</th><th>Direction</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Checklist</th></tr></thead>
+            <thead><tr><th>Date</th><th>Actif</th><th>Direction</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Checklist</th><th></th></tr></thead>
             <tbody id="st-trades-body"><tr><td colspan="7" class="empty">Aucun trade</td></tr></tbody>
           </table>
         </div>
@@ -827,6 +828,14 @@ sb.auth.onAuthStateChange(async(_,session)=>{
 });
 
 // ── TRADE EDIT / DELETE ──
+async function deleteTradeFromStats(id){
+  if(!confirm('Supprimer ce trade ?'))return;
+  const{error}=await sb.from('trades').delete().eq('id',id);
+  if(error){toast('Erreur : '+error.message,'err');return;}
+  trades=trades.filter(t=>t.id!==id);
+  renderAll();renderStats();
+  toast('Trade supprimé');
+}
 async function deleteTrade(id, ds){
   if(!confirm('Supprimer ce trade ?'))return;
   const{error}=await sb.from('trades').delete().eq('id',id);
@@ -916,7 +925,8 @@ function setTimeFilter(f,el){
 }
 
 function getFilteredTrades(){
-  const base=selAcc?trades.filter(t=>t.account_id===selAcc):trades;
+  const firmAccIds=selAccFirm?accounts.filter(a=>a.firm_name===selAccFirm).map(a=>a.id):null;
+  const base=selAcc?trades.filter(t=>t.account_id===selAcc):selAccFirm?trades.filter(t=>firmAccIds.includes(t.account_id)):trades;
   const now=new Date();
   const todayStr=now.toISOString().slice(0,10);
   if(timeFilter==='today') return base.filter(t=>t.entry_time&&t.entry_time.startsWith(todayStr));
@@ -1045,18 +1055,40 @@ async function loadBtSessions(){
 function renderAll(){renderAccountBar();renderAccountsGrid();updateStats();renderDD();fillAccSelect();renderCal();}
 
 // ── ACCOUNT BAR ──
+// selAccFirm = filtre par firme (plusieurs comptes), selAcc = filtre un seul compte
+let selAccFirm=null;
 function renderAccountBar(){
   const bar=document.getElementById('account-bar');
-  bar.innerHTML=`<button class="acc-pill ${!selAcc?'active':''}" onclick="selectAcc(null,this)">Tous les comptes</button>`;
-  accounts.forEach(a=>{const b=document.createElement('button');b.className='acc-pill'+(selAcc===a.id?' active':'');b.textContent=a.firm_name;b.onclick=function(){selectAcc(a.id,this)};bar.appendChild(b);});
+  // Grouper les firmes
+  const firms=[...new Set(accounts.map(a=>a.firm_name))];
+  bar.innerHTML=`<button class="acc-pill ${(!selAcc&&!selAccFirm)?'active':''}" onclick="selectAcc(null,this)">Tous les comptes</button>`;
+  firms.forEach(firm=>{
+    const firmAccs=accounts.filter(a=>a.firm_name===firm);
+    const b=document.createElement('button');
+    // Actif si selAccFirm===firm ou si selAcc est dans cette firme
+    const isActive=selAccFirm===firm||(selAcc&&firmAccs.some(a=>a.id===selAcc));
+    b.className='acc-pill'+(isActive?' active':'');
+    b.textContent=firm+(firmAccs.length>1?' ('+firmAccs.length+')':'');
+    if(firmAccs.length===1){b.onclick=function(){selectAcc(firmAccs[0].id,this);};}
+    else{b.onclick=function(){selectFirm(firm,this);};}
+    bar.appendChild(b);
+  });
 }
-function selectAcc(id,el){selAcc=id;document.querySelectorAll('.acc-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');updateStats();renderDD();renderCal();if(selDay)renderDayDetail(selDay);}
+function selectFirm(firm,el){
+  selAcc=null;selAccFirm=firm;
+  document.querySelectorAll('.acc-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  updateStats();renderDD();renderCal();if(selDay)renderDayDetail(selDay);
+}
+// Modifier getFilteredTrades pour prendre en compte selAccFirm
+
+function selectAcc(id,el){selAcc=id;selAccFirm=null;document.querySelectorAll('.acc-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');updateStats();renderDD();renderCal();if(selDay)renderDayDetail(selDay);}
 
 // ── DD BAR ──
 function renderDD(){
   const wrap=document.getElementById('dd-wrap');
   if(!selAcc){wrap.innerHTML='';return;}
-  const ac=accounts.find(a=>a.id===selAcc);
+  const ac=selAcc?accounts.find(a=>a.id===selAcc):null;
   if(!ac?.daily_loss_limit){wrap.innerHTML='';return;}
   const loss=Math.max(0,-trades.filter(t=>t.account_id===ac.id&&t.entry_time?.startsWith(today())).reduce((s,t)=>s+(t.pnl||0),0));
   const pct=Math.min(100,loss/ac.daily_loss_limit*100);
@@ -1160,6 +1192,9 @@ function renderStats(){
       <td style="padding:12px 20px;font-family:var(--mono);font-size:12px;color:var(--text2)">${tr.rr_theoretical?tr.rr_theoretical+'R':'—'}</td>
       <td style="padding:12px 20px;font-family:var(--mono);font-size:12px;font-weight:600;color:${(tr.pnl||0)>=0?'var(--green)':'var(--red)'}">${(tr.pnl||0)>=0?'+':''}${(tr.pnl||0).toFixed(2)} $</td>
       <td style="padding:12px 20px;font-size:12px;color:${tr.checklist_respected===true?'var(--green)':tr.checklist_respected===false?'var(--red)':'var(--text3)'}">${tr.checklist_respected===true?'✓ Oui':tr.checklist_respected===false?'✗ Non':'—'}</td>
+      <td style="padding:8px 16px;text-align:right">
+        <button onclick="deleteTradeFromStats('${tr.id}')" class="btn-red" title="Supprimer">🗑</button>
+      </td>
     </tr>`).join('');
   }
   // PnL curve
@@ -1254,21 +1289,95 @@ function drawPieChart(t){
 function renderAccountsGrid(){
   const grid=document.getElementById('ac-grid');
   if(!accounts.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">Aucun compte configuré</div>';return;}
-  grid.innerHTML=accounts.map(ac=>{
-    const pnl=trades.filter(t=>t.account_id===ac.id).reduce((s,t)=>s+(t.pnl||0),0);
-    const prog=ac.profit_target>0?Math.min(100,pnl/ac.profit_target*100):0;
-    const cls=prog<50?'safe':prog<80?'warn':'danger';
-    const smap={active:'active',funded:'active',challenge:'challenge',passed:'active',failed:'failed'};
-    const sl={active:'Actif',funded:'Financé',challenge:'Challenge',passed:'Validé',failed:'Échoué'};
-    return`<div class="ac-card"><div class="ac-top"><div><div class="ac-firm">${ac.firm_name}</div><div class="ac-type">${ac.account_type}</div></div><span class="ac-status s-${smap[ac.status]||'active'}">${sl[ac.status]||ac.status}</span></div>
-      <div class="ac-row"><span class="ac-key">Balance initiale</span><span class="ac-val">${(ac.initial_balance||0).toLocaleString()} $</span></div>
-      <div class="ac-row"><span class="ac-key">Objectif profit</span><span class="ac-val">${(ac.profit_target||0).toLocaleString()} $</span></div>
-      <div class="ac-row"><span class="ac-key">PnL actuel</span><span class="ac-val" style="color:${pnl>=0?'var(--green)':'var(--red)'}">${fmtPnl(pnl)}</span></div>
-      <div class="ac-row"><span class="ac-key">Daily Loss Limit</span><span class="ac-val">${(ac.daily_loss_limit||0).toLocaleString()} $</span></div>
-      <div class="ac-row"><span class="ac-key">SL max / jour</span><span class="ac-val">${ac.max_sl_per_day}</span></div>
-      ${ac.profit_target>0?`<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;margin-bottom:7px"><span style="font-size:11px;color:var(--text3)">Progression</span><span style="font-size:11px;color:var(--text);font-weight:600">${prog.toFixed(1)}%</span></div><div class="dd-track"><div class="dd-fill ${cls}" style="width:${Math.max(2,prog)}%"></div></div></div>`:''}
-    </div>`;
-  }).join('');
+  
+  // Regrouper par firm_name
+  const groups={};
+  accounts.forEach(ac=>{
+    const key=ac.firm_name;
+    if(!groups[key])groups[key]=[];
+    groups[key].push(ac);
+  });
+
+  const smap={active:'active',funded:'active',challenge:'challenge',passed:'active',failed:'failed'};
+  const sl={active:'Actif',funded:'Financé',challenge:'Challenge',passed:'Validé',failed:'Échoué'};
+
+  let html='';
+  Object.entries(groups).forEach(([firmName, accs])=>{
+    // Stats consolidées du groupe
+    const groupPnl=accs.reduce((s,ac)=>s+trades.filter(t=>t.account_id===ac.id).reduce((s2,t)=>s2+(t.pnl||0),0),0);
+    const groupTrades=accs.reduce((s,ac)=>s+trades.filter(t=>t.account_id===ac.id).length,0);
+    const groupBalance=accs.reduce((s,ac)=>s+(ac.initial_balance||0),0);
+    const groupTarget=accs.reduce((s,ac)=>s+(ac.profit_target||0),0);
+    const isMulti=accs.length>1;
+
+    if(isMulti){
+      // Header groupe
+      const groupProg=groupTarget>0?Math.min(100,groupPnl/groupTarget*100):0;
+      const groupCls=groupProg<50?'safe':groupProg<80?'warn':'danger';
+      html+=`<div style="grid-column:1/-1;background:var(--bg2);border:1px solid rgba(212,168,67,0.2);border-radius:var(--r2);overflow:hidden;margin-bottom:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:rgba(212,168,67,0.04);cursor:pointer" onclick="toggleGroup('grp-${firmName.replace(/\s/g,'_')}')">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:36px;height:36px;background:var(--gold3);border:1px solid rgba(212,168,67,0.3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--gold)">${firmName.slice(0,2).toUpperCase()}</div>
+            <div>
+              <div style="font-size:15px;font-weight:700">${firmName}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">${accs.length} comptes · ${groupTrades} trades</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:24px;align-items:center">
+            <div style="text-align:right"><div style="font-size:16px;font-weight:700;color:${groupPnl>=0?'var(--green)':'var(--red)'}">${groupPnl>=0?'+':''}${groupPnl.toFixed(2)} $</div><div style="font-size:10px;color:var(--text3);margin-top:2px">PnL consolidé</div></div>
+            <div style="text-align:right"><div style="font-size:14px;font-weight:600;color:var(--text)">${groupBalance.toLocaleString()} $</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Capital total</div></div>
+            <span style="color:var(--text3);font-size:18px;transition:transform .2s" id="grp-chevron-${firmName.replace(/\s/g,'_')}">▾</span>
+          </div>
+        </div>
+        ${groupTarget>0?`<div style="padding:0 22px 14px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;margin-top:10px"><span style="font-size:11px;color:var(--text3)">Progression groupe</span><span style="font-size:11px;font-weight:600;color:var(--text)">${groupProg.toFixed(1)}%</span></div>
+          <div class="dd-track"><div class="dd-fill ${groupCls}" style="width:${Math.max(2,groupProg)}%"></div></div>
+        </div>`:''}
+        <div id="grp-${firmName.replace(/\s/g,'_')}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:16px 22px">
+          ${accs.map(ac=>{
+            const pnl=trades.filter(t=>t.account_id===ac.id).reduce((s,t)=>s+(t.pnl||0),0);
+            const prog=ac.profit_target>0?Math.min(100,pnl/ac.profit_target*100):0;
+            const cls=prog<50?'safe':prog<80?'warn':'danger';
+            return`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">${ac.firm_name}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${ac.account_type} · ${(ac.initial_balance||0).toLocaleString()} $</div></div>
+                <span class="ac-status s-${smap[ac.status]||'active'}" style="font-size:9px">${sl[ac.status]||ac.status}</span>
+              </div>
+              <div class="ac-row"><span class="ac-key">PnL</span><span class="ac-val" style="color:${pnl>=0?'var(--green)':'var(--red)'}">${fmtPnl(pnl)}</span></div>
+              <div class="ac-row"><span class="ac-key">Trades</span><span class="ac-val">${trades.filter(t=>t.account_id===ac.id).length}</span></div>
+              <div class="ac-row"><span class="ac-key">Daily Loss</span><span class="ac-val">${(ac.daily_loss_limit||0).toLocaleString()} $</span></div>
+              ${ac.profit_target>0?`<div style="margin-top:10px"><div class="dd-track"><div class="dd-fill ${cls}" style="width:${Math.max(2,prog)}%"></div></div><div style="font-size:10px;color:var(--text3);margin-top:4px">${prog.toFixed(1)}% vers objectif</div></div>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    } else {
+      // Compte seul — affichage normal
+      const ac=accs[0];
+      const pnl=trades.filter(t=>t.account_id===ac.id).reduce((s,t)=>s+(t.pnl||0),0);
+      const prog=ac.profit_target>0?Math.min(100,pnl/ac.profit_target*100):0;
+      const cls=prog<50?'safe':prog<80?'warn':'danger';
+      html+=`<div class="ac-card"><div class="ac-top"><div><div class="ac-firm">${ac.firm_name}</div><div class="ac-type">${ac.account_type}</div></div><span class="ac-status s-${smap[ac.status]||'active'}">${sl[ac.status]||ac.status}</span></div>
+        <div class="ac-row"><span class="ac-key">Balance initiale</span><span class="ac-val">${(ac.initial_balance||0).toLocaleString()} $</span></div>
+        <div class="ac-row"><span class="ac-key">Objectif profit</span><span class="ac-val">${(ac.profit_target||0).toLocaleString()} $</span></div>
+        <div class="ac-row"><span class="ac-key">PnL actuel</span><span class="ac-val" style="color:${pnl>=0?'var(--green)':'var(--red)'}">${fmtPnl(pnl)}</span></div>
+        <div class="ac-row"><span class="ac-key">Daily Loss Limit</span><span class="ac-val">${(ac.daily_loss_limit||0).toLocaleString()} $</span></div>
+        <div class="ac-row"><span class="ac-key">SL max / jour</span><span class="ac-val">${ac.max_sl_per_day}</span></div>
+        ${ac.profit_target>0?`<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;margin-bottom:7px"><span style="font-size:11px;color:var(--text3)">Progression</span><span style="font-size:11px;color:var(--text);font-weight:600">${prog.toFixed(1)}%</span></div><div class="dd-track"><div class="dd-fill ${cls}" style="width:${Math.max(2,prog)}%"></div></div></div>`:''}
+      </div>`;
+    }
+  });
+  grid.innerHTML=html;
+}
+
+function toggleGroup(id){
+  const el=document.getElementById(id);
+  const key=id.replace('grp-','');
+  const chev=document.getElementById('grp-chevron-'+key);
+  if(!el)return;
+  const hidden=el.style.display==='none';
+  el.style.display=hidden?'grid':'none';
+  if(chev)chev.style.transform=hidden?'':'rotate(-90deg)';
 }
 
 // ── CHECKLIST EDITOR ──
