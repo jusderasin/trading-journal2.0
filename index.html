@@ -597,6 +597,12 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       </div>
     </div>
     <div class="frow">
+      <div class="fg"><label class="flabel">Identifiant compte <span style="color:var(--text3);font-weight:400">(optionnel, ex: Apex #1, Apex 300K)</span></label>
+        <input class="finput" id="ac-label" placeholder="Ex: Apex 300K, MFF 25K #2...">
+      </div>
+      <div class="fg"></div>
+    </div>
+    <div class="frow">
       <div class="fg"><label class="flabel">Balance initiale ($)</label><input class="finput" id="ac-bal" type="number" placeholder="50000"></div>
       <div class="fg"><label class="flabel">Objectif profit ($)</label><input class="finput" id="ac-target" type="number" placeholder="3000"></div>
     </div>
@@ -1338,9 +1344,11 @@ function renderAccountsGrid(){
             const pnl=trades.filter(t=>t.account_id===ac.id).reduce((s,t)=>s+(t.pnl||0),0);
             const prog=ac.profit_target>0?Math.min(100,pnl/ac.profit_target*100):0;
             const cls=prog<50?'safe':prog<80?'warn':'danger';
+            const accLabels2=JSON.parse(localStorage.getItem('tj_acc_labels_'+user?.id)||'{}');
+            const accLabel2=accLabels2[ac.id]||'';
             return`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-                <div><div style="font-size:13px;font-weight:600;color:var(--text)">${ac.firm_name}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${ac.account_type} · ${(ac.initial_balance||0).toLocaleString()} $</div></div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">${accLabel2||ac.firm_name}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${ac.account_type} · ${(ac.initial_balance||0).toLocaleString()} $</div></div>
                 <span class="ac-status s-${smap[ac.status]||'active'}" style="font-size:9px">${sl[ac.status]||ac.status}</span>
               </div>
               <div class="ac-row"><span class="ac-key">PnL</span><span class="ac-val" style="color:${pnl>=0?'var(--green)':'var(--red)'}">${fmtPnl(pnl)}</span></div>
@@ -1357,7 +1365,13 @@ function renderAccountsGrid(){
       const pnl=trades.filter(t=>t.account_id===ac.id).reduce((s,t)=>s+(t.pnl||0),0);
       const prog=ac.profit_target>0?Math.min(100,pnl/ac.profit_target*100):0;
       const cls=prog<50?'safe':prog<80?'warn':'danger';
-      html+=`<div class="ac-card"><div class="ac-top"><div><div class="ac-firm">${ac.firm_name}</div><div class="ac-type">${ac.account_type}</div></div><span class="ac-status s-${smap[ac.status]||'active'}">${sl[ac.status]||ac.status}</span></div>
+      const accLabels=JSON.parse(localStorage.getItem('tj_acc_labels_'+user?.id)||'{}');
+      const accLabel=accLabels[ac.id]||'';
+      html+=`<div class="ac-card"><div class="ac-top"><div><div class="ac-firm">${ac.firm_name}${accLabel?` <span style="font-size:12px;color:var(--text3);font-weight:400">— ${accLabel}</span>`:''}</div><div class="ac-type">${ac.account_type}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ac-status s-${smap[ac.status]||'active'}">${sl[ac.status]||ac.status}</span>
+          <button onclick="deleteAccount('${ac.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 6px;border-radius:4px;transition:color .15s" title="Supprimer" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">🗑</button>
+        </div></div>
         <div class="ac-row"><span class="ac-key">Balance initiale</span><span class="ac-val">${(ac.initial_balance||0).toLocaleString()} $</span></div>
         <div class="ac-row"><span class="ac-key">Objectif profit</span><span class="ac-val">${(ac.profit_target||0).toLocaleString()} $</span></div>
         <div class="ac-row"><span class="ac-key">PnL actuel</span><span class="ac-val" style="color:${pnl>=0?'var(--green)':'var(--red)'}">${fmtPnl(pnl)}</span></div>
@@ -1882,7 +1896,14 @@ async function saveTrade(){
 }
 
 // ── ACCOUNT MODAL ──
-function openAccModal(){document.getElementById('acc-err').textContent='';document.getElementById('modal-acc').classList.add('open');}
+async function deleteAccount(id){
+  if(!confirm('Supprimer ce compte ? Les trades associés ne seront pas supprimés.'))return;
+  const{error}=await sb.from('accounts').delete().eq('id',id).eq('user_id',user.id);
+  if(error){toast('Erreur: '+error.message,'err');return;}
+  accounts=accounts.filter(a=>a.id!==id);
+  renderAll();toast('Compte supprimé');
+}
+function openAccModal(){document.getElementById('acc-err').textContent='';const lbl=document.getElementById('ac-label');if(lbl)lbl.value='';document.getElementById('modal-acc').classList.add('open');}
 async function saveAcc(){
   const firm=document.getElementById('ac-firm').value.trim();
   const errEl=document.getElementById('acc-err');
@@ -1890,6 +1911,7 @@ async function saveAcc(){
   errEl.textContent='';
   const btn=document.getElementById('acc-save-btn');
   btn.textContent='Création...';btn.disabled=true;
+  const acLabel=document.getElementById('ac-label').value.trim();
   const payload={
     user_id:user.id,firm_name:firm,
     account_type:document.getElementById('ac-type').value,
@@ -1902,9 +1924,21 @@ async function saveAcc(){
     max_sl_per_day:parseInt(document.getElementById('ac-slmax').value)||2,
     payout_threshold:parseFloat(document.getElementById('ac-payout').value)||0,
   };
-  const{error}=await sb.from('accounts').insert(payload).select();
+  if(acLabel){
+    // Stocker le label custom en localStorage
+    const labels=JSON.parse(localStorage.getItem('tj_acc_labels_'+user.id)||'{}');
+    // On ne connait pas encore l'ID, on le fera après insert
+    payload._pendingLabel=acLabel;
+  }
+  const{data:newAcc,error}=await sb.from('accounts').insert(payload).select().single();
+  if(!error&&newAcc&&acLabel){
+    const labels=JSON.parse(localStorage.getItem('tj_acc_labels_'+user.id)||'{}');
+    labels[newAcc.id]=acLabel;
+    localStorage.setItem('tj_acc_labels_'+user.id,JSON.stringify(labels));
+  }
+  const error2=error;
   btn.textContent='Créer le compte';btn.disabled=false;
-  if(error){errEl.textContent=error.message;return;}
+  if(error2){errEl.textContent=error2.message;return;}
   toast('Compte créé ✓');closeM('modal-acc');
   document.getElementById('ac-firm').value='';
   await loadAccounts();renderAll();
