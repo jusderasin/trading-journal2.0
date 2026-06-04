@@ -451,6 +451,13 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
       <div class="page" id="page-stats">
         <div class="page-header">
           <div><div class="page-title"><em>Statistiques</em></div><div class="page-meta">Performance &amp; analyse</div></div>
+          <div style="display:flex;gap:6px">
+            <button class="filter-pill active" id="sf-today" onclick="setStatsFilter('today',this)">Aujourd'hui</button>
+            <button class="filter-pill" id="sf-week" onclick="setStatsFilter('week',this)">Cette semaine</button>
+            <button class="filter-pill" id="sf-month" onclick="setStatsFilter('month',this)">Ce mois-ci</button>
+            <button class="filter-pill" id="sf-30d" onclick="setStatsFilter('30d',this)">30 jours</button>
+            <button class="filter-pill" id="sf-all" onclick="setStatsFilter('all',this)">Tout</button>
+          </div>
         </div>
         <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
           <div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-num gold" id="st-exp">0.00 R</div></div>
@@ -973,7 +980,7 @@ function renderDayDetail(ds){
     <div style="display:flex;flex-direction:column;gap:10px;padding:14px 20px">
       ${dayTrades.map(tr=>{
         const imgSrc=tr.screenshot_url||tr.screenshot||null;
-        return`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px">
+        return`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;cursor:pointer" ondblclick="editTrade('${tr.id}')">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span style="font-size:11px;font-family:var(--mono);color:var(--text3)">${tr.entry_time?new Date(tr.entry_time).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}</span>
             <span class="badge b-${tr.asset==='MNQ'?'long':'long'}" style="background:var(--bg2);border:1px solid var(--border);color:var(--text)">${tr.asset}</span>
@@ -1080,8 +1087,33 @@ function renderTrades(){
 }
 
 // ── STATS PAGE ──
+let statsFilter='all';
+function setStatsFilter(f,el){
+  statsFilter=f;
+  document.querySelectorAll('#page-stats .filter-pill').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderStats();
+}
+function getFilteredTrades(){
+  const now=new Date();
+  const todayStr=now.toISOString().slice(0,10);
+  const startOfWeek=new Date(now);
+  startOfWeek.setDate(now.getDate()-now.getDay()+(now.getDay()===0?-6:1));
+  startOfWeek.setHours(0,0,0,0);
+  const startOfMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  const d30=new Date(now); d30.setDate(d30.getDate()-30);
+  return trades.filter(tr=>{
+    if(!tr.entry_time)return false;
+    const d=new Date(tr.entry_time);
+    if(statsFilter==='today')return tr.entry_time.startsWith(todayStr);
+    if(statsFilter==='week')return d>=startOfWeek;
+    if(statsFilter==='month')return d>=startOfMonth;
+    if(statsFilter==='30d')return d>=d30;
+    return true;
+  });
+}
 function renderStats(){
-  const t=trades;
+  const t=getFilteredTrades();
   const wins=t.filter(x=>x.result==='profit'),losses=t.filter(x=>x.result==='loss');
   const avg1r=t.length?t.reduce((s,x)=>s+(x.value_1r||75),0)/t.length:75;
   const wr=t.length?wins.length/t.length:0;
@@ -1098,7 +1130,7 @@ function renderStats(){
   const tbody=document.getElementById('st-trades-body');
   if(tbody){
     if(!t.length){tbody.innerHTML='<tr><td colspan="7" class="empty">Aucun trade</td></tr>';}
-    else tbody.innerHTML=[...t].sort((a,b)=>new Date(b.entry_time)-new Date(a.entry_time)).map(tr=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+    else tbody.innerHTML=[...t].sort((a,b)=>new Date(b.entry_time)-new Date(a.entry_time)).map(tr=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer" ondblclick="editTrade('${tr.id}')" title="Double-clic pour modifier">
       <td style="padding:12px 20px;font-size:12px;font-family:var(--mono);color:var(--text2)">${new Date(tr.entry_time).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})}</td>
       <td style="padding:12px 20px;font-size:13px;color:var(--text);font-weight:500">${tr.asset}</td>
       <td style="padding:12px 20px"><span class="badge b-${tr.direction}">${tr.direction==='long'?'▲ Long':'▼ Short'}</span></td>
@@ -1610,9 +1642,22 @@ async function saveTrade(){
   const imgInput=document.getElementById('t-img');
   if(imgInput?.files[0]){
     const f=imgInput.files[0];
-    const fname=`${user.id}/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    const{data:up,error:ue}=await sb.storage.from('trade-screenshots').upload(fname,f,{upsert:true});
-    if(!ue&&up){const{data:ud}=sb.storage.from('trade-screenshots').getPublicUrl(fname);imgUrl=ud?.publicUrl||null;}
+    // Essayer d'abord Supabase Storage
+    try {
+      const fname=`${user.id}/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+      const{data:up,error:ue}=await sb.storage.from('trade-screenshots').upload(fname,f,{upsert:true});
+      if(!ue&&up){const{data:ud}=sb.storage.from('trade-screenshots').getPublicUrl(fname);imgUrl=ud?.publicUrl||null;}
+      else { console.warn('Storage upload error, fallback base64:',ue?.message); }
+    } catch(e){ console.warn('Storage exception:',e); }
+    // Fallback base64 si Storage a échoué
+    if(!imgUrl){
+      imgUrl=await new Promise(res=>{
+        const r=new FileReader();
+        r.onload=e=>res(e.target.result);
+        r.onerror=()=>res(null);
+        r.readAsDataURL(f);
+      });
+    }
   }
   const pnl=parseFloat(document.getElementById('t-pnl').value)||0;
   const v1r=parseFloat(document.getElementById('t-1r').value)||75;
