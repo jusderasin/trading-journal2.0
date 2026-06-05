@@ -790,8 +790,8 @@ async function testMiroConnection(){
 }
 async function createMiroTradeCard(tr){
   // Couleur selon résultat + qualité
-  const colors={profit:'#1a9e6e',loss:'#c0392b',be:'#2980b9'};
-  const bgColor=tr.result==='profit'?(tr.checklist_respected===true?'#16a085':'#1a9e6e'):tr.result==='loss'?'#c0392b':'#2980b9';
+  // Miro n'accepte que des noms de couleurs prédéfinis
+  const bgColor=tr.result==='profit'?(tr.checklist_respected===true?'dark_green':'green'):tr.result==='loss'?'red':'blue';
   const emoji=tr.result==='profit'?'✅':tr.result==='loss'?'🔴':'🟡';
   const aplus=tr.checklist_respected===true?' ⭐ A++':'';
   const dateStr=tr.entry_time?new Date(tr.entry_time).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
