@@ -569,22 +569,7 @@ tbody td{padding:13px 20px;font-size:13px;color:var(--text2);vertical-align:midd
           <button class="btn btn-gold" onclick="saveUserSettings()">💾 Sauvegarder</button>
         </div>
         <div style="max-width:560px;display:flex;flex-direction:column;gap:20px">
-          <!-- NOTION -->
-          <div class="card">
-            <div class="card-header"><span class="card-title">🔗 Notion Integration</span></div>
-            <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-              <div class="fg"><label class="flabel">Integration Token Notion</label>
-                <input class="finput" id="set-notion-token" type="password" placeholder="secret_xxxxxxxxxxxx">
-              </div>
-              <div class="fg"><label class="flabel">Database ID Notion</label>
-                <input class="finput" id="set-notion-db" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-              </div>
-              <div style="display:flex;gap:10px;align-items:center">
-                <button class="btn btn-ghost btn-sm" onclick="testNotionConnection()">🧪 Tester la connexion</button>
-                <span id="notion-test-result" style="font-size:12px"></span>
-              </div>
-            </div>
-          </div>
+
           <!-- COMMUNAUTE -->
           <div class="card">
             <div class="card-header"><span class="card-title">👥 Profil Communauté</span></div>
@@ -1040,7 +1025,7 @@ function nav(el,page){
 }
 
 // ── NOTION PROXY URL ──
-window._notionProxy = 'https://notion-proxy.lescargotturbo2.workers.dev';
+// Notion désactivé
 
 // ── CALENDAR STATE ──
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
@@ -2225,55 +2210,9 @@ async function saveUserSettings() {
   toast('Parametres sauvegardes !');
 }
 
-async function testNotionConnection() {
-  const token = document.getElementById('set-notion-token') ? document.getElementById('set-notion-token').value.trim() : '';
-  const dbId = document.getElementById('set-notion-db') ? document.getElementById('set-notion-db').value.trim() : '';
-  const resultEl = document.getElementById('notion-test-result');
-  if(!token || !dbId) { if(resultEl) resultEl.textContent = 'Token et DB ID requis'; return; }
-  if(resultEl) resultEl.textContent = 'Test en cours...';
-  try {
-    const r = await fetch(window._notionProxy, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({token, db_id: dbId})
-    });
-    const d = await r.json();
-    if(resultEl) {
-      resultEl.textContent = d.ok ? 'Connecte : '+(d.title||'OK') : 'Erreur '+d.status;
-      resultEl.style.color = d.ok ? 'var(--green)' : 'var(--red)';
-    }
-  } catch(e) {
-    if(resultEl) { resultEl.textContent = 'Erreur reseau'; resultEl.style.color = 'var(--red)'; }
-  }
-}
+async function testNotionConnection() { /* Notion désactivé */ }
 
-async function syncTradeToNotion(trade) {
-  const token = _userSettings && _userSettings.notion_token;
-  const dbId = _userSettings && _userSettings.notion_db_id;
-  if(!token || !dbId || !window._notionProxy) return;
-  const dateStr = trade.entry_time ? trade.entry_time.slice(0,10) : new Date().toISOString().slice(0,10);
-  const mois = dateStr.slice(0,7);
-  const rrVal = trade.rr_theoretical ? parseFloat(trade.rr_theoretical) : null;
-  const pnlVal = trade.pnl || 0;
-  const payload = {
-    parent: {database_id: dbId},
-    properties: {
-      'Somme': {title: [{text: {content: trade.asset + ' - ' + (trade.direction==='long'?'Long':'Short') + ' - ' + (trade.result==='profit'?'TP':'SL')}}]},
-      'Mois': {rich_text: [{text: {content: mois}}]},
-      'PnL': {number: pnlVal},
-      'Date': {date: {start: dateStr}},
-      'Trade': {rich_text: [{text: {content: trade.comment || ''}}]}
-    }
-  };
-  if(rrVal) payload.properties['RR'] = {number: rrVal};
-  try {
-    await fetch(window._notionProxy, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({token, payload})
-    });
-  } catch(e) { console.warn('Notion sync error:',e); }
-}
+async function syncTradeToNotion(trade) { /* Notion désactivé */ }
 
 async function loadCommunity() {
   const tbody = document.getElementById('comm-body');
