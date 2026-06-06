@@ -964,7 +964,8 @@ sb.auth.onAuthStateChange(async(_,session)=>{
     document.getElementById('sb-email').textContent=user.email;
     document.getElementById('journal-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     loading(true,'Chargement des données...');
-    await Promise.all([loadAccounts(),loadTrades(),loadBtSessions(),loadUserSettings()]);
+    await Promise.all([loadAccounts(),loadTrades(),loadBtSessions()]);
+    loadUserSettings().catch(e=>console.warn('settings:',e));
     loading(false);
     renderAll();
     renderCLEditor();
