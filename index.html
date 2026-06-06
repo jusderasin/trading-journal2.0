@@ -2173,6 +2173,122 @@ async function saveTradeToSc(){
 // ── SCENARIO MODAL (for existing session — add strategy scenario) ──
 // Close on overlay click
 document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});});
+
+// ── NOTION PROXY URL ──
+window._notionProxy = 'https://notion-proxy.lescargotturbo2.workers.dev';
+
+// ── USER SETTINGS ──
+let _userSettings = null;
+
+async function loadUserSettings() {
+  if(!user) return;
+  try {
+    const {data,error} = await sb.from('user_settings').select('*').eq('user_id',user.id).maybeSingle();
+    if(error) { console.warn('loadUserSettings:',error.message); return; }
+    _userSettings = data || null;
+    if(_userSettings) {
+      const nt = document.getElementById('set-notion-token');
+      const nd = document.getElementById('set-notion-db');
+      const dn = document.getElementById('set-display-name');
+      const ip = document.getElementById('set-is-public');
+      if(nt) nt.value = _userSettings.notion_token || '';
+      if(nd) nd.value = _userSettings.notion_db_id || '';
+      if(dn) dn.value = _userSettings.display_name || '';
+      if(ip) ip.checked = !!_userSettings.is_public;
+    }
+  } catch(e) { console.warn('loadUserSettings error:',e); }
+}
+
+async function saveUserSettings() {
+  if(!user) return;
+  const payload = {
+    user_id: user.id,
+    notion_token: document.getElementById('set-notion-token') ? document.getElementById('set-notion-token').value.trim() : null,
+    notion_db_id: document.getElementById('set-notion-db') ? document.getElementById('set-notion-db').value.trim() : null,
+    display_name: document.getElementById('set-display-name') ? document.getElementById('set-display-name').value.trim() : null,
+    is_public: document.getElementById('set-is-public') ? document.getElementById('set-is-public').checked : false,
+    updated_at: new Date().toISOString()
+  };
+  const {error} = await sb.from('user_settings').upsert(payload, {onConflict:'user_id'});
+  if(error) { toast('Erreur: '+error.message,'err'); return; }
+  _userSettings = payload;
+  toast('Parametres sauvegardes !');
+}
+
+async function testNotionConnection() {
+  const token = document.getElementById('set-notion-token') ? document.getElementById('set-notion-token').value.trim() : '';
+  const dbId = document.getElementById('set-notion-db') ? document.getElementById('set-notion-db').value.trim() : '';
+  const resultEl = document.getElementById('notion-test-result');
+  if(!token || !dbId) { if(resultEl) resultEl.textContent = 'Token et DB ID requis'; return; }
+  if(resultEl) resultEl.textContent = 'Test en cours...';
+  try {
+    const r = await fetch(window._notionProxy, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({token, db_id: dbId})
+    });
+    const d = await r.json();
+    if(resultEl) {
+      resultEl.textContent = d.ok ? 'Connecte : '+(d.title||'OK') : 'Erreur '+d.status;
+      resultEl.style.color = d.ok ? 'var(--green)' : 'var(--red)';
+    }
+  } catch(e) {
+    if(resultEl) { resultEl.textContent = 'Erreur reseau'; resultEl.style.color = 'var(--red)'; }
+  }
+}
+
+async function syncTradeToNotion(trade) {
+  const token = _userSettings && _userSettings.notion_token;
+  const dbId = _userSettings && _userSettings.notion_db_id;
+  if(!token || !dbId || !window._notionProxy) return;
+  const dateStr = trade.entry_time ? trade.entry_time.slice(0,10) : new Date().toISOString().slice(0,10);
+  const mois = dateStr.slice(0,7);
+  const rrVal = trade.rr_theoretical ? parseFloat(trade.rr_theoretical) : null;
+  const pnlVal = trade.pnl || 0;
+  const payload = {
+    parent: {database_id: dbId},
+    properties: {
+      'Somme': {title: [{text: {content: trade.asset + ' - ' + (trade.direction==='long'?'Long':'Short') + ' - ' + (trade.result==='profit'?'TP':'SL')}}]},
+      'Mois': {rich_text: [{text: {content: mois}}]},
+      'PnL': {number: pnlVal},
+      'Date': {date: {start: dateStr}},
+      'Trade': {rich_text: [{text: {content: trade.comment || ''}}]}
+    }
+  };
+  if(rrVal) payload.properties['RR'] = {number: rrVal};
+  try {
+    await fetch(window._notionProxy, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({token, payload})
+    });
+  } catch(e) { console.warn('Notion sync error:',e); }
+}
+
+async function loadCommunity() {
+  const tbody = document.getElementById('comm-body');
+  const meta = document.getElementById('comm-meta');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" class="empty">Chargement...</td></tr>';
+  try {
+    const {data,error} = await sb.from('public_trader_stats').select('*').order('total_r', {ascending:false});
+    if(error) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Erreur: '+error.message+'</td></tr>'; return; }
+    if(!data||!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Aucun trader public</td></tr>'; return; }
+    if(meta) meta.textContent = data.length + ' trader'+(data.length>1?'s':'');
+    tbody.innerHTML = data.map(function(t,i) {
+      var tr_col = (t.total_r||0)>=0 ? 'var(--green)' : 'var(--red)';
+      var pnl_col = (t.total_pnl||0)>=0 ? 'var(--green)' : 'var(--red)';
+      return '<tr>' +
+        '<td style="padding:12px 20px;color:var(--text3);font-weight:600">'+(i+1)+'</td>' +
+        '<td style="padding:12px 20px;color:var(--text);font-weight:600">'+(t.display_name||'Anonyme')+'</td>' +
+        '<td style="padding:12px 20px;font-family:var(--mono);color:'+tr_col+';font-weight:700">'+((t.total_r||0)>=0?'+':'')+(t.total_r||0).toFixed(1)+' R</td>' +
+        '<td style="padding:12px 20px;font-family:var(--mono);color:var(--gold)">'+(t.win_rate||0).toFixed(0)+'%</td>' +
+        '<td style="padding:12px 20px;color:var(--text2)">'+(t.total_trades||0)+'</td>' +
+        '<td style="padding:12px 20px;font-family:var(--mono);color:'+pnl_col+'">'+((t.total_pnl||0)>=0?'+':'')+(t.total_pnl||0).toFixed(0)+' $</td>' +
+      '</tr>';
+    }).join('');
+  } catch(e) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Erreur: '+e.message+'</td></tr>'; }
+}
 </script>
 </body>
 </html>
