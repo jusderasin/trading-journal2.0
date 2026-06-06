@@ -1,156 +1,194 @@
 // ════════════════════════════════════════════════════════════════════
-//  TRADING JOURNAL 2.0 — PATCH : Notion Sync + Onglet Communauté
-//  Instructions d'intégration au bas du fichier
+//  TRADING JOURNAL 2.0 — MODULE COMPLET
+//  Settings (Notion par user) + Communauté
+//  
+//  INTÉGRATION : copie tout ce bloc dans ton <script> existant,
+//  AVANT la balise </script> de fermeture.
+//  Puis suis les 3 étapes SQL + 2 insertions HTML en bas.
 // ════════════════════════════════════════════════════════════════════
 
-// ── 1. CONFIGURATION NOTION ─────────────────────────────────────────
-// Remplace ces deux valeurs par les tiennes (voir instructions bas)
-const NOTION_TOKEN  = 'secret_VOTRE_TOKEN_ICI';
-const NOTION_DB_ID  = 'VOTRE_DATABASE_ID_ICI';
-// ────────────────────────────────────────────────────────────────────
+// ── NOTION PAR USER ─────────────────────────────────────────────────
+// Chaque user stocke son propre token + DB ID dans Supabase (chiffré côté client)
+// La table user_settings est créée par le SQL ci-dessous.
 
-// ── 2. NOTION SYNC ──────────────────────────────────────────────────
-// Appelle cette fonction juste après le sb.from('trades').insert(...)
-// dans saveTrade(). Elle crée une page dans ta database Notion.
-async function syncTradeToNotion(tradeData) {
-  if (!NOTION_TOKEN || NOTION_TOKEN.includes('VOTRE')) return;
+async function loadUserSettings() {
+  if (!user) return;
+  const { data } = await sb
+    .from('user_settings')
+    .select('notion_token, notion_db_id, display_name, is_public')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  window._userSettings = data || {};
+  // Pré-remplir les champs si la page settings est ouverte
+  const nToken = document.getElementById('settings-notion-token');
+  const nDb    = document.getElementById('settings-notion-db');
+  const dName  = document.getElementById('settings-display-name');
+  const isPub  = document.getElementById('settings-is-public');
+  if (nToken) nToken.value = data?.notion_token || '';
+  if (nDb)    nDb.value    = data?.notion_db_id  || '';
+  if (dName)  dName.value  = data?.display_name  || '';
+  if (isPub)  isPub.checked = data?.is_public     || false;
+}
 
-  const acName = accounts.find(a => a.id === tradeData.account_id)?.firm_name || '—';
-  const dateStr = tradeData.entry_time
-    ? tradeData.entry_time.slice(0, 10)
+async function saveUserSettings() {
+  const token   = document.getElementById('settings-notion-token')?.value.trim() || '';
+  const dbId    = document.getElementById('settings-notion-db')?.value.trim()    || '';
+  const name    = document.getElementById('settings-display-name')?.value.trim() || '';
+  const isPub   = document.getElementById('settings-is-public')?.checked         || false;
+
+  const payload = {
+    user_id:      user.id,
+    notion_token: token,
+    notion_db_id: dbId,
+    display_name: name,
+    is_public:    isPub,
+  };
+
+  const { error } = await sb
+    .from('user_settings')
+    .upsert(payload, { onConflict: 'user_id' });
+
+  if (error) { toast('Erreur : ' + error.message, 'err'); return; }
+
+  window._userSettings = payload;
+  toast('⚙️ Paramètres sauvegardés ✓');
+
+  // Test la connexion Notion si token fourni
+  if (token && dbId) testNotionConnection(token, dbId);
+}
+
+async function testNotionConnection(token, dbId) {
+  // Utilise le proxy Cloudflare Worker (voir instructions bas)
+  const proxy = window._notionProxy || '';
+  if (!proxy) { toast('ℹ️ Configure le Notion Proxy pour tester', 'err'); return; }
+  try {
+    const r = await fetch(proxy + '/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, db_id: dbId })
+    });
+    if (r.ok) toast('🟢 Notion connecté ✓');
+    else      toast('🔴 Notion : erreur de connexion — vérifie le token et le DB ID', 'err');
+  } catch { toast('🔴 Notion : proxy inaccessible', 'err'); }
+}
+
+// ── NOTION SYNC (adapté à ta database : Somme/Mois/PnL/Date/RR/Trade) ──
+async function syncTradeToNotion(tradePayload) {
+  const cfg = window._userSettings || {};
+  const token = cfg.notion_token;
+  const dbId  = cfg.notion_db_id;
+  const proxy = window._notionProxy || '';
+
+  if (!token || !dbId || !proxy || proxy.includes('TONSITE')) {
+    console.log('[Notion] Non configuré — trade non synchronisé');
+    return;
+  }
+
+  const acName = accounts.find(a => a.id === tradePayload.account_id)?.firm_name || '—';
+  const entryDate = tradePayload.entry_time
+    ? tradePayload.entry_time.slice(0, 10)
     : new Date().toISOString().slice(0, 10);
-
+  const moisLabel = new Date(entryDate + 'T12:00:00')
+    .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const emoji =
-    tradeData.result === 'profit' ? '✅' :
-    tradeData.result === 'loss'   ? '🔴' : '🟡';
+    tradePayload.result === 'profit' ? '✅' :
+    tradePayload.result === 'loss'   ? '🔴' : '🟡';
 
-  const body = {
-    parent: { database_id: NOTION_DB_ID },
-    icon:   { type: 'emoji', emoji },
+  // Nom lisible pour la colonne "Somme" (titre principal)
+  const tradeName = `${emoji} ${tradePayload.asset} ${tradePayload.direction === 'long' ? '▲' : '▼'} — ${entryDate}`;
+
+  // Résultat formaté pour colonne "Trade"
+  const tradeResult =
+    tradePayload.result === 'profit' ? 'Profit' :
+    tradePayload.result === 'loss'   ? 'Loss'   : 'Break Even';
+
+  const notionBody = {
+    parent: { database_id: dbId },
+    icon: { type: 'emoji', emoji },
     properties: {
-      // Adapte les noms de colonnes à ta database Notion
-      'Nom': {
-        title: [{
-          text: {
-            content: `${emoji} ${tradeData.asset} ${tradeData.direction === 'long' ? '▲' : '▼'} — ${dateStr}`
-          }
-        }]
+      // ── Adapté à tes colonnes Notion ──
+      'Somme': {                             // colonne titre (type: title)
+        title: [{ text: { content: tradeName } }]
       },
-      'Date': {
-        date: { start: dateStr }
+      'Date': {                              // colonne date
+        date: { start: entryDate }
       },
-      'Actif': {
-        select: { name: tradeData.asset || 'MNQ' }
+      'Mois': {                              // colonne texte
+        rich_text: [{ text: { content: moisLabel } }]
       },
-      'Direction': {
-        select: { name: tradeData.direction === 'long' ? 'Long' : 'Short' }
+      'PnL': {                               // colonne number
+        number: parseFloat(tradePayload.pnl) || 0
       },
-      'Résultat': {
-        select: {
-          name: tradeData.result === 'profit' ? 'Profit' :
-                tradeData.result === 'loss'   ? 'Loss'   : 'Break Even'
-        }
+      'RR': {                                // colonne number
+        number: parseFloat(tradePayload.rr_theoretical) || null
       },
-      'RR': {
-        number: parseFloat(tradeData.rr_theoretical) || null
+      'Trade': {                             // colonne texte/url
+        rich_text: [{ text: { content: `${tradeResult} · ${acName} · ${tradePayload.direction === 'long' ? 'Long' : 'Short'}` } }]
       },
-      'PnL ($)': {
-        number: parseFloat(tradeData.pnl) || 0
-      },
-      'Compte': {
-        rich_text: [{ text: { content: acName } }]
-      },
-      'Checklist': {
-        checkbox: tradeData.checklist_respected === true
-      },
-      'A++': {
-        checkbox: tradeData.is_aplus === true
-      },
-      'Commentaire': {
-        rich_text: [{
-          text: { content: tradeData.comment || '' }
-        }]
-      }
     }
   };
 
   try {
-    // Notion bloque les requêtes cross-origin depuis le browser.
-    // On passe par un proxy léger (Notion Proxy Worker ou ton backend).
-    // Si tu n'as pas encore de proxy, on enregistre localement en attente.
-    const NOTION_PROXY = 'https://notion-proxy.TONSITE.workers.dev'; // à remplir
-    if (NOTION_PROXY.includes('TONSITE')) {
-      // Fallback : file d'attente locale
-      const queue = JSON.parse(localStorage.getItem('notion_queue') || '[]');
-      queue.push({ body, ts: Date.now() });
-      localStorage.setItem('notion_queue', JSON.stringify(queue));
-      console.log('[Notion] ajouté à la file locale (proxy non configuré)');
-      return;
-    }
-    const r = await fetch(NOTION_PROXY, {
+    const r = await fetch(proxy, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: NOTION_TOKEN, payload: body })
+      body: JSON.stringify({ token, payload: notionBody })
     });
-    if (!r.ok) console.warn('[Notion sync] erreur:', r.status);
-    else        console.log('[Notion sync] page créée ✓');
+    if (r.ok) {
+      console.log('[Notion] Page créée ✓');
+      toast('📋 Notion synchronisé ✓');
+    } else {
+      console.warn('[Notion] Erreur:', r.status, await r.text());
+    }
   } catch (e) {
-    console.warn('[Notion sync] fetch error:', e);
+    console.warn('[Notion] Fetch error:', e);
   }
 }
 
-// ── 3. MODIFIER saveTrade() ──────────────────────────────────────────
-// Dans ta fonction saveTrade(), après la ligne :
-//   const res = await sb.from('trades').insert(payload);
-//   saveErr = res.error;
-// Ajoute :
-//   if (!saveErr && !editId) syncTradeToNotion(payload);
-//
-// Exemple complet du bloc concerné :
-/*
-  const res = await sb.from('trades').insert(payload);
-  saveErr = res.error;
-  // ← AJOUT
-  if (!saveErr && !editId) syncTradeToNotion(payload);
-*/
-
-// ── 4. ONGLET COMMUNAUTÉ ─────────────────────────────────────────────
-
-// 4a. Ajouter dans le SQL Supabase (une seule fois) :
-//   ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
-//   CREATE OR REPLACE VIEW public_trader_stats AS
-//     SELECT
-//       t.user_id,
-//       COUNT(*)                                    AS total_trades,
-//       SUM(t.pnl)                                  AS total_pnl,
-//       SUM(t.pnl / NULLIF(t.value_1r, 0))          AS total_r,
-//       ROUND(AVG(CASE WHEN t.result='profit' THEN 1.0 ELSE 0.0 END)*100, 1) AS win_rate,
-//       MAX(t.entry_time)                            AS last_trade
-//     FROM trades t
-//     JOIN accounts a ON a.user_id = t.user_id
-//     WHERE a.is_public = true
-//     GROUP BY t.user_id;
-//   GRANT SELECT ON public_trader_stats TO anon, authenticated;
-
-// 4b. Fonction de chargement communauté
+// ── COMMUNAUTÉ ───────────────────────────────────────────────────────
 async function loadCommunity() {
   const wrap = document.getElementById('community-leaderboard');
   if (!wrap) return;
-  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">Chargement...</div>';
+  wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">⏳ Chargement...</div>';
 
   const { data, error } = await sb
     .from('public_trader_stats')
     .select('*')
     .order('total_r', { ascending: false })
-    .limit(50);
+    .limit(100);
 
   if (error) {
-    wrap.innerHTML = `<div class="empty">Erreur : ${error.message}</div>`;
+    wrap.innerHTML = `<div class="empty">Erreur : ${error.message}<br><small style="color:var(--text3)">Vérifie que la view SQL a bien été créée</small></div>`;
     return;
   }
   if (!data || !data.length) {
-    wrap.innerHTML = '<div class="empty">Aucun trader public pour l\'instant.<br>Passe ton compte en public dans les Paramètres pour apparaître ici.</div>';
+    wrap.innerHTML = `<div class="empty" style="padding:60px 20px">
+      <div style="font-size:28px;margin-bottom:12px">🏆</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text2);margin-bottom:8px">Aucun trader public pour l'instant</div>
+      <div style="font-size:13px;color:var(--text3)">Active la visibilité dans Paramètres → "Profil public" pour apparaître ici</div>
+    </div>`;
     return;
+  }
+
+  // Chercher mon rang
+  const myRow = data.find(r => r.user_id === user?.id);
+  const myRank = myRow ? data.indexOf(myRow) + 1 : null;
+
+  // Mettre à jour les stat cards
+  const rankEl = document.getElementById('comm-rank');
+  const myREl  = document.getElementById('comm-myR');
+  const countEl= document.getElementById('comm-count');
+  const topREl = document.getElementById('comm-topR');
+  if (rankEl) rankEl.textContent = myRank ? '#' + myRank : '—';
+  if (myREl) {
+    const r = parseFloat(myRow?.total_r) || 0;
+    myREl.textContent = (r >= 0 ? '+' : '') + r.toFixed(1) + 'R';
+    myREl.className = 'stat-num ' + (r >= 0 ? 'green' : 'red');
+  }
+  if (countEl) countEl.textContent = data.length;
+  if (topREl) {
+    const topR = parseFloat(data[0]?.total_r) || 0;
+    topREl.textContent = (topR >= 0 ? '+' : '') + topR.toFixed(1) + 'R';
   }
 
   const medals = ['🥇', '🥈', '🥉'];
@@ -169,29 +207,35 @@ async function loadCommunity() {
       </thead>
       <tbody>
         ${data.map((row, i) => {
-          const r = parseFloat(row.total_r) || 0;
+          const r   = parseFloat(row.total_r)   || 0;
           const pnl = parseFloat(row.total_pnl) || 0;
-          const wr = parseFloat(row.win_rate) || 0;
-          const isMe = row.user_id === (window._userId || '');
-          const displayName = row.display_name || `Trader #${i + 1}`;
-          return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);${isMe ? 'background:var(--gold4)' : ''}">
-            <td style="padding:13px 20px;font-size:13px;color:var(--text3);font-weight:700">
-              ${medals[i] || (i + 1)}
+          const wr  = parseFloat(row.win_rate)  || 0;
+          const isMe = row.user_id === user?.id;
+          const name = row.display_name || `Trader #${i + 1}`;
+          return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);transition:background .1s${isMe ? ';background:var(--gold4)' : ''}" onmouseover="this.style.background='rgba(255,255,255,0.025)'" onmouseout="this.style.background='${isMe ? 'var(--gold4)' : 'transparent'}'">
+            <td style="padding:14px 20px;font-size:16px">${medals[i] || ('<span style="font-size:12px;color:var(--text3);font-family:var(--mono)">' + (i+1) + '</span>')}</td>
+            <td style="padding:14px 20px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:30px;height:30px;border-radius:50%;background:var(--gold3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0">
+                  ${(name[0] || '?').toUpperCase()}
+                </div>
+                <div>
+                  <div style="font-size:13px;color:var(--text);font-weight:600">${name}</div>
+                  <div style="font-size:10px;color:var(--text3)">${new Date(row.last_trade || Date.now()).toLocaleDateString('fr-FR')} · dernier trade</div>
+                </div>
+                ${isMe ? '<span style="font-size:10px;background:var(--gold3);color:var(--gold);padding:2px 7px;border-radius:4px;font-weight:700">Toi</span>' : ''}
+              </div>
             </td>
-            <td style="padding:13px 20px">
-              <span style="font-size:13px;color:var(--text);font-weight:500">${displayName}</span>
-              ${isMe ? '<span style="font-size:10px;background:var(--gold3);color:var(--gold);padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600">Toi</span>' : ''}
-            </td>
-            <td style="padding:13px 20px;text-align:right;font-family:var(--mono);font-size:13px;font-weight:700;color:${r >= 0 ? 'var(--green)' : 'var(--red)'}">
+            <td style="padding:14px 20px;text-align:right;font-family:var(--mono);font-size:14px;font-weight:700;color:${r >= 0 ? 'var(--green)' : 'var(--red)'}">
               ${r >= 0 ? '+' : ''}${r.toFixed(1)}R
             </td>
-            <td style="padding:13px 20px;text-align:right;font-family:var(--mono);font-size:13px;color:${wr >= 50 ? 'var(--green)' : 'var(--text2)'}">
-              ${wr.toFixed(1)}%
+            <td style="padding:14px 20px;text-align:right">
+              <span style="font-size:12px;font-family:var(--mono);color:${wr >= 50 ? 'var(--green)' : 'var(--red)'}">${wr.toFixed(1)}%</span>
             </td>
-            <td style="padding:13px 20px;text-align:right;font-size:13px;color:var(--text2)">
+            <td style="padding:14px 20px;text-align:right;font-size:13px;color:var(--text2)">
               ${parseInt(row.total_trades) || 0}
             </td>
-            <td style="padding:13px 20px;text-align:right;font-family:var(--mono);font-size:13px;font-weight:600;color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">
+            <td style="padding:14px 20px;text-align:right;font-family:var(--mono);font-size:13px;font-weight:600;color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">
               ${pnl >= 0 ? '+' : ''}${pnl.toFixed(0)} $
             </td>
           </tr>`;
@@ -200,156 +244,238 @@ async function loadCommunity() {
     </table>`;
 }
 
-// 4c. Toggle visibilité publique
-async function togglePublicProfile(accountId, isPublic) {
-  const { error } = await sb
-    .from('accounts')
-    .update({ is_public: isPublic })
-    .eq('id', accountId)
-    .eq('user_id', user.id);
+// ── INIT : charger settings au démarrage ─────────────────────────────
+// AJOUTE dans sb.auth.onAuthStateChange(), après les Promise.all :
+//   await loadUserSettings();
+//   window._notionProxy = 'https://TON-WORKER.workers.dev'; // ton proxy CF
 
-  if (error) { toast('Erreur : ' + error.message, 'err'); return; }
-  await loadAccounts();
-  toast(isPublic ? '🌐 Profil rendu public ✓' : '🔒 Profil privé ✓');
-}
+// ── MODIFIER saveTrade() ──────────────────────────────────────────────
+// Après la ligne "saveErr = res.error;" dans le bloc insert, ajoute :
+//   if (!saveErr && !editId) syncTradeToNotion(payload);
+
 
 // ════════════════════════════════════════════════════════════════════
-// INSTRUCTIONS D'INTÉGRATION
+//  HTML À INSÉRER — copie-colle dans ton fichier
 // ════════════════════════════════════════════════════════════════════
-//
-// ── A. Notion Token + Database ────────────────────────────────────
-//  1. Va sur https://www.notion.so/my-integrations → New integration
-//  2. Nomme-la "Trading Journal", copy le "Internal Integration Token"
-//  3. Crée une database Notion "Trades" avec les colonnes :
-//     Nom (title), Date (date), Actif (select), Direction (select),
-//     Résultat (select), RR (number), PnL ($) (number),
-//     Compte (text), Checklist (checkbox), A++ (checkbox), Commentaire (text)
-//  4. Partage la database avec ton integration (bouton en haut à droite)
-//  5. Copie l'ID de la database depuis l'URL :
-//     notion.so/MON-WORKSPACE/DATABASE_ID?v=...
-//  6. Remplis NOTION_TOKEN et NOTION_DB_ID ci-dessus
-//
-// ── B. Proxy Notion (CORS) ────────────────────────────────────────
-//  Notion bloque les appels browser direct. 2 options :
-//  Option 1 (gratuit, 5 min) — Cloudflare Worker :
-//    Crée un Worker sur https://workers.cloudflare.com avec ce code :
-//
-//    export default {
-//      async fetch(req) {
-//        if (req.method === 'OPTIONS') return new Response(null, {
-//          headers: { 'Access-Control-Allow-Origin': '*',
-//                     'Access-Control-Allow-Headers': '*',
-//                     'Access-Control-Allow-Methods': 'POST' }
-//        });
-//        const { token, payload } = await req.json();
-//        const r = await fetch('https://api.notion.com/v1/pages', {
-//          method: 'POST',
-//          headers: { 'Authorization': 'Bearer ' + token,
-//                     'Notion-Version': '2022-06-28',
-//                     'Content-Type': 'application/json' },
-//          body: JSON.stringify(payload)
-//        });
-//        const data = await r.json();
-//        return new Response(JSON.stringify(data), {
-//          headers: { 'Content-Type': 'application/json',
-//                     'Access-Control-Allow-Origin': '*' }
-//        });
-//      }
-//    };
-//
-//    Puis mets ton URL Worker dans NOTION_PROXY ci-dessus.
-//
-//  Option 2 — Supabase Edge Function (si tu préfères tout dans SB)
-//
-// ── C. HTML à ajouter dans ton fichier ───────────────────────────
-//
-//  Dans la <nav class="sidebar">, après le sb-item checklist :
+
 /*
-  <div class="sb-item" onclick="nav(this,'community');loadCommunity()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-      <path d="M16 3.13a4 4 0 010 7.75"/>
-    </svg>
-    <span>Communauté</span>
-  </div>
+─────────────────────────────────────────────────────────────────────
+A. Dans la <nav class="sidebar">, après le sb-item "Checklist" :
+─────────────────────────────────────────────────────────────────────
+
+      <div class="sb-item" onclick="nav(this,'community');loadCommunity()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <span>Communauté</span>
+      </div>
+      <div class="sb-item" onclick="nav(this,'settings');loadUserSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span>Paramètres</span>
+      </div>
+
+
+─────────────────────────────────────────────────────────────────────
+B. Dans <main class="main">, après la page checklist :
+─────────────────────────────────────────────────────────────────────
+
+      <!-- ══ PAGE COMMUNAUTÉ ══ -->
+      <div class="page" id="page-community">
+        <div class="page-header">
+          <div><div class="page-title"><em>Communauté</em></div><div class="page-meta">Classement des traders publics · temps réel</div></div>
+          <button class="btn btn-ghost" onclick="loadCommunity()">↻ Actualiser</button>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+          <div class="stat-card"><div class="stat-label">Mon rang</div><div class="stat-num gold" id="comm-rank">—</div></div>
+          <div class="stat-card"><div class="stat-label">Mon Total R</div><div class="stat-num" id="comm-myR">—</div></div>
+          <div class="stat-card"><div class="stat-label">Traders actifs</div><div class="stat-num" id="comm-count">—</div></div>
+          <div class="stat-card"><div class="stat-label">Leader Total R</div><div class="stat-num green" id="comm-topR">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🏆 Leaderboard</span><span class="card-meta">Classé par Total R · opt-in uniquement</span></div>
+          <div id="community-leaderboard"><div class="empty">Clique sur Actualiser pour charger</div></div>
+        </div>
+        <div style="margin-top:14px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:12px;color:var(--text3)">
+          🔒 Seuls les comptes marqués "Profil public" dans tes Paramètres apparaissent ici.
+        </div>
+      </div>
+
+      <!-- ══ PAGE PARAMÈTRES ══ -->
+      <div class="page" id="page-settings">
+        <div class="page-header">
+          <div><div class="page-title">⚙️ <em>Paramètres</em></div><div class="page-meta">Connexion Notion · Profil public · Préférences</div></div>
+        </div>
+
+        <!-- Notion -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span class="card-title">📋 Connexion Notion</span>
+            <span class="card-meta">Sync automatique de tes trades vers ta database Notion</span>
+          </div>
+          <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
+            <div style="padding:12px 16px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.7">
+              <strong style="color:var(--gold)">Comment configurer :</strong><br>
+              1. Va sur <a href="https://www.notion.so/my-integrations" target="_blank" style="color:var(--blue)">notion.so/my-integrations</a> → copie ton Integration Token<br>
+              2. Ouvre ta database Notion → copie l'ID depuis l'URL (<code style="font-size:11px;background:var(--bg2);padding:1px 5px;border-radius:3px">notion.so/MON-WORKSPACE/<strong>DATABASE_ID</strong>?v=...</code>)<br>
+              3. Assure-toi que l'intégration est partagée avec ta database (bouton "Connect to" dans Notion)<br>
+              4. Colle les deux valeurs ci-dessous et sauvegarde
+            </div>
+            <div class="frow">
+              <div class="fg">
+                <label class="flabel">Integration Token</label>
+                <input class="finput" id="settings-notion-token" type="password" placeholder="ntn_xxxxxxxxxxxxxxxxxxxx..." autocomplete="off">
+              </div>
+              <div class="fg">
+                <label class="flabel">Database ID</label>
+                <input class="finput" id="settings-notion-db" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--text3);padding:10px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">
+              ⚠️ Colonnes attendues dans ta database Notion : <strong style="color:var(--text2)">Somme</strong> (titre), <strong style="color:var(--text2)">Mois</strong>, <strong style="color:var(--text2)">PnL</strong>, <strong style="color:var(--text2)">Date</strong>, <strong style="color:var(--text2)">RR</strong>, <strong style="color:var(--text2)">Trade</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profil communauté -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span class="card-title">👥 Profil Communauté</span>
+            <span class="card-meta">Apparais dans le classement des traders</span>
+          </div>
+          <div style="padding:24px;display:flex;flex-direction:column;gap:14px">
+            <div class="fg">
+              <label class="flabel">Pseudo affiché dans le leaderboard</label>
+              <input class="finput" id="settings-display-name" placeholder="Ex: R1Trading, TradeurParis..." style="max-width:300px">
+            </div>
+            <label style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="settings-is-public" style="width:16px;height:16px;accent-color:var(--gold)">
+              <div>
+                <div style="font-size:13px;color:var(--text);font-weight:500">Profil public</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:2px">Tes stats totales (R, WR, PnL) apparaissent dans le leaderboard Communauté. Ton email n'est jamais partagé.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-gold" onclick="saveUserSettings()">💾 Sauvegarder les paramètres</button>
+          <button class="btn btn-ghost" onclick="testNotionConnection(document.getElementById('settings-notion-token').value, document.getElementById('settings-notion-db').value)">🔌 Tester Notion</button>
+        </div>
+
+        <div style="margin-top:24px;padding:14px 18px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:12px;color:var(--text3)">
+          🔐 Ton token Notion est stocké de façon sécurisée dans Supabase (table <code style="font-size:11px">user_settings</code>, protégée par RLS — seul toi y as accès).
+        </div>
+      </div>
 */
-//
-//  Dans le <main class="main">, après la page checklist :
+
+
+// ════════════════════════════════════════════════════════════════════
+//  SQL SUPABASE — Colle dans SQL Editor → New Query → Run
+// ════════════════════════════════════════════════════════════════════
+
 /*
-  <div class="page" id="page-community">
-    <div class="page-header">
-      <div>
-        <div class="page-title"><em>Communauté</em></div>
-        <div class="page-meta">Classement des traders publics · temps réel</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-ghost" onclick="loadCommunity()">↻ Actualiser</button>
-        <button class="btn btn-gold" onclick="openPublicSettings()">⚙ Visibilité profil</button>
-      </div>
-    </div>
+-- Table settings par user
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id      UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  notion_token TEXT,
+  notion_db_id TEXT,
+  display_name TEXT,
+  is_public    BOOLEAN DEFAULT false,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
 
-    <!-- Mes stats résumées -->
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
-      <div class="stat-card">
-        <div class="stat-label">Mon rang</div>
-        <div class="stat-num gold" id="comm-rank">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Mon Total R</div>
-        <div class="stat-num" id="comm-myR">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Traders actifs</div>
-        <div class="stat-num" id="comm-count">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Top R (leader)</div>
-        <div class="stat-num green" id="comm-topR">—</div>
-      </div>
-    </div>
+-- RLS : chaque user voit et modifie uniquement ses settings
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "own settings" ON user_settings
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
-    <!-- Leaderboard -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Leaderboard</span>
-        <span class="card-meta">Classé par Total R · opt-in uniquement</span>
-      </div>
-      <div id="community-leaderboard">
-        <div class="empty">Clique sur Actualiser pour charger</div>
-      </div>
-    </div>
+-- Vue publique pour le leaderboard (ne lit que les trades des users is_public)
+CREATE OR REPLACE VIEW public_trader_stats AS
+  SELECT
+    t.user_id,
+    s.display_name,
+    COUNT(*)                                                              AS total_trades,
+    ROUND(SUM(t.pnl)::numeric, 2)                                        AS total_pnl,
+    ROUND(SUM(t.pnl / NULLIF(t.value_1r, 0))::numeric, 2)               AS total_r,
+    ROUND(AVG(CASE WHEN t.result='profit' THEN 1.0 ELSE 0.0 END)*100,1) AS win_rate,
+    MAX(t.entry_time)                                                     AS last_trade
+  FROM trades t
+  JOIN user_settings s ON s.user_id = t.user_id AND s.is_public = true
+  GROUP BY t.user_id, s.display_name;
 
-    <!-- Info opt-in -->
-    <div style="margin-top:16px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:12px;color:var(--text3)">
-      🔒 Seuls les trades des comptes marqués "public" apparaissent dans le classement.
-      Ton pseudo et tes stats détaillées ne sont jamais partagés sans ton accord.
-      Pour activer : Paramètres → passe un compte en public.
-    </div>
-  </div>
+GRANT SELECT ON public_trader_stats TO anon, authenticated;
 */
-//
-// ── D. SQL Supabase ────────────────────────────────────────────────
-//  Dans Supabase → SQL Editor → New Query, colle et execute :
+
+
+// ════════════════════════════════════════════════════════════════════
+//  CLOUDFLARE WORKER (proxy Notion — gratuit, 5 min)
+//  1. workers.cloudflare.com → Create application → Create Worker
+//  2. Colle ce code, clique Deploy
+//  3. Copie l'URL du Worker dans window._notionProxy ci-dessus
+// ════════════════════════════════════════════════════════════════════
+
 /*
-  ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
-  ALTER TABLE accounts ADD COLUMN IF NOT EXISTS display_name TEXT;
+export default {
+  async fetch(req) {
+    const cors = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    };
 
-  CREATE OR REPLACE VIEW public_trader_stats AS
-    SELECT
-      t.user_id,
-      a.display_name,
-      COUNT(*)                                                        AS total_trades,
-      ROUND(SUM(t.pnl)::numeric, 2)                                  AS total_pnl,
-      ROUND(SUM(t.pnl / NULLIF(t.value_1r, 0))::numeric, 2)          AS total_r,
-      ROUND(AVG(CASE WHEN t.result='profit' THEN 1.0 ELSE 0.0 END)*100, 1) AS win_rate,
-      MAX(t.entry_time)                                               AS last_trade
-    FROM trades t
-    JOIN accounts a ON a.user_id = t.user_id AND a.is_public = true
-    GROUP BY t.user_id, a.display_name;
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: cors });
+    }
 
-  GRANT SELECT ON public_trader_stats TO anon, authenticated;
+    try {
+      const { token, payload, db_id } = await req.json();
+
+      // Mode test
+      if (db_id && !payload) {
+        const r = await fetch(`https://api.notion.com/v1/databases/${db_id}`, {
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Notion-Version': '2022-06-28'
+          }
+        });
+        return new Response(JSON.stringify({ ok: r.ok, status: r.status }), {
+          headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Création de page
+      const r = await fetch('https://api.notion.com/v1/pages', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await r.json();
+      return new Response(JSON.stringify(data), {
+        status: r.status,
+        headers: { ...cors, 'Content-Type': 'application/json' }
+      });
+
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }), {
+        status: 500,
+        headers: { ...cors, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+};
 */
+
+// ════════════════════════════════════════════════════════════════════
+//  UNE SEULE LIGNE À AJOUTER dans onAuthStateChange (après loadTrades)
 //
+//   await loadUserSettings();
+//   window._notionProxy = 'https://TON-WORKER.workers.dev';
+//
+//  UNE SEULE LIGNE dans saveTrade(), après saveErr = res.error :
+//   if (!saveErr && !editId) syncTradeToNotion(payload);
 // ════════════════════════════════════════════════════════════════════
