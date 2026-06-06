@@ -2016,8 +2016,19 @@ async function saveTrade(){
   } else {
     toast('✓ Trade modifié');
   }
-  // Sync Notion
-  syncTradeToNotion(payload).catch(()=>{});
+  // Sync Notion — seulement si nouveau trade
+  if(!editId) {
+    const tradeForNotion = {
+      asset: document.getElementById('t-asset').value,
+      direction: document.getElementById('t-dir').value,
+      result: document.getElementById('t-res').value,
+      rr_theoretical: parseFloat(document.getElementById('t-rr').value)||null,
+      pnl: parseFloat(document.getElementById('t-pnl').value)||0,
+      comment: document.getElementById('t-comment').value||'',
+      entry_time: entry.toISOString(),
+    };
+    syncTradeToNotion(tradeForNotion).catch(e=>console.warn('Notion sync:',e));
+  }
   closeM('modal-trade');
   ynVal=null;
   const yy=document.getElementById('yn-yes');const yn=document.getElementById('yn-no');
