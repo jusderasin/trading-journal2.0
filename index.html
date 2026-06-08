@@ -646,11 +646,8 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
         <div class="page-header">
           <div><div class="page-title">Import CSV</div><div class="page-sub">Importe tes trades depuis ta prop firm</div></div>
         </div>
-        <div style="margin-bottom:16px">
-          <div class="card-title" style="margin-bottom:10px">Sélectionne ta prop firm</div>
-          <div class="import-broker-grid" id="import-broker-grid"></div>
-        </div>
-        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()" ondragover="e.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
           <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="handleCSVFile(this.files[0])">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--txtm);margin-bottom:10px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <div style="font-size:14px;font-weight:600;margin-bottom:4px">Glisse ton fichier CSV ici</div>
@@ -794,19 +791,7 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
         <label class="form-label">Setup</label>
         <select class="form-select" id="t-setup"><option value="">— Sélectionner —</option></select>
       </div>
-      <div class="form-group ff">
-        <label class="form-label">Émotions</label>
-        <div class="emotion-chips">
-          <span class="emo-chip" onclick="toggleEmo(this)" data-emo="Confiant">Confiant</span>
-          <span class="emo-chip" onclick="toggleEmo(this)" data-emo="Patient">Patient</span>
-          <span class="emo-chip" onclick="toggleEmo(this)" data-emo="Discipliné">Discipliné</span>
-          <span class="emo-chip" onclick="toggleEmo(this)" data-emo="Neutre">Neutre</span>
-          <span class="emo-chip neg" onclick="toggleEmo(this)" data-emo="FOMO">FOMO</span>
-          <span class="emo-chip neg" onclick="toggleEmo(this)" data-emo="Impatient">Impatient</span>
-          <span class="emo-chip neg" onclick="toggleEmo(this)" data-emo="Stressé">Stressé</span>
-          <span class="emo-chip neg" onclick="toggleEmo(this)" data-emo="Revanche">Revanche</span>
-        </div>
-      </div>
+
       <div class="form-group ff">
         <label class="form-label">Qualité — <span id="t-quality-val">5</span>/10</label>
         <input type="range" class="quality-slider" id="t-quality" min="1" max="10" value="5" oninput="document.getElementById('t-quality-val').textContent=this.value">
@@ -980,14 +965,7 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       <div class="form-group ff"><label class="form-label">Zone VP</label>
         <select class="form-select" id="btt-zone"><option value="">— Zone VP —</option><option value="VAH">VAH</option><option value="POC">POC</option><option value="VAL">VAL</option><option value="High">High</option><option value="Low">Low</option></select>
       </div>
-      <div class="form-group ff"><label class="form-label">Émotions</label>
-        <div class="emotion-chips">
-          <span class="emo-chip" onclick="toggleEmo(this)" data-emo="Confiant">Confiant</span>
-          <span class="emo-chip" onclick="toggleEmo(this)" data-emo="Patient">Patient</span>
-          <span class="emo-chip neg" onclick="toggleEmo(this)" data-emo="FOMO">FOMO</span>
-          <span class="emo-chip neg" onclick="toggleEmo(this)" data-emo="Stressé">Stressé</span>
-        </div>
-      </div>
+
       <div class="form-group ff"><label class="form-label">Notes</label><textarea class="form-textarea" id="btt-notes" placeholder="Observations..."></textarea></div>
     </div>
     <div class="modal-footer">
@@ -1293,7 +1271,6 @@ window.openAddTradeModal=()=>{
   const sc=document.getElementById('t-screenshot-preview'),sb2=document.getElementById('t-screenshot-remove')
   if(sc){sc.style.display='none';sc.src=''}
   if(sb2)sb2.style.display='none'
-  document.querySelectorAll('#modal-trade .emo-chip').forEach(c=>c.classList.remove('active'))
   setDir('LONG');setOutcome('WIN')
   populateTradeAccountSelect();populateTradeSetupSelect()
   openModal('modal-trade')
@@ -1314,7 +1291,7 @@ window.openEditTradeModal=(t)=>{
   if(t.account_id){populateTradeAccountSelect();document.getElementById('t-account').value=t.account_id}
   populateTradeSetupSelect();document.getElementById('t-setup').value=t.setup||''
   setDir(t.direction||'LONG');setOutcome(t.outcome==='BREAKEVEN'?'BE':t.outcome||'WIN')
-  document.querySelectorAll('#modal-trade .emo-chip').forEach(c=>{c.classList.toggle('active',selectedEmos.includes(c.dataset.emo))})
+
   const sc=document.getElementById('t-screenshot-preview'),sb2=document.getElementById('t-screenshot-remove')
   if(t.screenshot_url&&sc){sc.style.display='block';sc.src=t.screenshot_url;if(sb2)sb2.style.display='block'}
   else if(sc){sc.style.display='none';if(sb2)sb2.style.display='none'}
@@ -1376,7 +1353,7 @@ window.saveTrade=async()=>{
   const payload={
     user_id:U.id,date,symbol,direction:selectedDir,outcome:selectedOutcome,
     net_pnl:pnl,pnl_r:rr,one_r:oneR,account_id:accountId,setup,session,
-    entry_time:entryTime,emotions:selectedEmos.join(', '),rating:quality,
+    entry_time:entryTime,emotions:'',rating:quality,
     notes,screenshot_url:tradeScreenshotB64||null,
     timeframe:'30s',trade_type:'live'
   }
@@ -1990,7 +1967,6 @@ window.openAddBtTradeModal=(sessionId)=>{
   document.getElementById('btt-one-r').value=btSessions.find(s=>s.id===sessionId)?.one_r||200
   document.getElementById('btt-notes').value=''
   document.getElementById('btt-zone').value=''
-  document.querySelectorAll('#modal-bt-trade .emo-chip').forEach(c=>c.classList.remove('active'))
   setBttDir('LONG');setBttOutcome('WIN')
   openModal('modal-bt-trade')
 }
@@ -2007,8 +1983,7 @@ window.setBttOutcome=(o)=>{
 }
 window.saveBtTrade=async()=>{
   if(!currentBtSessionId){toast('Aucune session','error');return}
-  const eEmos=[...document.querySelectorAll('#modal-bt-trade .emo-chip.active')].map(c=>c.dataset.emo)
-  const payload={session_id:currentBtSessionId,date:document.getElementById('btt-date').value,entry_time:document.getElementById('btt-time').value||null,direction:selectedBttDir,outcome:selectedBttOutcome,pnl_r:parseFloat(document.getElementById('btt-rr').value)||null,one_r:parseFloat(document.getElementById('btt-one-r').value)||null,zone:document.getElementById('btt-zone').value||null,emotions:eEmos.join(', ')||null,notes:document.getElementById('btt-notes').value||null}
+  const payload={session_id:currentBtSessionId,date:document.getElementById('btt-date').value,entry_time:document.getElementById('btt-time').value||null,direction:selectedBttDir,outcome:selectedBttOutcome,pnl_r:parseFloat(document.getElementById('btt-rr').value)||null,one_r:parseFloat(document.getElementById('btt-one-r').value)||null,zone:document.getElementById('btt-zone').value||null,emotions:null,notes:document.getElementById('btt-notes').value||null}
   const{error}=await sb.from('bt_trades').insert(payload)
   if(error){toast('Erreur: '+error.message,'error');return}
   toast('Trade BT ajouté ✓','success');closeModal('modal-bt-trade');await loadBtTrades();renderBtDetail(currentBtSessionId)
@@ -2020,41 +1995,51 @@ window.exportBtSession=(id)=>{const s=btSessions.find(x=>x.id===id);const trades
 async function renderCommunity(){
   const el=document.getElementById('community-content');if(!el)return
   el.innerHTML='<div style="color:var(--txtm);font-size:13px;padding:10px 0">Chargement...</div>'
-  // Load public profiles
-  const{data:profiles}=await sb.from('trades').select('user_id').neq('user_id',U.id).limit(100)
-  if(!profiles?.length){el.innerHTML=`<div class="empty-state"><h3>Aucun trader actif</h3><p>Active ton profil public dans Paramètres pour apparaître ici.</p></div>`;return}
-  // Group by user and generate anonymized stats
-  const byUser=groupBy(profiles,'user_id')
-  const colors=['#f59e0b','#10b981','#3b82f6','#8b5cf6','#ef4444','#ec4899']
-  const avatarLetters=['T','A','B','C','D','E','M','N','S','R']
-  const userEntries=Object.entries(byUser)
-  el.innerHTML=`<div style="margin-bottom:14px;font-size:13px;color:var(--txtm)">${userEntries.length} trader${userEntries.length>1?'s':''} actif${userEntries.length>1?'s':''}</div>
-  <div class="community-grid">${userEntries.map(([uid,ts],i)=>{
-    const color=colors[i%colors.length],letter=avatarLetters[i%avatarLetters.length]
-    const total=ts.length
-    return`<div class="community-card">
-      <div class="cc-header">
-        <div class="cc-avatar" style="background:${color};color:#000">${letter}</div>
-        <div><div class="cc-name">Trader #${(i+1).toString().padStart(3,'0')}</div><div class="cc-since">${total} trades · Actif</div></div>
-      </div>
-      <div class="cc-kpis">
-        <div><div class="cc-kv">${total}</div><div class="cc-kl">Trades</div></div>
-        <div><div class="cc-kv">—%</div><div class="cc-kl">Win Rate</div></div>
-      </div>
-      <div class="cc-tags"><span class="cc-tag">MNQ</span><span class="cc-tag">Futures</span></div>
-    </div>`
-  }).join('')}</div>`
+  try{
+    // Récupérer les trades de TOUS les users (anonymisés)
+    const{data:allData,error}=await sb.from('trades').select('user_id,outcome,pnl_r,symbol,date').limit(500)
+    if(error||!allData?.length){
+      el.innerHTML=`<div class="empty-state"><div style="font-size:36px;margin-bottom:12px">👥</div><h3>Aucun trader actif</h3><p>La communauté se remplit au fur et à mesure que les traders s'inscrivent.</p></div>`;return
+    }
+    // Group by user
+    const byUser={}
+    allData.forEach(t=>{if(!byUser[t.user_id])byUser[t.user_id]={trades:[],uid:t.user_id};byUser[t.user_id].trades.push(t)})
+    const colors=['#f59e0b','#10b981','#3b82f6','#8b5cf6','#ef4444','#ec4899','#14b8a6','#f97316']
+    const userEntries=Object.entries(byUser)
+    const meIdx=userEntries.findIndex(([uid])=>uid===U.id)
+    // Put me first
+    if(meIdx>0){const me=userEntries.splice(meIdx,1)[0];userEntries.unshift(me)}
+    el.innerHTML=`<div style="margin-bottom:16px;font-size:13px;color:var(--txtm)">${userEntries.length} trader${userEntries.length>1?'s':''} inscrit${userEntries.length>1?'s':''}</div>
+    <div class="community-grid">${userEntries.map(([uid,{trades}],i)=>{
+      const isMe=uid===U.id
+      const color=colors[i%colors.length]
+      const wins=trades.filter(t=>t.outcome==='WIN').length
+      const losses=trades.filter(t=>t.outcome==='LOSS').length
+      const total=trades.length
+      const wr=total?Math.round(wins/total*100):0
+      const totalR=trades.reduce((s,t)=>s+(t.pnl_r||0),0)
+      const label=isMe?'Moi':'Trader #'+(i+1).toString().padStart(3,'0')
+      const letter=isMe?(U.user_metadata?.name||U.email||'M')[0].toUpperCase():'T'
+      return`<div class="community-card" style="${isMe?'border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.04)':''}">
+        <div class="cc-header">
+          <div class="cc-avatar" style="background:${isMe?'var(--gold)':color};color:#000">${letter}</div>
+          <div><div class="cc-name">${label}${isMe?' 👤':''}</div><div class="cc-since">${total} trades · ${wins}W/${losses}L</div></div>
+        </div>
+        <div class="cc-kpis">
+          <div><div class="cc-kv">${total}</div><div class="cc-kl">Trades</div></div>
+          <div><div class="cc-kv" style="color:${wr>=50?'var(--green)':'var(--red)'}">${total?wr+'%':'—'}</div><div class="cc-kl">Win Rate</div></div>
+          <div><div class="cc-kv" style="color:${totalR>=0?'var(--green)':'var(--red)'}">${total?totalR.toFixed(1)+'R':'—'}</div><div class="cc-kl">Total R</div></div>
+        </div>
+        <div class="cc-tags"><span class="cc-tag">MNQ</span><span class="cc-tag">Futures</span>${isMe?'<span class="cc-tag" style="color:var(--gold);border-color:rgba(245,158,11,.2)">Moi</span>':''}</div>
+      </div>`
+    }).join('')}</div>`
+  }catch(err){el.innerHTML=`<div class="empty-state"><h3>Erreur</h3><p>${err.message}</p></div>`}
 }
 
 // ── IMPORT CSV ─────────────────────────────────────────────────
 const BROKERS=[{id:'Apex',name:'Apex Trader Funding',sub:'Performance Account'},{id:'TopStep',name:'TopStep',sub:'Combine/Funded'},{id:'MFF',name:'My Funded Futures',sub:'Funded Account'},{id:'Generic',name:'Générique',sub:'Format universel'}]
 function renderImport(){
-  const el=document.getElementById('import-broker-grid');if(!el)return
-  el.innerHTML=BROKERS.map(b=>`<div class="broker-card ${importBroker===b.id?'active':''}" onclick="selectBroker('${b.id}',this)">
-    <div style="font-size:28px">${b.id==='Apex'?'⚡':b.id==='TopStep'?'🔝':b.id==='MFF'?'💰':'📄'}</div>
-    <div class="broker-name">${b.name}</div>
-    <div class="broker-sub">${b.sub}</div>
-  </div>`).join('')
+  // Rien à rendre, juste le drop zone
 }
 window.selectBroker=(id,el)=>{
   importBroker=id
