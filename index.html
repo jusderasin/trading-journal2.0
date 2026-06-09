@@ -80,10 +80,10 @@ input,select,textarea,button{font-family:inherit}
 .app-body{display:flex;flex:1;overflow:hidden;position:relative}
 
 /* SIDEBAR */
-#sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:399;display:none;backdrop-filter:blur(2px)}
+#sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:398;display:none}
 #sidebar-overlay.open{display:block}
-#sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:transform .25s ease;z-index:300}
-@media(max-width:768px){#sidebar{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%);padding-top:var(--topbar);z-index:400;transition:transform .25s ease;}#sidebar.open{transform:translateX(0)}}
+#sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:transform .25s ease;z-index:399}
+@media(max-width:768px){#sidebar{position:fixed;top:0;left:0;bottom:0;width:75vw;max-width:280px;transform:translateX(-100%);padding-top:var(--topbar);z-index:500;transition:transform .25s cubic-bezier(.4,0,.2,1);}#sidebar.open{transform:translateX(0)}}
 .sidebar-nav{flex:1;padding:10px 8px;overflow-y:auto}
 .nav-sect{font-size:10px;color:var(--txtm);text-transform:uppercase;letter-spacing:.1em;padding:10px 12px 4px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);color:var(--txt2);cursor:pointer;transition:all .15s;margin-bottom:2px;font-size:13px;font-weight:500;border:1px solid transparent;user-select:none}
@@ -1114,20 +1114,25 @@ window.navigate=(page)=>{
 
 // ── SIDEBAR ────────────────────────────────────────────────────
 window.toggleSidebar=()=>{
+  const isMobile=window.innerWidth<=768
+  if(!isMobile)return
   const s=document.getElementById('sidebar')
   const o=document.getElementById('sidebar-overlay')
   if(!s||!o)return
   const opening=!s.classList.contains('open')
-  s.classList.toggle('open',opening)
-  o.style.cssText=opening?'display:block;opacity:1':'display:none'
-  document.body.style.overflow=opening?'hidden':''
+  if(opening){
+    s.classList.add('open')
+    o.style.display='block'
+    document.body.style.overflow='hidden'
+  }else{
+    closeSidebar()
+  }
 }
 window.closeSidebar=()=>{
   const s=document.getElementById('sidebar')
   const o=document.getElementById('sidebar-overlay')
-  if(!s||!o)return
-  s.classList.remove('open')
-  o.style.cssText='display:none'
+  if(s)s.classList.remove('open')
+  if(o)o.style.display='none'
   document.body.style.overflow=''
 }
 
@@ -1762,20 +1767,26 @@ window.saveFunded=async()=>{
     consistency_pct:+document.getElementById('f-consist-pct').value||null
   }
   const btnF=document.querySelector('#modal-funded .btn-primary')
-  if(btnF){btnF.disabled=true;btnF.textContent='Création...'}
+  if(btnF){btnF.disabled=true;btnF.textContent='⏳ Création...'}
   try{
-    const{error:err2,data:d2}=editingFundedId?await sb.from('accounts').update(payload).eq('id',editingFundedId).select():await sb.from('accounts').insert(payload).select()
+    const timeoutP=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Timeout - vérifie les policies RLS dans Supabase')),8000))
+    const op=editingFundedId?sb.from('accounts').update(payload).eq('id',editingFundedId).select():sb.from('accounts').insert(payload).select()
+    const{error:err2,data:d2}=await Promise.race([op,timeoutP])
     if(err2){
+      console.error('Funded error:',err2)
       toast('❌ '+err2.message,'error')
-      if(err2.message.includes('policy')||err2.code==='42501'){
-        toast('⚠️ Va dans Supabase → accounts → Policies → ajouter INSERT pour authenticated','error')
+      if(err2.code==='42501'||err2.message?.toLowerCase().includes('policy')||err2.message?.toLowerCase().includes('rls')){
+        toast('🔒 RLS bloque: Supabase → Table Editor → accounts → Policies → Add Policy','error')
       }
       return
     }
-    toast('Compte sauvegardé ✓','success')
+    toast('✅ Compte sauvegardé !','success')
     closeModal('modal-funded')
     await loadFundedAccounts()
     renderFunded()
+  }catch(e){
+    toast('❌ '+e.message,'error')
+    console.error('saveFunded catch:',e)
   }finally{if(btnF){btnF.disabled=false;btnF.textContent='Créer'}}
 }
 window.editFunded=(id)=>{
@@ -2054,22 +2065,29 @@ window.openAddBtSessionModal=()=>{
 window.saveBtSession=async()=>{
   const name=document.getElementById('bts-name').value.trim()||document.getElementById('bts-symbol').value
   const payload={user_id:U.id,name,symbol:document.getElementById('bts-symbol').value,timeframe:document.getElementById('bts-tf').value,one_r:+document.getElementById('bts-one-r').value||200,start_date:document.getElementById('bts-start').value||null,end_date:document.getElementById('bts-end').value||null,notes:document.getElementById('bts-notes').value}
-  const btn=document.querySelector('#modal-bt-session .btn-primary')||document.querySelector('#modal-bt-session button[onclick="saveBtSession()"]')
-  if(btn){btn.disabled=true;btn.textContent='Création...'}
+  const btnBt=document.querySelector('#modal-bt-session .btn-primary')
+  if(btnBt){btnBt.disabled=true;btnBt.textContent='⏳ Création...'}
   try{
-    const{error,data}=await sb.from('bt_sessions').insert(payload).select()
+    // Timeout de 8 secondes
+    const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Timeout - vérifie les policies RLS dans Supabase')),8000))
+    const insertPromise=sb.from('bt_sessions').insert(payload).select()
+    const{error,data}=await Promise.race([insertPromise,timeoutPromise])
     if(error){
-      toast('❌ '+error.message,'error')
-      if(error.message.includes('policy')||error.code==='42501'){
-        toast('⚠️ Va dans Supabase → bt_sessions → Policies → ajouter INSERT pour authenticated','error')
+      console.error('BT Session error:',error)
+      toast('❌ Erreur: '+error.message,'error')
+      if(error.code==='42501'||error.message?.toLowerCase().includes('policy')||error.message?.toLowerCase().includes('rls')){
+        toast('🔒 RLS bloque: Supabase → Table Editor → bt_sessions → Policies → Enable RLS + Add Policy','error')
       }
       return
     }
-    toast('Session créée ✓','success')
+    toast('✅ Session créée !','success')
     closeModal('modal-bt-session')
     await loadBtSessions()
     if(data?.[0])openBtDetail(data[0].id)
-  }finally{if(btn){btn.disabled=false;btn.textContent='Créer'}}
+  }catch(e){
+    toast('❌ '+e.message,'error')
+    console.error('saveBtSession catch:',e)
+  }finally{if(btnBt){btnBt.disabled=false;btnBt.textContent='Créer'}}
 }
 window.openAddBtTradeModal=(sessionId)=>{
   selectedBttDir='LONG';selectedBttOutcome='WIN'
