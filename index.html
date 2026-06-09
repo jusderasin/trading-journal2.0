@@ -49,7 +49,7 @@ input,select,textarea,button{font-family:inherit}
 
 /* TOPBAR */
 #topbar{height:var(--topbar);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;z-index:100;position:relative}
-.tb-hamburger{width:36px;height:36px;border-radius:var(--r);background:transparent;border:1px solid var(--border);color:var(--txt2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.tb-hamburger{width:36px;height:36px;border-radius:var(--r);background:transparent;border:1px solid var(--border);color:var(--txt2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:manipulation}
 .tb-brand{font-size:15px;font-weight:700;letter-spacing:.08em;white-space:nowrap}
 .tb-brand span{color:var(--gold)}
 .tb-kpis{display:flex;align-items:center;gap:16px;flex:1;overflow:hidden}
@@ -83,7 +83,7 @@ input,select,textarea,button{font-family:inherit}
 #sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:399;display:none;backdrop-filter:blur(2px)}
 #sidebar-overlay.open{display:block}
 #sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:transform .25s ease;z-index:300}
-@media(max-width:768px){#sidebar{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%);padding-top:var(--topbar);z-index:400;}#sidebar.open{transform:translateX(0)}}
+@media(max-width:768px){#sidebar{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%);padding-top:var(--topbar);z-index:400;transition:transform .25s ease;}#sidebar.open{transform:translateX(0)}}
 .sidebar-nav{flex:1;padding:10px 8px;overflow-y:auto}
 .nav-sect{font-size:10px;color:var(--txtm);text-transform:uppercase;letter-spacing:.1em;padding:10px 12px 4px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);color:var(--txt2);cursor:pointer;transition:all .15s;margin-bottom:2px;font-size:13px;font-weight:500;border:1px solid transparent;user-select:none}
@@ -92,7 +92,6 @@ input,select,textarea,button{font-family:inherit}
 
 /* CONTENT */
 #content{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
-#content:has(#page-journal.active){padding:12px 0 12px 0}
 @media(max-width:768px){#content{padding-bottom:calc(var(--bottomnav) + 16px + env(safe-area-inset-bottom))}}
 
 /* BOTTOM NAV */
@@ -103,6 +102,9 @@ input,select,textarea,button{font-family:inherit}
 
 /* PAGES */
 .page{display:none}.page.active{display:block}
+#content.page-cal-active{padding:0!important}
+#content.page-cal-active #page-calendar{padding:14px 18px;height:100%;display:flex;flex-direction:column;box-sizing:border-box}
+.cal-grid-wrap{flex:1}
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
 .page-title{font-size:clamp(18px,4vw,22px);font-weight:700}.page-sub{font-size:12px;color:var(--txtm);margin-top:2px}
 
@@ -240,8 +242,8 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
 .cal-title{font-size:15px;font-weight:700}
 .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
 .cal-wd{text-align:center;font-size:10px;color:var(--txtm);text-transform:uppercase;letter-spacing:.05em;padding:4px 0}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cal-day{min-height:90px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg2);padding:8px;cursor:default;transition:background .1s;display:flex;flex-direction:column}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);gap:2px;flex:1}
+.cal-day{min-height:0;height:100%;border-radius:var(--r);border:1px solid var(--border);background:var(--bg2);padding:8px;cursor:default;transition:background .1s;display:flex;flex-direction:column}
 @media(max-width:600px){.cal-day{min-height:55px;padding:4px}}
 .cal-day.om{opacity:.3}.cal-day.today{border-color:var(--gold);background:var(--goldg)}
 .cal-day.dwin{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2)}
@@ -583,7 +585,7 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       </div>
 
       <!-- CALENDAR -->
-      <div class="page" id="page-calendar" style="margin:-16px;padding:16px 20px">
+      <div class="page" id="page-calendar">
         <div class="cal-header">
           <button class="cal-nav" onclick="calMove(-1)">‹</button>
           <div class="cal-title" id="cal-title"></div>
@@ -1095,28 +1097,38 @@ window.execConfirm=()=>{document.getElementById('confirm-overlay').classList.rem
 // ── NAVIGATION ─────────────────────────────────────────────────
 window.navigate=(page)=>{
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
-  const el=document.getElementById(`page-${page}`)
+  const el=document.getElementById('page-'+page)
   if(el)el.classList.add('active')
   document.querySelectorAll('.nav-item,.bnav-item').forEach(i=>{
     i.classList.toggle('active',i.dataset.page===page)
   })
+  // Pleine page pour calendrier et journal
+  const contentEl=document.getElementById('content')
+  if(contentEl){
+    contentEl.classList.toggle('page-cal-active',page==='calendar')
+    contentEl.style.padding=page==='journal'?'12px 0':'';
+  }
   const renders={dashboard:renderDashboard,journal:renderJournal,calendar:renderCalendar,analytics:renderAnalytics,playbooks:renderPlaybooks,community:renderCommunity,rules:renderRules,backtest:renderBacktest,funded:renderFunded,settings:()=>{},import:renderImport}
   if(renders[page])renders[page]()
 }
 
 // ── SIDEBAR ────────────────────────────────────────────────────
 window.toggleSidebar=()=>{
-  const s=document.getElementById('sidebar'),o=document.getElementById('sidebar-overlay')
-  const isOpen=s.classList.contains('open')
-  if(isOpen){
-    s.classList.remove('open');o.classList.remove('open');o.style.display='none'
-  }else{
-    s.classList.add('open');o.classList.add('open');o.style.display='block'
-  }
+  const s=document.getElementById('sidebar')
+  const o=document.getElementById('sidebar-overlay')
+  if(!s||!o)return
+  const opening=!s.classList.contains('open')
+  s.classList.toggle('open',opening)
+  o.style.cssText=opening?'display:block;opacity:1':'display:none'
+  document.body.style.overflow=opening?'hidden':''
 }
 window.closeSidebar=()=>{
-  const s=document.getElementById('sidebar'),o=document.getElementById('sidebar-overlay')
-  s.classList.remove('open');o.classList.remove('open');o.style.display='none'
+  const s=document.getElementById('sidebar')
+  const o=document.getElementById('sidebar-overlay')
+  if(!s||!o)return
+  s.classList.remove('open')
+  o.style.cssText='display:none'
+  document.body.style.overflow=''
 }
 
 // ── WORLD CLOCK ────────────────────────────────────────────────
@@ -1749,11 +1761,22 @@ window.saveFunded=async()=>{
     consistency:document.getElementById('f-consist').value==='Oui',
     consistency_pct:+document.getElementById('f-consist-pct').value||null
   }
-  console.log('saveFunded payload:',payload)
-  const{error:err2,data:d2}=editingFundedId?await sb.from('accounts').update(payload).eq('id',editingFundedId).select():await sb.from('accounts').insert(payload).select()
-  console.log('saveFunded result:',{error:err2,data:d2})
-  if(err2){toast('Erreur Compte: '+err2.message,'error');console.error('Funded error:',err2);return}
-  toast('Compte sauvegardé ✓','success');closeModal('modal-funded');await loadFundedAccounts();renderFunded()
+  const btnF=document.querySelector('#modal-funded .btn-primary')
+  if(btnF){btnF.disabled=true;btnF.textContent='Création...'}
+  try{
+    const{error:err2,data:d2}=editingFundedId?await sb.from('accounts').update(payload).eq('id',editingFundedId).select():await sb.from('accounts').insert(payload).select()
+    if(err2){
+      toast('❌ '+err2.message,'error')
+      if(err2.message.includes('policy')||err2.code==='42501'){
+        toast('⚠️ Va dans Supabase → accounts → Policies → ajouter INSERT pour authenticated','error')
+      }
+      return
+    }
+    toast('Compte sauvegardé ✓','success')
+    closeModal('modal-funded')
+    await loadFundedAccounts()
+    renderFunded()
+  }finally{if(btnF){btnF.disabled=false;btnF.textContent='Créer'}}
 }
 window.editFunded=(id)=>{
   const a=fundedAccounts.find(x=>x.id===id);if(!a)return
@@ -2031,11 +2054,22 @@ window.openAddBtSessionModal=()=>{
 window.saveBtSession=async()=>{
   const name=document.getElementById('bts-name').value.trim()||document.getElementById('bts-symbol').value
   const payload={user_id:U.id,name,symbol:document.getElementById('bts-symbol').value,timeframe:document.getElementById('bts-tf').value,one_r:+document.getElementById('bts-one-r').value||200,start_date:document.getElementById('bts-start').value||null,end_date:document.getElementById('bts-end').value||null,notes:document.getElementById('bts-notes').value}
-  console.log('saveBtSession payload:',payload)
-  const{error,data}=await sb.from('bt_sessions').insert(payload).select()
-  console.log('saveBtSession result:',{error,data})
-  if(error){toast('Erreur BT: '+error.message,'error');console.error('BT Session error:',error);return}
-  toast('Session créée ✓','success');closeModal('modal-bt-session');await loadBtSessions();if(data?.[0])openBtDetail(data[0].id)
+  const btn=document.querySelector('#modal-bt-session .btn-primary')||document.querySelector('#modal-bt-session button[onclick="saveBtSession()"]')
+  if(btn){btn.disabled=true;btn.textContent='Création...'}
+  try{
+    const{error,data}=await sb.from('bt_sessions').insert(payload).select()
+    if(error){
+      toast('❌ '+error.message,'error')
+      if(error.message.includes('policy')||error.code==='42501'){
+        toast('⚠️ Va dans Supabase → bt_sessions → Policies → ajouter INSERT pour authenticated','error')
+      }
+      return
+    }
+    toast('Session créée ✓','success')
+    closeModal('modal-bt-session')
+    await loadBtSessions()
+    if(data?.[0])openBtDetail(data[0].id)
+  }finally{if(btn){btn.disabled=false;btn.textContent='Créer'}}
 }
 window.openAddBtTradeModal=(sessionId)=>{
   selectedBttDir='LONG';selectedBttOutcome='WIN'
