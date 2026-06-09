@@ -92,6 +92,7 @@ input,select,textarea,button{font-family:inherit}
 
 /* CONTENT */
 #content{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+#content:has(#page-journal.active){padding:12px 0 12px 0}
 @media(max-width:768px){#content{padding-bottom:calc(var(--bottomnav) + 16px + env(safe-area-inset-bottom))}}
 
 /* BOTTOM NAV */
@@ -545,14 +546,14 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
 
       <!-- JOURNAL -->
       <div class="page" id="page-journal">
-        <div class="page-header">
+        <div class="page-header" style="padding:0 16px">
           <div><div class="page-title">Journal</div><div class="page-sub" id="journal-count">0 trades</div></div>
           <div style="display:flex;gap:7px">
             <button class="btn-sm" onclick="exportCSV()">↓ CSV</button>
             <button class="btn-gold-sm" onclick="openAddTradeModal()">+ Trade</button>
           </div>
         </div>
-        <div class="filters-bar">
+        <div class="filters-bar" style="padding:0 16px">
           <input class="fi" type="text" id="journal-search" placeholder="🔍 Recherche..." oninput="filterJournal()">
           <select class="fs" id="journal-direction" onchange="filterJournal()"><option value="">Direction</option><option value="LONG">LONG</option><option value="SHORT">SHORT</option></select>
           <select class="fs" id="journal-outcome" onchange="filterJournal()"><option value="">Résultat</option><option value="WIN">WIN</option><option value="LOSS">LOSS</option><option value="BE">BE</option></select>
@@ -560,7 +561,7 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
           <input class="fi" type="date" id="journal-date-to" onchange="filterJournal()" style="min-width:0;width:130px">
           <button class="btn-sm" onclick="resetFilters()">Reset</button>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none">
           <table>
             <thead><tr>
               <th onclick="sortJournal('date')">Date</th>
@@ -570,15 +571,15 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
               <th>Setup</th>
               <th onclick="sortJournal('net_pnl')">Net PnL</th>
               <th onclick="sortJournal('pnl_r')">R</th>
+              <th>Session</th>
               <th>Résultat</th>
-              <th>Émotions</th>
               <th>📸</th>
               <th>Actions</th>
             </tr></thead>
             <tbody id="journal-tbody"></tbody>
           </table>
         </div>
-        <div class="pagination" id="journal-pagination"></div>
+        <div class="pagination" id="journal-pagination" style="padding:0 16px"></div>
       </div>
 
       <!-- CALENDAR -->
@@ -603,7 +604,7 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
           <button class="analytics-tab" onclick="switchATab('setup',this)">Par Setup</button>
           <button class="analytics-tab" onclick="switchATab('risk',this)">Risque</button>
           <button class="analytics-tab" onclick="switchATab('time',this)">Temps</button>
-          <button class="analytics-tab" onclick="switchATab('emotions',this)">Émotions</button>
+
         </div>
         <div id="analytics-content"></div>
       </div>
@@ -777,8 +778,10 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
     </div>
     <div class="fg">
       <div class="form-group">
-        <label class="form-label">Challenge / Compte</label>
-        <select class="form-select" id="t-account"></select>
+        <label class="form-label">Challenge / Compte <span style="font-size:10px;color:var(--txtm)">(multi)</span></label>
+        <div id="t-account-multi" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);min-height:42px;cursor:pointer" onclick="toggleAccountDropdown()"></div>
+        <div id="t-account-dropdown" style="display:none;position:absolute;z-index:700;background:var(--bg2);border:1px solid var(--borderl);border-radius:var(--rl);padding:8px;min-width:260px;max-height:200px;overflow-y:auto;box-shadow:0 16px 40px rgba(0,0,0,.6);margin-top:2px" id="t-account-dd"></div>
+        <input type="hidden" id="t-account">
       </div>
       <div class="form-group">
         <label class="form-label">Date</label>
@@ -849,18 +852,14 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       </div>
 
       <div class="form-group ff">
-        <label class="form-label">Qualité — <span id="t-quality-val">5</span>/10</label>
-        <input type="range" class="quality-slider" id="t-quality" min="1" max="10" value="5" oninput="document.getElementById('t-quality-val').textContent=this.value">
-      </div>
-      <div class="form-group ff">
         <label class="form-label">Screenshot</label>
-        <label class="screenshot-upload-area" id="t-screenshot-label" for="t-screenshot-input">
+        <div class="screenshot-upload-area" id="t-screenshot-label" onclick="document.getElementById('t-screenshot-input').click()" style="cursor:pointer">
           <div class="upload-hint">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--txtm)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             <div style="font-size:12px;color:var(--txtm)">Clique pour ajouter un screenshot</div>
           </div>
           <img id="t-screenshot-preview" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:var(--r)">
-        </label>
+        </div>
         <input type="file" id="t-screenshot-input" accept="image/*" style="display:none" onchange="handleScreenshot(this)">
         <button id="t-screenshot-remove" onclick="removeScreenshot()" style="display:none;margin-top:4px;font-size:12px;color:var(--red);background:none;border:none;cursor:pointer">✕ Supprimer screenshot</button>
       </div>
@@ -1018,7 +1017,16 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       </div>
       <div class="form-group"><label class="form-label">R Obtenu</label><input type="number" class="form-input" id="btt-rr" placeholder="ex: 2 ou -1" step="0.1"></div>
       <div class="form-group"><label class="form-label">Valeur 1R ($)</label><input type="number" class="form-input" id="btt-one-r" placeholder="200"></div>
-      <div class="form-group ff"><label class="form-label">Zone VP</label>
+      <div class="form-group"><label class="form-label">Scénario</label>
+        <select class="form-select" id="btt-scenario">
+          <option value="">— Scénario —</option>
+          <option value="A">Scénario A</option>
+          <option value="B">Scénario B</option>
+          <option value="C">Scénario C</option>
+          <option value="D">Scénario D</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Zone VP</label>
         <select class="form-select" id="btt-zone"><option value="">— Zone VP —</option><option value="VAH">VAH</option><option value="POC">POC</option><option value="VAL">VAL</option><option value="High">High</option><option value="Low">Low</option></select>
       </div>
 
@@ -1294,12 +1302,7 @@ async function loadTrades(){
   const{data,error}=await sb.from('trades').select('*').eq('user_id',U.id).order('date',{ascending:false}).order('created_at',{ascending:false})
   if(error){toast('Erreur trades: '+error.message,'error');return};allTrades=data||[]
 }
-function populateTradeAccountSelect(){
-  const sel=document.getElementById('t-account');if(!sel)return
-  const prev=sel.value
-  sel.innerHTML='<option value="">— Choisir compte —</option>'+fundedAccounts.map(a=>`<option value="${a.id}">${a.name} (${a.prop_firm||'—'})</option>`).join('')
-  if(prev)sel.value=prev
-}
+function populateTradeAccountSelect(){renderAccountMulti()}
 function populateTradeSetupSelect(){
   const sel=document.getElementById('t-setup');if(!sel)return
   const prev=sel.value
@@ -1307,7 +1310,7 @@ function populateTradeSetupSelect(){
   if(prev)sel.value=prev
 }
 window.openAddTradeModal=()=>{
-  editingTradeId=null;tradeScreenshotB64=null;selectedEmos=[]
+  editingTradeId=null;tradeScreenshotB64=null;selectedEmos=[];selectedAccountIds=[];renderAccountMulti()
   const title=document.getElementById('modal-trade-title');if(title)title.textContent='Nouveau Trade'
   document.getElementById('t-date').value=today()
   document.getElementById('t-symbol').value='MNQ'
@@ -1315,8 +1318,6 @@ window.openAddTradeModal=()=>{
   document.getElementById('t-rr').value=''
   document.getElementById('t-one-r').value=''
   document.getElementById('t-notes').value=''
-  document.getElementById('t-quality').value=5
-  document.getElementById('t-quality-val').textContent='5'
   const now=new Date()
   const hNow=now.getHours(),mNow=Math.round(now.getMinutes()/5)*5
   setTimePicker(hNow,mNow>=60?55:mNow)
@@ -1337,8 +1338,6 @@ window.openEditTradeModal=(t)=>{
   document.getElementById('t-rr').value=t.pnl_r!=null?t.pnl_r:''
   document.getElementById('t-one-r').value=t.one_r||''
   document.getElementById('t-notes').value=t.notes||''
-  document.getElementById('t-quality').value=t.rating||5
-  document.getElementById('t-quality-val').textContent=t.rating||5
   if(t.entry_time){const parts=t.entry_time.split(':');setTimePicker(parseInt(parts[0])||0,parseInt(parts[1])||0)}
   if(t.account_id){populateTradeAccountSelect();document.getElementById('t-account').value=t.account_id}
   populateTradeSetupSelect();document.getElementById('t-setup').value=t.setup||''
@@ -1394,17 +1393,18 @@ window.saveTrade=async()=>{
   const pnl=parseFloat(document.getElementById('t-pnl').value)||0
   const rr=parseFloat(document.getElementById('t-rr').value)||null
   const oneR=parseFloat(document.getElementById('t-one-r').value)||null
-  const accountId=document.getElementById('t-account').value||null
+  const accountId=selectedAccountIds[0]||document.getElementById('t-account').value||null
+  const accountIds=selectedAccountIds.join(',')||null
   const setup=document.getElementById('t-setup').value||null
   const session=document.getElementById('t-session').value
   const hour=document.getElementById('t-hour').value,min=document.getElementById('t-minute').value
   const entryTime=`${hour}:${min}`
   const notes=document.getElementById('t-notes').value
-  const quality=parseInt(document.getElementById('t-quality').value)||5
+  const quality=5
   if(!date){toast('Date requise','error');return}
   const payload={
     user_id:U.id,date,symbol,direction:selectedDir,outcome:selectedOutcome,
-    net_pnl:pnl,pnl_r:rr,one_r:oneR,account_id:accountId,setup,session,
+    net_pnl:pnl,pnl_r:rr,one_r:oneR,account_id:accountId,account_ids:accountIds,setup,session,
     entry_time:entryTime,emotions:'',rating:quality,
     notes,screenshot_url:tradeScreenshotB64||null,
     timeframe:'30s',trade_type:'live'
@@ -1461,7 +1461,7 @@ function renderJournalTable(){
       <td class="mono" style="font-weight:700;color:${net>=0?'var(--green)':'var(--red)'}">${fmtPnL(net)}</td>
       <td class="mono" style="color:${(t.pnl_r||0)>=0?'var(--green)':'var(--red)'}">${fmtR(t.pnl_r)}</td>
       <td><span class="badge b${t.outcome==='WIN'?'w':t.outcome==='LOSS'?'l':'be'}">${t.outcome||'—'}</span></td>
-      <td style="font-size:11px;color:var(--txtm);max-width:120px;overflow:hidden;text-overflow:ellipsis">${t.emotions||'—'}</td>
+      <td style="font-size:11px;color:var(--txtm)">${t.session||'—'}</td>
       <td style="cursor:${t.screenshot_url?'pointer':'default'}" onclick="${t.screenshot_url?`showTradeImg('${t.id}')`:''}">${hasImg}</td>
       <td><div class="action-btns">
         <button class="tbl-btn edit" onclick="openEditTradeModal(window.__trades__.find(x=>x.id==='${t.id}'))"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -1928,7 +1928,7 @@ function renderBtDetail(id){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
       <div class="card">
-        <div class="card-title">Perf par Scénario / Setup</div>
+        ${(()=>{const byScen={};trades.forEach(t=>{const k=t.scenario||null;if(k){if(!byScen[k])byScen[k]=[];byScen[k].push(t)}});const entries=Object.entries(byScen);if(!entries.length)return '<div style="color:var(--txtm);font-size:13px">Aucun scénario renseigné · Utilise le champ Scénario dans + Trade BT</div>';return '<div style="display:flex;flex-direction:column;gap:6px">'+entries.sort(([a],[b])=>a.localeCompare(b)).map(([sc,ts])=>{const w=ts.filter(t=>t.outcome==='WIN').length,l=ts.filter(t=>t.outcome==='LOSS').length,be=ts.filter(t=>t.outcome==='BE').length,wr=ts.length?w/ts.length*100:0,r=ts.reduce((a,t)=>a+(t.pnl_r||0),0);return`<div style="display:grid;grid-template-columns:70px 1fr auto;gap:8px;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:var(--r)"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--gold)">Scén. ${sc}</span><div style="display:flex;gap:5px;flex-wrap:wrap"><span class="badge bw">${w}W</span><span class="badge bl">${l}L</span>${be?`<span class="badge bbe">${be}BE</span>`:''}<span style="font-size:11px;color:var(--txt2)">${wr.toFixed(0)}% WR</span></div><span class="mono" style="font-weight:700;color:${r>=0?'var(--green)':'var(--red)'}">${fmtR(r)}</span></div>`;}).join('')+'</div>';})()}
         ${trades.length?`<div style="display:flex;flex-direction:column;gap:8px">${Object.entries(groupBy(trades,'zone')).map(([z,ts])=>{const w=ts.filter(t=>t.outcome==='WIN').length,wr2=ts.length?w/ts.length*100:0,r=ts.reduce((a,t)=>a+(t.pnl_r||0),0);return`<div class="flex-between"><span style="font-size:12px">${z}</span><span class="mono" style="font-size:12px;color:${r>=0?'var(--green)':'var(--red)'}">${ts.length} trades · ${wr2.toFixed(0)}% · ${fmtR(r)}</span></div>`}).join('')}</div>`:'<div style="color:var(--txtm)">Aucune donnée</div>'}
       </div>
       <div>
@@ -1962,14 +1962,15 @@ function renderBtDetail(id){
     </div>
     <div class="card">
       <div class="card-title">Trades BT (${total})</div>
-      ${total?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Heure</th><th>Dir</th><th>Résultat</th><th>R</th><th>Zone</th><th>Émotions</th><th>Actions</th></tr></thead><tbody>${trades.map(t=>`<tr>
+      ${total?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Heure</th><th>Scénario</th><th>Dir</th><th>Résultat</th><th>R</th><th>Zone</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${trades.map(t=>`<tr>
         <td class="mono">${fmtDate(t.date)}</td>
         <td class="mono">${t.entry_time||'—'}</td>
+        <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--gold)">${t.scenario||'—'}</span></td>
         <td><span class="badge b${t.direction==='LONG'?'long':'short'}">${t.direction||'—'}</span></td>
         <td><span class="badge b${t.outcome==='WIN'?'w':t.outcome==='LOSS'?'l':'be'}">${t.outcome||'—'}</span></td>
         <td class="mono" style="color:${(t.pnl_r||0)>=0?'var(--green)':'var(--red)'}">${fmtR(t.pnl_r)}</td>
         <td style="font-size:11px;color:var(--txtm)">${t.zone||'—'}</td>
-        <td style="font-size:11px;color:var(--txtm)">${t.emotions||'—'}</td>
+        <td style="font-size:11px;color:var(--txtm);max-width:120px;overflow:hidden;text-overflow:ellipsis">${t.notes||'—'}</td>
         <td><button class="tbl-btn danger" onclick="deleteBtTrade('${t.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg></button></td>
       </tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--txtm);font-size:13px;padding:10px 0">Aucun trade BT · Clique sur + Trade BT</div>'}
     </div>`
@@ -2019,6 +2020,7 @@ window.openAddBtTradeModal=(sessionId)=>{
   document.getElementById('btt-one-r').value=btSessions.find(s=>s.id===sessionId)?.one_r||200
   document.getElementById('btt-notes').value=''
   document.getElementById('btt-zone').value=''
+  const bttSc=document.getElementById('btt-scenario');if(bttSc)bttSc.value=''
   setBttDir('LONG');setBttOutcome('WIN')
   openModal('modal-bt-trade')
 }
@@ -2035,7 +2037,7 @@ window.setBttOutcome=(o)=>{
 }
 window.saveBtTrade=async()=>{
   if(!currentBtSessionId){toast('Aucune session','error');return}
-  const payload={session_id:currentBtSessionId,date:document.getElementById('btt-date').value,entry_time:document.getElementById('btt-time').value||null,direction:selectedBttDir,outcome:selectedBttOutcome,pnl_r:parseFloat(document.getElementById('btt-rr').value)||null,one_r:parseFloat(document.getElementById('btt-one-r').value)||null,zone:document.getElementById('btt-zone').value||null,emotions:null,notes:document.getElementById('btt-notes').value||null}
+  const payload={session_id:currentBtSessionId,date:document.getElementById('btt-date').value,entry_time:document.getElementById('btt-time').value||null,direction:selectedBttDir,outcome:selectedBttOutcome,pnl_r:parseFloat(document.getElementById('btt-rr').value)||null,one_r:parseFloat(document.getElementById('btt-one-r').value)||null,zone:document.getElementById('btt-zone').value||null,scenario:document.getElementById('btt-scenario')?.value||null,emotions:null,notes:document.getElementById('btt-notes').value||null}
   const{error}=await sb.from('bt_trades').insert(payload)
   if(error){toast('Erreur: '+error.message,'error');return}
   toast('Trade BT ajouté ✓','success');closeModal('modal-bt-trade');await loadBtTrades();renderBtDetail(currentBtSessionId)
@@ -2048,44 +2050,52 @@ async function renderCommunity(){
   const el=document.getElementById('community-content');if(!el)return
   el.innerHTML='<div style="color:var(--txtm);font-size:13px;padding:10px 0">Chargement...</div>'
   try{
-    // Récupérer les trades de TOUS les users (anonymisés)
-    const{data:allData,error}=await sb.from('trades').select('user_id,outcome,pnl_r,symbol,date').limit(500)
-    if(error||!allData?.length){
-      el.innerHTML=`<div class="empty-state"><div style="font-size:36px;margin-bottom:12px">👥</div><h3>Aucun trader actif</h3><p>La communauté se remplit au fur et à mesure que les traders s'inscrivent.</p></div>`;return
-    }
-    // Group by user
-    const byUser={}
-    allData.forEach(t=>{if(!byUser[t.user_id])byUser[t.user_id]={trades:[],uid:t.user_id};byUser[t.user_id].trades.push(t)})
-    const colors=['#f59e0b','#10b981','#3b82f6','#8b5cf6','#ef4444','#ec4899','#14b8a6','#f97316']
-    const userEntries=Object.entries(byUser)
-    const meIdx=userEntries.findIndex(([uid])=>uid===U.id)
-    // Put me first
-    if(meIdx>0){const me=userEntries.splice(meIdx,1)[0];userEntries.unshift(me)}
-    el.innerHTML=`<div style="margin-bottom:16px;font-size:13px;color:var(--txtm)">${userEntries.length} trader${userEntries.length>1?'s':''} inscrit${userEntries.length>1?'s':''}</div>
-    <div class="community-grid">${userEntries.map(([uid,{trades}],i)=>{
-      const isMe=uid===U.id
-      const color=colors[i%colors.length]
-      const wins=trades.filter(t=>t.outcome==='WIN').length
-      const losses=trades.filter(t=>t.outcome==='LOSS').length
-      const total=trades.length
-      const wr=total?Math.round(wins/total*100):0
-      const totalR=trades.reduce((s,t)=>s+(t.pnl_r||0),0)
-      const label=isMe?'Moi':'Trader #'+(i+1).toString().padStart(3,'0')
-      const letter=isMe?(U.user_metadata?.name||U.email||'M')[0].toUpperCase():'T'
-      return`<div class="community-card" style="${isMe?'border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.04)':''}">
-        <div class="cc-header">
-          <div class="cc-avatar" style="background:${isMe?'var(--gold)':color};color:#000">${letter}</div>
-          <div><div class="cc-name">${label}${isMe?' 👤':''}</div><div class="cc-since">${total} trades · ${wins}W/${losses}L</div></div>
+    const live=getLiveTrades()
+    const wins=live.filter(t=>t.outcome==='WIN').length
+    const losses=live.filter(t=>t.outcome==='LOSS').length
+    const total=live.length
+    const wr=total?Math.round(wins/total*100):0
+    const totalR=live.reduce((s,t)=>s+(t.pnl_r||0),0)
+    const pseudo=settings.pseudo||U.email?.split('@')[0]||'Trader'
+    const letter=pseudo[0].toUpperCase()
+    const streak=calcStreak(live)
+    el.innerHTML=`
+    <div class="card" style="margin-bottom:16px;border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.03)">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+        <div style="width:50px;height:50px;border-radius:50%;background:var(--gold);color:#000;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0">${letter}</div>
+        <div>
+          <div style="font-size:16px;font-weight:700">${pseudo} 👤</div>
+          <div style="font-size:11px;color:var(--txtm);margin-top:2px">${U.email} · ${total} trades enregistrés</div>
         </div>
-        <div class="cc-kpis">
-          <div><div class="cc-kv">${total}</div><div class="cc-kl">Trades</div></div>
-          <div><div class="cc-kv" style="color:${wr>=50?'var(--green)':'var(--red)'}">${total?wr+'%':'—'}</div><div class="cc-kl">Win Rate</div></div>
-          <div><div class="cc-kv" style="color:${totalR>=0?'var(--green)':'var(--red)'}">${total?totalR.toFixed(1)+'R':'—'}</div><div class="cc-kl">Total R</div></div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:10px;color:var(--txtm)">Streak</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:${streak.type==='WIN'?'var(--green)':'var(--red)'}">${streak.count}${streak.type==='WIN'?'🔥':'❄️'}</div>
         </div>
-        <div class="cc-tags"><span class="cc-tag">MNQ</span><span class="cc-tag">Futures</span>${isMe?'<span class="cc-tag" style="color:var(--gold);border-color:rgba(245,158,11,.2)">Moi</span>':''}</div>
-      </div>`
-    }).join('')}</div>`
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div style="background:var(--bg3);border-radius:var(--r);padding:12px;text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700">${total}</div><div style="font-size:10px;color:var(--txtm);margin-top:3px">TRADES</div></div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:12px;text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:${wr>=50?'var(--green)':'var(--red)'}">${total?wr+'%':'—'}</div><div style="font-size:10px;color:var(--txtm);margin-top:3px">WIN RATE</div></div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:12px;text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:${totalR>=0?'var(--green)':'var(--red)'}">${fmtR(totalR)}</div><div style="font-size:10px;color:var(--txtm);margin-top:3px">TOTAL R</div></div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:12px;text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700">${wins}/${losses}</div><div style="font-size:10px;color:var(--txtm);margin-top:3px">W/L</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Leaderboard communauté</div>
+      <div style="padding:20px;text-align:center;color:var(--txtm)">
+        <div style="font-size:32px;margin-bottom:10px">🏆</div>
+        <div style="font-size:14px;font-weight:600;color:var(--txt2);margin-bottom:6px">Fonctionnalité à venir</div>
+        <div style="font-size:12px">Le leaderboard multi-utilisateurs sera disponible prochainement.<br>Invite des traders pour comparer vos performances.</div>
+      </div>
+    </div>`
   }catch(err){el.innerHTML=`<div class="empty-state"><h3>Erreur</h3><p>${err.message}</p></div>`}
+}
+function calcStreak(trades){
+  if(!trades.length)return{count:0,type:'WIN'}
+  const sorted=trades.slice().sort((a,b)=>a.date>b.date?1:-1)
+  const last=sorted[sorted.length-1].outcome
+  let count=0
+  for(let i=sorted.length-1;i>=0;i--){if(sorted[i].outcome===last)count++;else break}
+  return{count,type:last}
 }
 
 // ── IMPORT CSV ─────────────────────────────────────────────────
@@ -2181,6 +2191,50 @@ async function checkFirstLogin(){
   toast('Bienvenue ! Playbooks et règles par défaut créés ✓','success')
 }
 
+
+
+// ── MULTI-SELECT COMPTES ────────────────────────────────────────
+let selectedAccountIds=[]
+window.toggleAccountDropdown=()=>{
+  const dd=document.getElementById('t-account-dropdown');if(!dd)return
+  if(dd.style.display==='none'||!dd.style.display){
+    dd.style.display='block'
+    dd.innerHTML=fundedAccounts.length?
+      '<div style="padding:4px 8px;font-size:10px;color:var(--txtm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Sélectionner les comptes</div>'+
+      fundedAccounts.map(a=>`<div onclick="toggleAccountSel('${a.id}')" style="padding:9px 12px;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s" onmouseover="this.style.background='var(--bgh)'" onmouseout="this.style.background=selectedAccountIds.includes('${a.id}')?'rgba(16,185,129,.1)':'transparent'">
+        <div style="width:16px;height:16px;border-radius:4px;border:1.5px solid ${selectedAccountIds.includes(a.id)?'var(--green)':'var(--borderl)'};background:${selectedAccountIds.includes(a.id)?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s">
+          ${selectedAccountIds.includes(a.id)?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+        </div>
+        <span style="font-size:13px;font-weight:500">${a.name}</span>
+        <span style="font-size:10px;color:var(--txtm);margin-left:auto">${a.prop_firm||''}</span>
+      </div>`).join('')
+      :'<div style="padding:12px;color:var(--txtm);font-size:13px">Aucun compte — créez un compte Funded d'abord</div>'
+  }else{dd.style.display='none'}
+}
+window.toggleAccountSel=(id)=>{
+  if(selectedAccountIds.includes(id))selectedAccountIds=selectedAccountIds.filter(x=>x!==id)
+  else selectedAccountIds.push(id)
+  renderAccountMulti()
+}
+function renderAccountMulti(){
+  const wrap=document.getElementById('t-account-multi');if(!wrap)return
+  const dd=document.getElementById('t-account-dropdown')
+  if(!selectedAccountIds.length){
+    wrap.innerHTML='<span style="color:var(--txtm);font-size:13px;line-height:26px">— Choisir compte(s) —</span>'
+  }else{
+    wrap.innerHTML=selectedAccountIds.map(id=>{
+      const a=fundedAccounts.find(x=>x.id===id)
+      return a?`<span style="padding:3px 10px;background:var(--greeng);color:var(--green);border-radius:20px;font-size:12px;font-weight:600;border:1px solid rgba(16,185,129,.3);cursor:pointer" onclick="event.stopPropagation();toggleAccountSel('${a.id}')">${a.name} ✕</span>`:''
+    }).join('')
+  }
+  document.getElementById('t-account').value=selectedAccountIds[0]||''
+  // refresh dropdown checkboxes
+  if(dd&&dd.style.display!=='none')toggleAccountDropdown();if(dd&&dd.style.display!=='none')toggleAccountDropdown()
+}
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('t-account-dropdown')
+  if(dd&&!e.target.closest('#t-account-multi')&&!e.target.closest('#t-account-dropdown')){dd.style.display='none'}
+})
 
 // ── CUSTOM TIME PICKER ─────────────────────────────────────────
 window.tsTogglePicker=(btnId,menuId)=>{
