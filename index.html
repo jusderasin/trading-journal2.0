@@ -26,7 +26,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Space G
 input,select,textarea,button{font-family:inherit}
 
 /* AUTH */
-#auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:1000}
+#auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:2000}
 #auth-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(245,158,11,0.08),transparent 70%);pointer-events:none}
 .auth-box{width:min(420px,95vw);background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:clamp(24px,5vw,40px)}
 .auth-logo{text-align:center;margin-bottom:28px}
@@ -44,7 +44,7 @@ input,select,textarea,button{font-family:inherit}
 .btn-primary:hover{background:var(--goldd)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
 
 /* APP LAYOUT */
-#app{display:none;height:100dvh;flex-direction:column}
+#app{display:none;height:100dvh;flex-direction:column;position:relative;z-index:1}
 #app.visible{display:flex}
 
 /* TOPBAR */
@@ -448,8 +448,8 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       <button class="auth-tab" onclick="switchAuthTab('register')">Inscription</button>
     </div>
     <div class="auth-form">
-      <div><label>Email</label><input type="email" id="auth-email" placeholder="trader@example.com" inputmode="email"></div>
-      <div><label>Mot de passe</label><input type="password" id="auth-password" placeholder="••••••••"></div>
+      <div><label>Email</label><input type="email" id="auth-email" placeholder="trader@example.com" inputmode="email" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()"></div>
+      <div><label>Mot de passe</label><input type="password" id="auth-password" placeholder="••••••••" onkeydown="if(event.key==='Enter'){const t=document.getElementById('auth-btn');const tab=t.textContent.includes('connecter')?'login':'register';handleAuth(tab)}"></div>
       <div id="auth-name-field" style="display:none"><label>Prénom</label><input type="text" id="auth-name" placeholder="Erwann"></div>
       <div id="auth-error" class="auth-error"></div>
       <button class="btn-primary" id="auth-btn" onclick="handleAuth('login')">Se connecter</button>
@@ -780,7 +780,7 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       <div class="form-group">
         <label class="form-label">Challenge / Compte <span style="font-size:10px;color:var(--txtm)">(multi)</span></label>
         <div id="t-account-multi" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);min-height:42px;cursor:pointer" onclick="toggleAccountDropdown()"></div>
-        <div id="t-account-dropdown" style="display:none;position:absolute;z-index:700;background:var(--bg2);border:1px solid var(--borderl);border-radius:var(--rl);padding:8px;min-width:260px;max-height:200px;overflow-y:auto;box-shadow:0 16px 40px rgba(0,0,0,.6);margin-top:2px" id="t-account-dd"></div>
+        <div id="t-account-dropdown" style="display:none;position:absolute;z-index:700;background:var(--bg2);border:1px solid var(--borderl);border-radius:var(--rl);padding:8px;min-width:260px;max-height:200px;overflow-y:auto;box-shadow:0 16px 40px rgba(0,0,0,.6);margin-top:2px"></div>
         <input type="hidden" id="t-account">
       </div>
       <div class="form-group">
@@ -1150,19 +1150,33 @@ setInterval(updateClocks,1000);updateClocks()
 window.switchAuthTab=(tab)=>{
   document.querySelectorAll('.auth-tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')))
   document.getElementById('auth-name-field').style.display=tab==='register'?'block':'none'
-  document.getElementById('auth-btn').textContent=tab==='login'?'Se connecter':"S'inscrire"
-  document.getElementById('auth-btn').onclick=()=>handleAuth(tab)
+  const btn=document.getElementById('auth-btn')
+  btn.textContent=tab==='login'?'Se connecter':"S'inscrire"
+  btn.onclick=()=>handleAuth(tab)
 }
-window.handleAuth=async(tab='login')=>{
-  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-password').value
-  const btn=document.getElementById('auth-btn'),err=document.getElementById('auth-error')
-  err.textContent='';btn.disabled=true;btn.textContent='...'
+window.handleAuth=async(tab)=>{
+  if(!tab)tab='login'
+  const email=document.getElementById('auth-email').value.trim()
+  const pw=document.getElementById('auth-password').value
+  const btn=document.getElementById('auth-btn')
+  const err=document.getElementById('auth-error')
+  if(!email||!pw){if(err)err.textContent='Email et mot de passe requis';return}
+  if(err)err.textContent=''
+  if(btn){btn.disabled=true;btn.textContent='Connexion...'}
   try{
-    let data,error
-    if(tab==='register'){const n=document.getElementById('auth-name').value.trim();({data,error}=await sb.auth.signUp({email,password:pw,options:{data:{name:n}}}))}
-    else({data,error}=await sb.auth.signInWithPassword({email,password:pw}))
-    if(error)throw error
-  }catch(e){err.textContent=e.message||'Erreur';btn.disabled=false;btn.textContent=tab==='login'?'Se connecter':"S'inscrire"}
+    let res
+    if(tab==='register'){
+      const n=(document.getElementById('auth-name')?.value||'').trim()
+      res=await sb.auth.signUp({email,password:pw,options:{data:{name:n}}})
+    }else{
+      res=await sb.auth.signInWithPassword({email,password:pw})
+    }
+    if(res.error)throw res.error
+    // onAuthStateChange gère la suite
+  }catch(e){
+    if(err)err.textContent=e.message||'Erreur de connexion'
+    if(btn){btn.disabled=false;btn.textContent=tab==='login'?'Se connecter':"S'inscrire"}
+  }
 }
 window.handleLogout=async()=>{await sb.auth.signOut();location.reload()}
 sb.auth.onAuthStateChange(async(_,session)=>{
