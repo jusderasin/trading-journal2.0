@@ -392,6 +392,49 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
 .time-pickers{display:flex;align-items:center;gap:6px}
 .time-spin{width:100%;padding:10px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:16px;outline:none;text-align:center;transition:border-color .2s}
 .time-spin:focus{border-color:var(--gold)}
+
+/* ── CUSTOM TIME PICKER (MNQPRO style) ── */
+.tsp-btn{
+  width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+  padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--txt);
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;
+  font-weight:600;letter-spacing:.5px;
+}
+.tsp-btn:hover{border-color:var(--borderl);background:var(--bgh)}
+.tsp-btn.open{border-color:var(--green);background:var(--bg3)}
+.tsp-menu{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:600;
+  background:var(--bg2);border:1px solid var(--borderl);border-radius:10px;
+  max-height:180px;overflow-y:auto;display:none;
+  box-shadow:0 16px 48px rgba(0,0,0,.7);padding:4px;
+  scrollbar-width:thin;scrollbar-color:var(--borderl) transparent;
+}
+.tsp-menu.open{display:block;animation:tspFd .1s ease}
+@keyframes tspFd{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.tsp-item{
+  padding:8px 12px;font-size:14px;font-family:'JetBrains Mono',monospace;
+  color:var(--txt2);cursor:pointer;border-radius:7px;text-align:center;
+  transition:all .1s;letter-spacing:.3px;
+}
+.tsp-item:hover{background:var(--bgh);color:var(--txt)}
+.tsp-item.sel{background:rgba(16,185,129,.15);color:var(--green);font-weight:700}
+
+/* ── DIRECTION BTN amélioré ── */
+.dir-btn{transition:all .15s}
+.dir-btn.sel-long{background:rgba(59,130,246,.15);color:var(--blue);border-color:rgba(59,130,246,.4);font-weight:700}
+.dir-btn.sel-short{background:var(--redg);color:var(--red);border-color:rgba(239,68,68,.4);font-weight:700}
+
+/* ── RÉSULTAT BTN amélioré ── */
+.oc-btn{transition:all .15s;font-weight:700}
+.oc-btn.sel-WIN{background:rgba(16,185,129,.15);color:var(--green);border-color:rgba(16,185,129,.4)}
+.oc-btn.sel-LOSS{background:var(--redg);color:var(--red);border-color:rgba(239,68,68,.4)}
+.oc-btn.sel-BE{background:rgba(82,82,91,.25);color:var(--txt2);border-color:var(--borderl)}
+
+/* ── FORM INPUT focus amélioré ── */
+.form-input:focus,.form-select:focus,.form-textarea:focus{
+  border-color:var(--green)!important;
+  box-shadow:0 0 0 3px rgba(16,185,129,.08);
+}
 </style>
 </head>
 <body>
@@ -661,19 +704,26 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
         <div class="page-header"><div class="page-title">Paramètres</div></div>
         <div class="settings-section">
           <div class="settings-section-title">⚙️ Profil</div>
-          <div class="fg">
-            <div class="form-group"><label class="form-label">Nom</label><input class="form-input" id="s-name" placeholder="Ton nom"></div>
-            <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="s-email" disabled></div>
-            <div class="form-group"><label class="form-label">Pseudo communauté</label><input class="form-input" id="s-pseudo" placeholder="@monpseudo"></div>
+          <div style="display:flex;flex-direction:column;gap:14px">
             <div class="form-group">
-              <label class="form-label">Profil public</label>
-              <div class="toggle-row" style="padding:0">
-                <div class="toggle-switch" id="s-public-toggle" onclick="togglePublicProfile()"></div>
-                <span id="s-public-label" style="font-size:13px;color:var(--txt2);margin-left:10px">Non visible</span>
+              <label class="form-label" style="font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:5px;display:block">Pseudo communauté</label>
+              <input class="form-input" id="s-pseudo" placeholder="@monpseudo" style="font-family:'JetBrains Mono',monospace">
+              <div style="font-size:11px;color:var(--txtm);margin-top:4px">Visible dans l'onglet Communauté</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:5px;display:block">Email</label>
+              <input class="form-input" id="s-email" disabled style="font-family:'JetBrains Mono',monospace;opacity:.6">
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="toggle-switch" id="s-public-toggle" onclick="togglePublicProfile()"></div>
+              <div>
+                <div style="font-size:13px;font-weight:600" id="s-public-label">Non visible</div>
+                <div style="font-size:11px;color:var(--txtm)">Profil visible dans la Communauté</div>
               </div>
             </div>
           </div>
-          <button class="btn-primary" onclick="saveSettings()" style="width:auto;padding:11px 24px;margin-top:14px">Sauvegarder</button>
+          <input type="hidden" id="s-name">
+          <button class="btn-primary" onclick="saveSettings()" style="width:auto;padding:11px 24px;margin-top:18px">Sauvegarder</button>
         </div>
         <div class="settings-section">
           <div class="settings-section-title">📤 Export</div>
@@ -765,10 +815,20 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       </div>
       <div class="form-group">
         <label class="form-label">Heure Entry</label>
-        <div class="time-pickers">
-          <select class="time-spin" id="t-hour" style="width:60px"><option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option></select>
-          <span style="font-size:18px;color:var(--txtm)">:</span>
-          <select class="time-spin" id="t-minute" style="width:60px"><option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option></select>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="position:relative;flex:1">
+            <div class="tsp-btn" id="t-time-h-btn" onclick="tsTogglePicker('t-time-h-btn','t-time-h-menu')">
+              <span id="t-time-h-lbl" style="color:var(--txtm)">HH</span>
+            </div>
+            <div class="tsp-menu" id="t-time-h-menu"><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">00</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">01</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">02</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">03</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">04</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">05</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">06</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">07</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">08</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">09</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">10</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">11</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">12</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">13</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">14</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">15</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">16</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">17</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">18</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">19</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">20</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">21</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">22</div><div class="tsp-item" onclick="tsPick(this,'t-hour','t-time-h-lbl')">23</div></div>
+          </div>
+          <span style="font-size:20px;color:var(--txtm);font-weight:300">:</span>
+          <div style="position:relative;flex:1">
+            <div class="tsp-btn" id="t-time-m-btn" onclick="tsTogglePicker('t-time-m-btn','t-time-m-menu')">
+              <span id="t-time-m-lbl" style="color:var(--txtm)">MM</span>
+            </div>
+            <div class="tsp-menu" id="t-time-m-menu"><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">00</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">01</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">02</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">03</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">04</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">05</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">06</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">07</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">08</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">09</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">10</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">11</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">12</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">13</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">14</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">15</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">16</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">17</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">18</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">19</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">20</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">21</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">22</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">23</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">24</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">25</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">26</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">27</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">28</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">29</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">30</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">31</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">32</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">33</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">34</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">35</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">36</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">37</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">38</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">39</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">40</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">41</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">42</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">43</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">44</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">45</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">46</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">47</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">48</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">49</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">50</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">51</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">52</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">53</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">54</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">55</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">56</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">57</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">58</div><div class="tsp-item" onclick="tsPick(this,'t-minute','t-time-m-lbl')">59</div></div>
+          </div>
         </div>
       </div>
       <div class="form-group">
@@ -1116,8 +1176,7 @@ async function loadAll(){await Promise.all([loadTrades(),loadPlaybooks(),loadRul
 function loadSettings(){
   const s=localStorage.getItem(`apx_s_${U.id}`)
   if(s)settings={...settings,...JSON.parse(s)}
-  const sn=document.getElementById('s-name'),sp=document.getElementById('s-pseudo'),se=document.getElementById('s-email')
-  if(sn)sn.value=settings.name||''
+  const sp=document.getElementById('s-pseudo'),se=document.getElementById('s-email')
   if(se)se.value=U.email||''
   if(sp)sp.value=settings.pseudo||''
   const tog=document.getElementById('s-public-toggle'),lbl=document.getElementById('s-public-label')
@@ -1130,11 +1189,9 @@ window.togglePublicProfile=()=>{
   const lbl=document.getElementById('s-public-label');if(lbl)lbl.textContent=settings.public_profile?'Visible':'Non visible'
 }
 window.saveSettings=async()=>{
-  settings.name=document.getElementById('s-name').value
   settings.pseudo=document.getElementById('s-pseudo').value
   localStorage.setItem(`apx_s_${U.id}`,JSON.stringify(settings))
-  if(settings.name)await sb.auth.updateUser({data:{name:settings.name}})
-  toast('Paramètres sauvegardés ✓','success')
+  toast('Pseudo sauvegardé ✓','success')
 }
 window.exportCSV=()=>{
   const rows=getLiveTrades();if(!rows.length){toast('Aucun trade','info');return}
@@ -1261,9 +1318,8 @@ window.openAddTradeModal=()=>{
   document.getElementById('t-quality').value=5
   document.getElementById('t-quality-val').textContent='5'
   const now=new Date()
-  document.getElementById('t-hour').value=String(now.getHours()).padStart(2,'0')
-  const mins=Math.round(now.getMinutes()/5)*5
-  document.getElementById('t-minute').value=String(mins>=60?55:mins).padStart(2,'0')
+  const hNow=now.getHours(),mNow=Math.round(now.getMinutes()/5)*5
+  setTimePicker(hNow,mNow>=60?55:mNow)
   const sc=document.getElementById('t-screenshot-preview'),sb2=document.getElementById('t-screenshot-remove')
   if(sc){sc.style.display='none';sc.src=''}
   if(sb2)sb2.style.display='none'
@@ -1283,7 +1339,7 @@ window.openEditTradeModal=(t)=>{
   document.getElementById('t-notes').value=t.notes||''
   document.getElementById('t-quality').value=t.rating||5
   document.getElementById('t-quality-val').textContent=t.rating||5
-  if(t.entry_time){const parts=t.entry_time.split(':');document.getElementById('t-hour').value=parts[0]||'00';document.getElementById('t-minute').value=parts[1]||'00'}
+  if(t.entry_time){const parts=t.entry_time.split(':');setTimePicker(parseInt(parts[0])||0,parseInt(parts[1])||0)}
   if(t.account_id){populateTradeAccountSelect();document.getElementById('t-account').value=t.account_id}
   populateTradeSetupSelect();document.getElementById('t-setup').value=t.setup||''
   setDir(t.direction||'LONG');setOutcome(t.outcome==='BREAKEVEN'?'BE':t.outcome||'WIN')
@@ -2123,6 +2179,53 @@ async function checkFirstLogin(){
   await sb.from('trading_rules').insert(defaultRules)
   await loadAll();localStorage.setItem(key,'1')
   toast('Bienvenue ! Playbooks et règles par défaut créés ✓','success')
+}
+
+
+// ── CUSTOM TIME PICKER ─────────────────────────────────────────
+window.tsTogglePicker=(btnId,menuId)=>{
+  const btn=document.getElementById(btnId),menu=document.getElementById(menuId)
+  if(!btn||!menu)return
+  // fermer tous les autres pickers
+  document.querySelectorAll('.tsp-menu.open').forEach(m=>{if(m.id!==menuId){m.classList.remove('open');document.getElementById(m.id.replace('-menu','-btn'))?.classList.remove('open')}})
+  const isOpen=menu.classList.contains('open')
+  menu.classList.toggle('open',!isOpen)
+  btn.classList.toggle('open',!isOpen)
+  if(!isOpen){
+    // scroll vers l'item sélectionné
+    const sel=menu.querySelector('.tsp-item.sel')
+    if(sel)setTimeout(()=>sel.scrollIntoView({block:'center',behavior:'smooth'}),50)
+  }
+}
+window.tsPick=(el,hiddenId,lblId)=>{
+  const val=el.textContent.trim()
+  const menu=el.closest('.tsp-menu'),btn=document.getElementById(menu.id.replace('-menu','-btn'))
+  menu.querySelectorAll('.tsp-item').forEach(i=>i.classList.remove('sel'))
+  el.classList.add('sel')
+  const lbl=document.getElementById(lblId);if(lbl){lbl.textContent=val;lbl.style.color='var(--txt)'}
+  menu.classList.remove('open');btn?.classList.remove('open')
+  // Mettre à jour hidden inputs compatibles
+  const hH=document.getElementById('t-hour'),hM=document.getElementById('t-minute')
+  if(hiddenId==='t-hour'&&hH)hH.value=val
+  if(hiddenId==='t-minute'&&hM)hM.value=val
+}
+// Fermer les pickers au clic extérieur
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.tsp-btn')&&!e.target.closest('.tsp-menu')){
+    document.querySelectorAll('.tsp-menu.open').forEach(m=>{m.classList.remove('open');document.getElementById(m.id.replace('-menu','-btn'))?.classList.remove('open')})
+  }
+})
+function setTimePicker(h,m){
+  const hLbl=document.getElementById('t-time-h-lbl'),mLbl=document.getElementById('t-time-m-lbl')
+  const hs=String(h).padStart(2,'0'),ms=String(m).padStart(2,'0')
+  if(hLbl){hLbl.textContent=hs;hLbl.style.color='var(--txt)'}
+  if(mLbl){mLbl.textContent=ms;mLbl.style.color='var(--txt)'}
+  // highlight items
+  document.querySelectorAll('#t-time-h-menu .tsp-item').forEach(i=>i.classList.toggle('sel',i.textContent.trim()===hs))
+  document.querySelectorAll('#t-time-m-menu .tsp-item').forEach(i=>i.classList.toggle('sel',i.textContent.trim()===ms))
+  // update hidden values for save
+  const hH=document.getElementById('t-hour'),hM=document.getElementById('t-minute')
+  if(hH)hH.value=hs;if(hM)hM.value=ms
 }
 
 // ── KEYBOARD SHORTCUTS ─────────────────────────────────────────
