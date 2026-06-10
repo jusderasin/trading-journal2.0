@@ -80,10 +80,10 @@ input,select,textarea,button{font-family:inherit}
 .app-body{display:flex;flex:1;overflow:hidden;position:relative}
 
 /* SIDEBAR */
-#sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:398;display:none}
-#sidebar-overlay.open{display:block}
-#sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:transform .25s ease;z-index:399}
+#sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:499;display:none;cursor:pointer}
+#sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:transform .25s ease;z-index:500}
 @media(max-width:768px){#sidebar{position:fixed;top:0;left:0;bottom:0;width:75vw;max-width:280px;transform:translateX(-100%);padding-top:var(--topbar);z-index:500;transition:transform .25s cubic-bezier(.4,0,.2,1);}#sidebar.open{transform:translateX(0)}}
+@media(min-width:769px){#sidebar{position:fixed;top:var(--topbar);left:0;bottom:0;transform:translateX(-100%);transition:transform .25s ease;}#sidebar.open{transform:translateX(0)}#content{margin-left:0;transition:margin-left .25s ease}#app.sidebar-open #content{margin-left:220px}}
 .sidebar-nav{flex:1;padding:10px 8px;overflow-y:auto}
 .nav-sect{font-size:10px;color:var(--txtm);text-transform:uppercase;letter-spacing:.1em;padding:10px 12px 4px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);color:var(--txt2);cursor:pointer;transition:all .15s;margin-bottom:2px;font-size:13px;font-weight:500;border:1px solid transparent;user-select:none}
@@ -1113,12 +1113,12 @@ window.navigate=(page)=>{
   document.querySelectorAll('.nav-item,.bnav-item').forEach(i=>{
     i.classList.toggle('active',i.dataset.page===page)
   })
-  // Pleine page pour calendrier et journal
   const contentEl=document.getElementById('content')
   if(contentEl){
     contentEl.classList.toggle('page-cal-active',page==='calendar')
     contentEl.style.padding=page==='journal'?'12px 0':'';
   }
+  closeSidebar()
   const renders={dashboard:renderDashboard,journal:renderJournal,calendar:renderCalendar,analytics:renderAnalytics,playbooks:renderPlaybooks,community:renderCommunity,rules:renderRules,backtest:renderBacktest,funded:renderFunded,settings:()=>{},import:renderImport}
   if(renders[page])renders[page]()
 }
@@ -1128,19 +1128,20 @@ window.toggleSidebar=()=>{
   const s=document.getElementById('sidebar')
   const o=document.getElementById('sidebar-overlay')
   if(!s||!o)return
-  if(s.classList.contains('open')){
-    s.classList.remove('open')
-    o.style.display='none'
-  }else{
+  const willOpen=!s.classList.contains('open')
+  if(willOpen){
     s.classList.add('open')
     o.style.display='block'
+  }else{
+    s.classList.remove('open')
+    o.style.display='none'
   }
 }
 window.closeSidebar=()=>{
   const s=document.getElementById('sidebar')
   const o=document.getElementById('sidebar-overlay')
-  s&&s.classList.remove('open')
-  o&&(o.style.display='none')
+  if(s)s.classList.remove('open')
+  if(o)o.style.display='none'
 }
 
 
