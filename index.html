@@ -495,7 +495,7 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
   </div>
 
   <div class="app-body">
-    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+    <div id="sidebar-overlay" id="sidebar-overlay"></div>
     <div id="sidebar">
       <nav class="sidebar-nav">
         <div class="nav-sect">Principal</div>
@@ -993,25 +993,11 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       <div class="form-group"><label class="form-label">Période Fin</label><input type="date" class="form-input" id="bts-end"></div>
       <div class="form-group ff"><label class="form-label">Notes / Règles testées</label><textarea class="form-textarea" id="bts-notes" placeholder="Contexte, règles testées..."></textarea></div>
       <div class="form-group ff" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-        <label class="form-label" style="margin-bottom:8px;display:block">Scénarios à tester <span style="color:var(--txtm);font-size:10px">(optionnel)</span></label>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold)">Scén. A</span>
-            <input class="form-input" id="bts-scen-a" placeholder="ex: Bull Regular Divergence">
-          </div>
-          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold)">Scén. B</span>
-            <input class="form-input" id="bts-scen-b" placeholder="ex: Bear Regular Divergence">
-          </div>
-          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold)">Scén. C</span>
-            <input class="form-input" id="bts-scen-c" placeholder="ex: Bull Hidden Divergence">
-          </div>
-          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold)">Scén. D</span>
-            <input class="form-input" id="bts-scen-d" placeholder="ex: Bear Hidden Divergence">
-          </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label class="form-label">Scénarios à tester <span style="color:var(--txtm);font-size:10px">(optionnel)</span></label>
+          <button type="button" onclick="addScenarioRow()" style="padding:4px 10px;background:var(--greeng);color:var(--green);border:1px solid rgba(16,185,129,.3);border-radius:var(--r);font-size:11px;cursor:pointer;font-weight:600">+ Ajouter</button>
         </div>
+        <div id="bts-scenarios-list" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1144,7 +1130,7 @@ window.toggleSidebar=()=>{
   if(!s||!o)return
   const opening=!s.classList.contains('open')
   s.classList.toggle('open',opening)
-  o.style.display=opening?'block':'none'
+  o.style.cssText=opening?'display:block;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:399':'display:none'
 }
 window.closeSidebar=()=>{
   const s=document.getElementById('sidebar')
@@ -1152,6 +1138,11 @@ window.closeSidebar=()=>{
   if(s)s.classList.remove('open')
   if(o)o.style.display='none'
 }
+// Attacher le clic sur overlay après chargement DOM
+document.addEventListener('DOMContentLoaded',()=>{
+  const o=document.getElementById('sidebar-overlay')
+  if(o)o.addEventListener('click',closeSidebar)
+})
 
 // ── WORLD CLOCK ────────────────────────────────────────────────
 const CITIES=[{name:'Paris',tz:'Europe/Paris'},{name:'New York',tz:'America/New_York'},{name:'Chicago',tz:'America/Chicago'},{name:'Londres',tz:'Europe/London'},{name:'Tokyo',tz:'Asia/Tokyo'},{name:'Sydney',tz:'Australia/Sydney'},{name:'Hong Kong',tz:'Asia/Hong_Kong'}]
@@ -2070,7 +2061,8 @@ function calcMaxDD(trades){let peak=0,eq=0,maxDD=0;trades.sort((a,b)=>a.date>b.d
 window.backToBtSessions=()=>{btTab='sessions';switchBtTab('sessions')}
 window.openAddBtSessionModal=()=>{
   editingBtsId=null
-  ;['bts-name','bts-notes','bts-start','bts-end','bts-scen-a','bts-scen-b','bts-scen-c','bts-scen-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  ;['bts-name','bts-notes','bts-start','bts-end'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  resetScenariosList()
   document.getElementById('bts-symbol').value='MNQ'
   document.getElementById('bts-tf').value='30s'
   document.getElementById('bts-one-r').value='200'
@@ -2078,11 +2070,7 @@ window.openAddBtSessionModal=()=>{
 }
 window.saveBtSession=async()=>{
   const name=document.getElementById('bts-name').value.trim()||document.getElementById('bts-symbol').value
-  const scenA=document.getElementById('bts-scen-a')?.value||''
-  const scenB=document.getElementById('bts-scen-b')?.value||''
-  const scenC=document.getElementById('bts-scen-c')?.value||''
-  const scenD=document.getElementById('bts-scen-d')?.value||''
-  const scenarios=JSON.stringify({A:scenA,B:scenB,C:scenC,D:scenD})
+  const scenarios=getBtsScenarios()
   const payload={user_id:U.id,name,symbol:document.getElementById('bts-symbol').value,timeframe:document.getElementById('bts-tf').value,one_r:+document.getElementById('bts-one-r').value||200,start_date:document.getElementById('bts-start').value||null,end_date:document.getElementById('bts-end').value||null,notes:document.getElementById('bts-notes').value,scenarios:scenarios}
   const btnBt=document.querySelector('#modal-bt-session .btn-primary')
   if(btnBt){btnBt.disabled=true;btnBt.textContent='⏳ Création...'}
@@ -2311,6 +2299,31 @@ async function checkFirstLogin(){
 
 
 
+
+// ── SCÉNARIOS DYNAMIQUES ────────────────────────────────────────
+let scenCount=0
+window.addScenarioRow=(label='',desc='')=>{
+  const list=document.getElementById('bts-scenarios-list')
+  if(!list)return
+  const letters='ABCDEFGHIJKLMNOP'
+  const idx=list.children.length
+  const ltr=label||letters[idx]||String(idx+1)
+  const id='bts-scen-'+idx
+  const row=document.createElement('div')
+  row.style.cssText='display:grid;grid-template-columns:50px 1fr 28px;gap:6px;align-items:center'
+  row.innerHTML=`<span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold);text-align:center">Scén.&nbsp;${ltr}</span><input class="form-input bts-scen-input" data-letter="${ltr}" placeholder="Nom du scénario..." value="${desc}" style="font-size:12px"><button type="button" onclick="this.closest('div').remove()" style="width:26px;height:26px;border-radius:5px;border:1px solid rgba(239,68,68,.3);background:var(--redg);color:var(--red);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✕</button>`
+  list.appendChild(row)
+}
+function getBtsScenarios(){
+  const inputs=document.querySelectorAll('.bts-scen-input')
+  const sc={}
+  inputs.forEach(inp=>{if(inp.value.trim())sc[inp.dataset.letter]=inp.value.trim()})
+  return Object.keys(sc).length?JSON.stringify(sc):null
+}
+function resetScenariosList(){
+  const list=document.getElementById('bts-scenarios-list')
+  if(list)list.innerHTML=''
+}
 // ── MULTI-SELECT COMPTES ────────────────────────────────────────
 let selectedAccountIds=[]
 window.toggleAccountDropdown=()=>{
