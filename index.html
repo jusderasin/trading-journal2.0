@@ -992,6 +992,27 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       <div class="form-group"><label class="form-label">Période Début</label><input type="date" class="form-input" id="bts-start"></div>
       <div class="form-group"><label class="form-label">Période Fin</label><input type="date" class="form-input" id="bts-end"></div>
       <div class="form-group ff"><label class="form-label">Notes / Règles testées</label><textarea class="form-textarea" id="bts-notes" placeholder="Contexte, règles testées..."></textarea></div>
+      <div class="form-group ff" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+        <label class="form-label" style="margin-bottom:8px;display:block">Scénarios à tester <span style="color:var(--txtm);font-size:10px">(optionnel)</span></label>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold)">Scén. A</span>
+            <input class="form-input" id="bts-scen-a" placeholder="ex: Bull Regular Divergence">
+          </div>
+          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold)">Scén. B</span>
+            <input class="form-input" id="bts-scen-b" placeholder="ex: Bear Regular Divergence">
+          </div>
+          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold)">Scén. C</span>
+            <input class="form-input" id="bts-scen-c" placeholder="ex: Bull Hidden Divergence">
+          </div>
+          <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold)">Scén. D</span>
+            <input class="form-input" id="bts-scen-d" placeholder="ex: Bear Hidden Divergence">
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('modal-bt-session')">Annuler</button>
@@ -1019,17 +1040,10 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
       </div>
       <div class="form-group"><label class="form-label">R Obtenu</label><input type="number" class="form-input" id="btt-rr" placeholder="ex: 2 ou -1" step="0.1"></div>
       <div class="form-group"><label class="form-label">Valeur 1R ($)</label><input type="number" class="form-input" id="btt-one-r" placeholder="200"></div>
-      <div class="form-group"><label class="form-label">Scénario</label>
+      <div class="form-group ff"><label class="form-label">Scénario</label>
         <select class="form-select" id="btt-scenario">
           <option value="">— Scénario —</option>
-          <option value="A">Scénario A</option>
-          <option value="B">Scénario B</option>
-          <option value="C">Scénario C</option>
-          <option value="D">Scénario D</option>
         </select>
-      </div>
-      <div class="form-group"><label class="form-label">Zone VP</label>
-        <select class="form-select" id="btt-zone"><option value="">— Zone VP —</option><option value="VAH">VAH</option><option value="POC">POC</option><option value="VAL">VAL</option><option value="High">High</option><option value="Low">Low</option></select>
       </div>
 
       <div class="form-group ff"><label class="form-label">Notes</label><textarea class="form-textarea" id="btt-notes" placeholder="Observations..."></textarea></div>
@@ -1058,7 +1072,18 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
 <script>
 const SUPABASE_URL='https://osuoxidkiooqlxznuxyl.supabase.co'
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zdW94aWRraW9vcWx4em51eHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NTAyNzQsImV4cCI6MjA5NjMyNjI3NH0.CB8iGfnmjgRXOjN9lhvIpa1oQN4urxMczQK608YNzqw'
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
+const _memStore={}
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{
+    storage:{
+      getItem:k=>{try{return localStorage.getItem(k)}catch(e){return _memStore[k]||null}},
+      setItem:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){_memStore[k]=v}},
+      removeItem:k=>{try{localStorage.removeItem(k)}catch(e){delete _memStore[k]}}
+    },
+    persistSession:true,
+    detectSessionInUrl:true
+  }
+})
 let U=null,allTrades=[],playbooks=[],tradingRules=[],fundedAccounts=[],btSessions=[],btTrades=[]
 let filteredTrades=[],journalPage=1,jSort={col:'date',dir:'desc'},analyticsTab='general'
 let calYear=null,calMonth=null,editingTradeId=null,editingPbId=null,editingRuleId=null,editingFundedId=null,editingBtsId=null
@@ -1114,26 +1139,18 @@ window.navigate=(page)=>{
 
 // ── SIDEBAR ────────────────────────────────────────────────────
 window.toggleSidebar=()=>{
-  const isMobile=window.innerWidth<=768
-  if(!isMobile)return
   const s=document.getElementById('sidebar')
   const o=document.getElementById('sidebar-overlay')
   if(!s||!o)return
   const opening=!s.classList.contains('open')
-  if(opening){
-    s.classList.add('open')
-    o.style.display='block'
-    document.body.style.overflow='hidden'
-  }else{
-    closeSidebar()
-  }
+  s.classList.toggle('open',opening)
+  o.style.display=opening?'block':'none'
 }
 window.closeSidebar=()=>{
   const s=document.getElementById('sidebar')
   const o=document.getElementById('sidebar-overlay')
   if(s)s.classList.remove('open')
   if(o)o.style.display='none'
-  document.body.style.overflow=''
 }
 
 // ── WORLD CLOCK ────────────────────────────────────────────────
@@ -1919,15 +1936,18 @@ function renderBtSessions(){
     const wins=trades.filter(t=>t.outcome==='WIN').length,total=trades.length
     const wr=total?wins/total*100:0,totalR=trades.reduce((a,t)=>a+(t.pnl_r||0),0)
     const expectancy=total?totalR/total:0
-    return`<div class="bt-session-card" onclick="openBtDetail('${s.id}')">
-      <div class="bt-session-name">${s.name||s.symbol}</div>
-      <div class="bt-session-meta">${s.symbol} · ${s.timeframe||'30s'} · ${s.start_date||'—'} → ${s.end_date||'—'}</div>
-      <div class="bt-session-kpis">
-        <div><div class="bt-kpi-val">${total?wr.toFixed(1)+'%':'—'}</div><div class="bt-kpi-lbl">Win Rate</div></div>
-        <div><div class="bt-kpi-val ${totalR>=0?'pos':'neg'}">${fmtR(totalR)}</div><div class="bt-kpi-lbl">Total R</div></div>
-        <div><div class="bt-kpi-val">${total}</div><div class="bt-kpi-lbl">Trades</div></div>
-        <div><div class="bt-kpi-val ${expectancy>=0?'pos':'neg'}">${fmtR(expectancy)}</div><div class="bt-kpi-lbl">Expectancy</div></div>
+    return`<div class="bt-session-card" style="position:relative">
+      <div onclick="openBtDetail('${s.id}')" style="cursor:pointer">
+        <div class="bt-session-name">${s.name||s.symbol}</div>
+        <div class="bt-session-meta">${s.symbol} · ${s.timeframe||'30s'} · ${s.start_date||'—'} → ${s.end_date||'—'}</div>
+        <div class="bt-session-kpis">
+          <div><div class="bt-kpi-val">${total?wr.toFixed(1)+'%':'—'}</div><div class="bt-kpi-lbl">Win Rate</div></div>
+          <div><div class="bt-kpi-val ${totalR>=0?'pos':'neg'}">${fmtR(totalR)}</div><div class="bt-kpi-lbl">Total R</div></div>
+          <div><div class="bt-kpi-val">${total}</div><div class="bt-kpi-lbl">Trades</div></div>
+          <div><div class="bt-kpi-val ${expectancy>=0?'pos':'neg'}">${fmtR(expectancy)}</div><div class="bt-kpi-lbl">Expectancy</div></div>
+        </div>
       </div>
+      <button onclick="event.stopPropagation();deleteBtSession('${s.id}')" style="position:absolute;top:10px;right:10px;background:var(--redg);border:1px solid rgba(239,68,68,.3);color:var(--red);border-radius:var(--r);padding:4px 8px;cursor:pointer;font-size:11px">🗑️</button>
     </div>`
   }).join('')
   html+='</div>'
@@ -2050,7 +2070,7 @@ function calcMaxDD(trades){let peak=0,eq=0,maxDD=0;trades.sort((a,b)=>a.date>b.d
 window.backToBtSessions=()=>{btTab='sessions';switchBtTab('sessions')}
 window.openAddBtSessionModal=()=>{
   editingBtsId=null
-  ;['bts-name','bts-notes','bts-start','bts-end'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  ;['bts-name','bts-notes','bts-start','bts-end','bts-scen-a','bts-scen-b','bts-scen-c','bts-scen-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
   document.getElementById('bts-symbol').value='MNQ'
   document.getElementById('bts-tf').value='30s'
   document.getElementById('bts-one-r').value='200'
@@ -2058,7 +2078,12 @@ window.openAddBtSessionModal=()=>{
 }
 window.saveBtSession=async()=>{
   const name=document.getElementById('bts-name').value.trim()||document.getElementById('bts-symbol').value
-  const payload={user_id:U.id,name,symbol:document.getElementById('bts-symbol').value,timeframe:document.getElementById('bts-tf').value,one_r:+document.getElementById('bts-one-r').value||200,start_date:document.getElementById('bts-start').value||null,end_date:document.getElementById('bts-end').value||null,notes:document.getElementById('bts-notes').value}
+  const scenA=document.getElementById('bts-scen-a')?.value||''
+  const scenB=document.getElementById('bts-scen-b')?.value||''
+  const scenC=document.getElementById('bts-scen-c')?.value||''
+  const scenD=document.getElementById('bts-scen-d')?.value||''
+  const scenarios=JSON.stringify({A:scenA,B:scenB,C:scenC,D:scenD})
+  const payload={user_id:U.id,name,symbol:document.getElementById('bts-symbol').value,timeframe:document.getElementById('bts-tf').value,one_r:+document.getElementById('bts-one-r').value||200,start_date:document.getElementById('bts-start').value||null,end_date:document.getElementById('bts-end').value||null,notes:document.getElementById('bts-notes').value,scenarios:scenarios}
   const btnBt=document.querySelector('#modal-bt-session .btn-primary')
   if(btnBt){btnBt.disabled=true;btnBt.textContent='⏳ Création...'}
   try{
@@ -2088,6 +2113,25 @@ window.openAddBtTradeModal=(sessionId)=>{
   document.getElementById('btt-zone').value=''
   const bttSc=document.getElementById('btt-scenario');if(bttSc)bttSc.value=''
   setBttDir('LONG');setBttOutcome('WIN')
+  // Charger les scénarios de la session
+  const sess=btSessions.find(s=>s.id===sessionId)
+  const scenSel=document.getElementById('btt-scenario')
+  if(scenSel){
+    scenSel.innerHTML='<option value="">— Scénario —</option>'
+    try{
+      const sc=sess?.scenarios?JSON.parse(sess.scenarios):{}
+      if(sc.A||sc.B||sc.C||sc.D){
+        if(sc.A)scenSel.innerHTML+=`<option value="A">A — ${sc.A}</option>`
+        if(sc.B)scenSel.innerHTML+=`<option value="B">B — ${sc.B}</option>`
+        if(sc.C)scenSel.innerHTML+=`<option value="C">C — ${sc.C}</option>`
+        if(sc.D)scenSel.innerHTML+=`<option value="D">D — ${sc.D}</option>`
+      }else{
+        scenSel.innerHTML+='<option value="A">Scénario A</option><option value="B">Scénario B</option><option value="C">Scénario C</option><option value="D">Scénario D</option>'
+      }
+    }catch(e){
+      scenSel.innerHTML+='<option value="A">Scénario A</option><option value="B">Scénario B</option><option value="C">Scénario C</option><option value="D">Scénario D</option>'
+    }
+  }
   openModal('modal-bt-trade')
 }
 window.setBttDir=(d)=>{
@@ -2109,6 +2153,14 @@ window.saveBtTrade=async()=>{
   toast('Trade BT ajouté ✓','success');closeModal('modal-bt-trade');await loadBtTrades();renderBtDetail(currentBtSessionId)
 }
 window.deleteBtTrade=(id)=>showConfirm('Supprimer ce trade BT ?','Cette action est irréversible.',async()=>{await sb.from('bt_trades').delete().eq('id',id);btTrades=btTrades.filter(t=>t.id!==id);if(currentBtSessionId)renderBtDetail(currentBtSessionId);toast('Trade BT supprimé','info')})
+window.deleteBtSession=(id)=>showConfirm('Supprimer cette session BT ?','Tous les trades BT seront supprimés.',async()=>{
+  await sb.from('bt_trades').delete().eq('session_id',id)
+  await sb.from('bt_sessions').delete().eq('id',id)
+  btSessions=btSessions.filter(s=>s.id!==id)
+  btTrades=btTrades.filter(t=>t.session_id!==id)
+  renderBtSessions()
+  toast('Session supprimée','info')
+})
 window.exportBtSession=(id)=>{const s=btSessions.find(x=>x.id===id);const trades=btTrades.filter(t=>t.session_id===id);if(!trades.length){toast('Aucun trade','info');return};const h='date,entry_time,direction,outcome,pnl_r,zone,emotions,notes';const lines=trades.map(t=>[t.date,t.entry_time,t.direction,t.outcome,t.pnl_r,t.zone,t.emotions,(t.notes||'').replace(/,/g,';')].join(',')).join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(h+'\n'+lines);a.download=`bt_${s?.name||'session'}.csv`;a.click()}
 
 // ── COMMUNITY ──────────────────────────────────────────────────
