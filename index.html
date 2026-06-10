@@ -495,7 +495,7 @@ td{padding:9px 11px;color:var(--txt2);white-space:nowrap}.mono{font-family:'JetB
   </div>
 
   <div class="app-body">
-    <div id="sidebar-overlay" id="sidebar-overlay"></div>
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
     <div id="sidebar">
       <nav class="sidebar-nav">
         <div class="nav-sect">Principal</div>
@@ -1128,21 +1128,21 @@ window.toggleSidebar=()=>{
   const s=document.getElementById('sidebar')
   const o=document.getElementById('sidebar-overlay')
   if(!s||!o)return
-  const opening=!s.classList.contains('open')
-  s.classList.toggle('open',opening)
-  o.style.cssText=opening?'display:block;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:399':'display:none'
+  if(s.classList.contains('open')){
+    s.classList.remove('open')
+    o.style.display='none'
+  }else{
+    s.classList.add('open')
+    o.style.display='block'
+  }
 }
 window.closeSidebar=()=>{
   const s=document.getElementById('sidebar')
   const o=document.getElementById('sidebar-overlay')
-  if(s)s.classList.remove('open')
-  if(o)o.style.display='none'
+  s&&s.classList.remove('open')
+  o&&(o.style.display='none')
 }
-// Attacher le clic sur overlay après chargement DOM
-document.addEventListener('DOMContentLoaded',()=>{
-  const o=document.getElementById('sidebar-overlay')
-  if(o)o.addEventListener('click',closeSidebar)
-})
+
 
 // ── WORLD CLOCK ────────────────────────────────────────────────
 const CITIES=[{name:'Paris',tz:'Europe/Paris'},{name:'New York',tz:'America/New_York'},{name:'Chicago',tz:'America/Chicago'},{name:'Londres',tz:'Europe/London'},{name:'Tokyo',tz:'Asia/Tokyo'},{name:'Sydney',tz:'Australia/Sydney'},{name:'Hong Kong',tz:'Asia/Hong_Kong'}]
