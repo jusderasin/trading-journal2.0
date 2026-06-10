@@ -1446,8 +1446,7 @@ window.saveTrade=async()=>{
     timeframe:'30s',trade_type:'live'
   }
   console.log('saveTrade payload:',payload)
-  const{error,data:td}=editingTradeId?await sb.from('trades').update(payload).eq('id',editingTradeId).select():await sb.from('trades').insert(payload).select()
-  console.log('saveTrade result:',{error,data:td})
+  const{error}=editingTradeId?await sb.from('trades').update(payload).eq('id',editingTradeId):await sb.from('trades').insert(payload)
   if(error){toast('Erreur Trade: '+error.message,'error');console.error('Trade error:',error);return}
   toast(editingTradeId?'Trade modifié ✓':'Trade ajouté ✓','success')
   closeModal('modal-trade');await loadTrades();renderJournal();renderDashboard();renderFunded()
@@ -1676,7 +1675,7 @@ window.handlePbImg=(input)=>{
 window.savePlaybook=async()=>{
   const name=document.getElementById('pb-name').value.trim();if(!name){toast('Nom requis','error');return}
   const payload={user_id:U.id,name,setup_type:document.getElementById('pb-type').value,timeframe:document.getElementById('pb-tf').value,description:document.getElementById('pb-desc').value,entry_rules:document.getElementById('pb-entry').value,exit_rules:document.getElementById('pb-exit').value,risk_rules:document.getElementById('pb-risk').value,schema_url:pbImgB64||null}
-  const{error,data:pd}=editingPbId?await sb.from('playbooks').update(payload).eq('id',editingPbId).select():await sb.from('playbooks').insert(payload).select()
+  const{error}=editingPbId?await sb.from('playbooks').update(payload).eq('id',editingPbId):await sb.from('playbooks').insert(payload)
   if(error){toast('Erreur Playbook: '+error.message,'error');console.error('Playbook error:',error);return}
   toast('Playbook sauvegardé ✓','success');closeModal('modal-playbook');await loadPlaybooks();renderPlaybooks()
 }
@@ -1721,7 +1720,7 @@ window.toggleRule=async(id)=>{
 window.saveRule=async()=>{
   const rule=document.getElementById('rule-text').value.trim();if(!rule){toast('Règle requise','error');return}
   const payload={user_id:U.id,rule,category:document.getElementById('rule-category').value,is_active:true}
-  const{error,data:rd}=editingRuleId?await sb.from('trading_rules').update(payload).eq('id',editingRuleId).select():await sb.from('trading_rules').insert(payload).select()
+  const{error}=editingRuleId?await sb.from('trading_rules').update(payload).eq('id',editingRuleId):await sb.from('trading_rules').insert(payload)
   if(error){toast('Erreur Règle: '+error.message,'error');console.error('Rule error:',error);return}
   toast('Règle sauvegardée ✓','success');closeModal('modal-rule');await loadRules();renderRules()
 }
@@ -1769,15 +1768,10 @@ window.saveFunded=async()=>{
   const btnF=document.querySelector('#modal-funded .btn-primary')
   if(btnF){btnF.disabled=true;btnF.textContent='⏳ Création...'}
   try{
-    const timeoutP=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Timeout - vérifie les policies RLS dans Supabase')),8000))
-    const op=editingFundedId?sb.from('accounts').update(payload).eq('id',editingFundedId).select():sb.from('accounts').insert(payload).select()
-    const{error:err2,data:d2}=await Promise.race([op,timeoutP])
+    const{error:err2}=editingFundedId?await sb.from('accounts').update(payload).eq('id',editingFundedId):await sb.from('accounts').insert(payload)
     if(err2){
       console.error('Funded error:',err2)
       toast('❌ '+err2.message,'error')
-      if(err2.code==='42501'||err2.message?.toLowerCase().includes('policy')||err2.message?.toLowerCase().includes('rls')){
-        toast('🔒 RLS bloque: Supabase → Table Editor → accounts → Policies → Add Policy','error')
-      }
       return
     }
     toast('✅ Compte sauvegardé !','success')
@@ -2068,22 +2062,17 @@ window.saveBtSession=async()=>{
   const btnBt=document.querySelector('#modal-bt-session .btn-primary')
   if(btnBt){btnBt.disabled=true;btnBt.textContent='⏳ Création...'}
   try{
-    // Timeout de 8 secondes
-    const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Timeout - vérifie les policies RLS dans Supabase')),8000))
-    const insertPromise=sb.from('bt_sessions').insert(payload).select()
-    const{error,data}=await Promise.race([insertPromise,timeoutPromise])
+    const{error}=await sb.from('bt_sessions').insert(payload)
     if(error){
       console.error('BT Session error:',error)
-      toast('❌ Erreur: '+error.message,'error')
-      if(error.code==='42501'||error.message?.toLowerCase().includes('policy')||error.message?.toLowerCase().includes('rls')){
-        toast('🔒 RLS bloque: Supabase → Table Editor → bt_sessions → Policies → Enable RLS + Add Policy','error')
-      }
+      toast('❌ '+error.message,'error')
       return
     }
     toast('✅ Session créée !','success')
     closeModal('modal-bt-session')
     await loadBtSessions()
-    if(data?.[0])openBtDetail(data[0].id)
+    // Ouvrir la dernière session créée
+    if(btSessions.length>0)openBtDetail(btSessions[0].id)
   }catch(e){
     toast('❌ '+e.message,'error')
     console.error('saveBtSession catch:',e)
