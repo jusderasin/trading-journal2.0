@@ -182,8 +182,9 @@ footer{background:var(--bg2);border-top:1px solid var(--brd);padding:36px 0}
 .asel{background:var(--bg2);border:1px solid var(--brd);border-radius:7px;color:#F0F0FF;font-size:12px;padding:5px 8px;outline:none;max-width:170px}
 .addb{background:var(--green);color:#0A0A0F;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px}
 .addb:hover{opacity:.85}
-.cnt{flex:1;overflow-y:auto;padding:18px 20px}
-.pg{display:none}.pg.ac{display:block}
+.cnt{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column}
+.cnt>.pg.ac{flex:1}
+.pg{display:none}.pg.ac{display:block}#pg-calendar.ac{display:flex;flex-direction:column}
 
 /* dashboard components */
 .dkrow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
@@ -234,9 +235,9 @@ tbody td{padding:8px 12px;font-size:12px;color:#C0C0D8;white-space:nowrap;overfl
 .empty-td td{text-align:center!important;padding:32px!important;color:var(--sub)!important;font-size:13px!important}
 
 /* calendar */
-.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cgl{font-size:10px;color:var(--muted);text-align:center;padding:5px 0;font-weight:600}
-.cgc{background:var(--card);border:1px solid #1A1A2E;border-radius:6px;padding:5px;min-height:50px}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cgl{font-size:10px;color:var(--muted);text-align:center;padding:6px 0;font-weight:600;letter-spacing:.3px}
+.cgc{background:var(--card);border:1px solid #1A1A2E;border-radius:6px;padding:7px;min-height:0;height:100%}
 .cgc.cw{border-color:rgba(0,208,132,.3);background:rgba(0,208,132,.04)}
 .cgc.cl{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.04)}
 .cgc.ce{background:transparent;border-color:transparent}
@@ -288,6 +289,56 @@ tbody td{padding:8px 12px;font-size:12px;color:#C0C0D8;white-space:nowrap;overfl
 @keyframes mq{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:640px){#features,#preview,#faq,#cta{padding:60px 0}}
+
+/* ===== MOBILE APP ===== */
+@media(max-width:768px){
+  /* App layout: sidebar becomes bottom nav */
+  #shell{flex-direction:column}
+  .sb{width:100%;height:56px;flex-direction:row;align-items:center;padding:0 8px;border-right:none;border-bottom:1px solid #1A1A2E;order:2;position:fixed;bottom:0;left:0;right:0;z-index:100;background:#0D0D14}
+  .sb nav{display:flex;flex-direction:row;flex:1;justify-content:space-around;overflow:hidden}
+  .sblo{display:none}
+  .sbbot{display:none}
+  .sbi{flex-direction:column;gap:2px;padding:6px 4px;border-left:none;border-top:2px solid transparent;font-size:9px;justify-content:center;align-items:center;flex:1}
+  .sbi.ac{border-left:none;border-top-color:var(--green);background:rgba(0,208,132,.06)}
+  .sbi svg{flex-shrink:0}
+  .am{order:1;padding-bottom:56px}
+  .tb{height:48px;padding:0 12px}
+  .tbt{font-size:13px}
+  .asel{max-width:120px;font-size:11px}
+  .addb{padding:5px 10px;font-size:11px}
+  .cnt{padding:12px}
+  /* KPIs: 2 cols on mobile */
+  .dkrow{grid-template-columns:repeat(2,1fr);gap:8px}
+  .dkv{font-size:18px}
+  /* Dashboard stats */
+  .ds2{grid-template-columns:1fr;gap:8px}
+  /* Trades table scroll */
+  .tbl-card{font-size:11px}
+  thead th{padding:7px 8px;font-size:9px}
+  tbody td{padding:7px 8px;font-size:11px}
+  /* Calendar full height on mobile */
+  #pg-calendar.ac>div{height:calc(100vh - 48px - 56px - 24px)}
+  .cgc{padding:4px;border-radius:4px}
+  .cgn{font-size:9px}
+  .cgp{font-size:8px}
+  /* Stats */
+  .sg{grid-template-columns:repeat(2,1fr);gap:8px}
+  .sv2{font-size:15px}
+  /* Account */
+  .aw{max-width:100%}
+  .fg{grid-template-columns:1fr}
+  /* Modal */
+  .modalbg{padding:12px;align-items:flex-end}
+  .modal{border-radius:14px 14px 0 0;max-height:85vh;padding:18px}
+  .fg2{grid-template-columns:1fr}
+  /* Hide sidebar text labels on very small */
+  .sbi span{font-size:9px;line-height:1;margin-top:1px}
+}
+@media(max-width:400px){
+  .dkrow{grid-template-columns:repeat(2,1fr)}
+  .dkv{font-size:16px}
+  .sg{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -469,11 +520,11 @@ tbody td{padding:8px 12px;font-size:12px;color:#C0C0D8;white-space:nowrap;overfl
   <div class="sb">
     <div class="sblo">trackr.</div>
     <nav>
-      <button class="sbi ac" data-pg="dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</button>
-      <button class="sbi" data-pg="trades"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>Trades</button>
-      <button class="sbi" data-pg="calendar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Calendrier</button>
-      <button class="sbi" data-pg="stats"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Statistiques</button>
-      <button class="sbi" data-pg="account"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Compte</button>
+      <button class="sbi ac" data-pg="dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Dashboard</span></button>
+      <button class="sbi" data-pg="trades"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>Trades</span></button>
+      <button class="sbi" data-pg="calendar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Calendrier</span></button>
+      <button class="sbi" data-pg="stats"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Statistiques</span></button>
+      <button class="sbi" data-pg="account"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>Compte</span></button>
     </nav>
     <div class="sbbot">
       <div class="uch"><div class="av" id="uav">?</div><div><div class="un" id="uname">—</div><div class="ue" id="uem">—</div></div></div>
@@ -541,17 +592,17 @@ tbody td{padding:8px 12px;font-size:12px;color:#C0C0D8;white-space:nowrap;overfl
       </div>
 
       <!-- CALENDAR -->
-      <div class="pg" id="pg-calendar">
-        <div class="dcc">
-          <div class="dch">
-            <div><div class="dct" id="calmonth">—</div><div class="dcs">P&L par journée</div></div>
+      <div class="pg" id="pg-calendar" style="height:100%;display:none;flex-direction:column">
+        <div style="background:var(--card);border:1px solid #1A1A2E;border-radius:10px;padding:16px;display:flex;flex-direction:column;height:calc(100vh - 86px)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-shrink:0">
+            <div><div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600" id="calmonth">—</div><div style="font-size:10px;color:var(--muted);margin-top:2px">P&L par journée</div></div>
             <div style="display:flex;gap:6px">
-              <button id="calprev" style="background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--sub);padding:4px 10px;font-size:12px">‹</button>
-              <button id="calnext" style="background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--sub);padding:4px 10px;font-size:12px">›</button>
+              <button id="calprev" style="background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--sub);padding:4px 10px;font-size:14px">‹</button>
+              <button id="calnext" style="background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--sub);padding:4px 10px;font-size:14px">›</button>
             </div>
           </div>
-          <div class="cg" id="calhdrs"></div>
-          <div class="cg" id="calbody" style="margin-top:2px"></div>
+          <div class="cg" id="calhdrs" style="flex-shrink:0;margin-bottom:4px"></div>
+          <div id="calbody" style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:3px;min-height:0"></div>
         </div>
       </div>
 
@@ -872,13 +923,17 @@ function renderCal(){
   document.getElementById('calhdrs').innerHTML=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(x=>`<div class="cgl">${x}</div>`).join('');
   const bd={};allTrades.forEach(t=>{if(!bd[t.date])bd[t.date]=0;bd[t.date]+=pnlOf(t);});
   const off=(d.getDay()+6)%7,dim=new Date(calY,calM+1,0).getDate();
+  const totalCells=Math.ceil((off+dim)/7)*7;
   let html='';
-  for(let i=0;i<off;i++)html+=`<div class="cgc ce"></div>`;
+  for(let i=0;i<off;i++)html+=`<div class="cgc ce" style="grid-column:${i+1}"></div>`;
   for(let day=1;day<=dim;day++){
     const k=`${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const p=bd[k];const cls=p===undefined?'':(p>=0?'cw':'cl');
     html+=`<div class="cgc ${cls}"><div class="cgn">${day}</div>${p!==undefined?`<div class="cgp ${p>=0?'pos':'neg'}">${p>=0?'+':''}${Math.round(p)}$</div>`:''}</div>`;
   }
+  // fill remaining cells for even grid
+  const filled=off+dim;const rem=totalCells-filled;
+  for(let i=0;i<rem;i++)html+=`<div class="cgc ce"></div>`;
   document.getElementById('calbody').innerHTML=html;
 }
 document.getElementById('calprev').addEventListener('click',()=>{calM--;if(calM<0){calM=11;calY--;}renderCal();});
