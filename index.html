@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
 html{scroll-behavior:smooth}
 body{background:#0A0A0F;color:#F0F0FF;font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;overflow-x:hidden}
 a{color:inherit;text-decoration:none}button{cursor:pointer;border:none;font-family:inherit}input,select,textarea{font-family:inherit}ul{list-style:none}
@@ -161,8 +162,8 @@ footer{background:var(--bg2);border-top:1px solid var(--brd);padding:36px 0}
 .sp{width:14px;height:14px;border:2px solid rgba(10,10,15,.3);border-top-color:#0A0A0F;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
 
 /* ========== APP ========== */
-#appview{display:none;height:100vh;overflow:hidden}
-#shell{display:flex;height:100%}
+#appview{display:none;height:100dvh;overflow:hidden}
+#shell{display:flex;height:100%;overflow:hidden}
 .sb{width:198px;flex-shrink:0;background:#0D0D14;border-right:1px solid #1A1A2E;display:flex;flex-direction:column;padding:16px 0}
 .sblo{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;color:var(--green);padding:0 16px;margin-bottom:22px}
 .sbi{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;transition:all .18s;border-left:2px solid transparent;background:none;width:100%;text-align:left}
@@ -175,15 +176,15 @@ footer{background:var(--bg2);border-top:1px solid var(--brd);padding:36px 0}
 .ue{font-size:10px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
 .lob{width:100%;padding:7px;background:transparent;border:1px solid var(--brd);border-radius:6px;color:var(--sub);font-size:12px;transition:all .2s}
 .lob:hover{color:var(--red);border-color:var(--red)}
-.am{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.am{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;height:100%}
 .tb{height:50px;border-bottom:1px solid #1A1A2E;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
 .tbt{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700}
 .tbr{display:flex;align-items:center;gap:8px}
 .asel{background:var(--bg2);border:1px solid var(--brd);border-radius:7px;color:#F0F0FF;font-size:12px;padding:5px 8px;outline:none;max-width:170px}
 .addb{background:var(--green);color:#0A0A0F;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px}
 .addb:hover{opacity:.85}
-.cnt{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column}
-.cnt>.pg.ac{flex:1}
+.cnt{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;min-height:0}
+.cnt>.pg.ac{flex:1;min-height:0}
 .pg{display:none}.pg.ac{display:block}#pg-calendar.ac{display:flex;flex-direction:column}
 
 /* dashboard components */
@@ -290,49 +291,98 @@ tbody td{padding:8px 12px;font-size:12px;color:#C0C0D8;white-space:nowrap;overfl
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:640px){#features,#preview,#faq,#cta{padding:60px 0}}
 
-/* ===== MOBILE APP ===== */
+/* ===== CALENDAR STYLES ===== */
+#pg-calendar{display:none;flex-direction:column}
+#pg-calendar.ac{display:flex}
+#cal-wrap{flex:1;display:flex;flex-direction:column;background:var(--card);border:1px solid #1A1A2E;border-radius:10px;padding:16px;min-height:0}
+#cal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0}
+.nav-btn{background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--sub);padding:4px 12px;font-size:15px;cursor:pointer}
+.nav-btn:hover{color:#F0F0FF;border-color:var(--sub)}
+.cal-hdrs-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;flex-shrink:0;margin-bottom:3px}
+.cal-body-grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;gap:3px;min-height:0}
+.cgc{background:#12121A;border:1px solid #1A1A2E;border-radius:6px;padding:6px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.cgc.cw{border-color:rgba(0,208,132,.35);background:rgba(0,208,132,.05)}
+.cgc.cl{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.04)}
+.cgc.ce{background:transparent;border-color:transparent}
+.cgn{font-size:11px;color:var(--muted);margin-bottom:2px;flex-shrink:0}
+.cgp{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600}
+.cgp.pos{color:var(--green)}.cgp.neg{color:var(--red)}
+/* override for calendar active page flex */
+.cnt>.pg.ac{flex:1;min-height:0}
+#pg-calendar.ac{flex:1;min-height:0}
+
+/* ===== MOBILE ===== */
 @media(max-width:768px){
-  /* App layout: sidebar becomes bottom nav */
-  #shell{flex-direction:column}
-  .sb{width:100%;height:56px;flex-direction:row;align-items:center;padding:0 8px;border-right:none;border-bottom:1px solid #1A1A2E;order:2;position:fixed;bottom:0;left:0;right:0;z-index:100;background:#0D0D14}
-  .sb nav{display:flex;flex-direction:row;flex:1;justify-content:space-around;overflow:hidden}
-  .sblo{display:none}
-  .sbbot{display:none}
-  .sbi{flex-direction:column;gap:2px;padding:6px 4px;border-left:none;border-top:2px solid transparent;font-size:9px;justify-content:center;align-items:center;flex:1}
-  .sbi.ac{border-left:none;border-top-color:var(--green);background:rgba(0,208,132,.06)}
-  .sbi svg{flex-shrink:0}
-  .am{order:1;padding-bottom:56px}
-  .tb{height:48px;padding:0 12px}
-  .tbt{font-size:13px}
-  .asel{max-width:120px;font-size:11px}
+  /* Hide desktop sidebar */
+  .sblo{display:none!important}
+  .sbbot{display:none!important}
+  /* Sidebar → fixed bottom tab bar */
+  .sb{
+    position:fixed;bottom:0;left:0;right:0;
+    width:100%;height:58px;
+    flex-direction:row;align-items:stretch;
+    padding:0;border-right:none;
+    border-top:1px solid #1A1A2E;
+    background:#0D0D14;z-index:200
+  }
+  .sb nav{
+    display:flex;flex-direction:row;
+    width:100%;align-items:stretch
+  }
+  .sbi{
+    flex:1;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:3px;padding:6px 2px;
+    border-left:none;border-top:2px solid transparent;
+    font-size:10px;font-weight:500;
+    color:var(--sub);width:auto
+  }
+  .sbi svg{width:18px;height:18px}
+  .sbi.ac{
+    color:var(--green);
+    border-top-color:var(--green);
+    background:rgba(0,208,132,.07)
+  }
+  .sbi:hover{background:rgba(255,255,255,.03)}
+  /* Main area: account for bottom bar */
+  #appview{height:100dvh}
+  .am{overflow:hidden;height:100%}
+  .tb{height:48px;padding:0 12px;flex-shrink:0}
+  .tbt{font-size:14px}
+  .asel{max-width:110px;font-size:11px;padding:4px 6px}
   .addb{padding:5px 10px;font-size:11px}
-  .cnt{padding:12px}
-  /* KPIs: 2 cols on mobile */
-  .dkrow{grid-template-columns:repeat(2,1fr);gap:8px}
-  .dkv{font-size:18px}
-  /* Dashboard stats */
+  .cnt{
+    padding:10px 12px;
+    padding-bottom:calc(58px + 10px);
+    flex:1;min-height:0;overflow-y:auto
+  }
+  /* KPIs 2×2 */
+  .dkrow{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+  .dkv{font-size:19px}
+  .dkl{font-size:9px}
+  /* Stats cards */
   .ds2{grid-template-columns:1fr;gap:8px}
-  /* Trades table scroll */
-  .tbl-card{font-size:11px}
-  thead th{padding:7px 8px;font-size:9px}
-  tbody td{padding:7px 8px;font-size:11px}
-  /* Calendar full height on mobile */
-  #pg-calendar.ac>div{height:calc(100vh - 48px - 56px - 24px)}
-  .cgc{padding:4px;border-radius:4px}
+  /* Calendar adjustments on mobile */
+  #cal-wrap{padding:10px}
   .cgn{font-size:9px}
   .cgp{font-size:8px}
-  /* Stats */
+  .cgc{padding:4px;border-radius:4px}
+  /* Trades table */
+  .tbl-hdr{padding:10px 12px}
+  .ftags{gap:4px}
+  .ftag{font-size:10px;padding:2px 7px}
+  thead th{padding:7px 8px;font-size:9px}
+  tbody td{padding:7px 8px;font-size:11px}
+  /* Stats page */
   .sg{grid-template-columns:repeat(2,1fr);gap:8px}
-  .sv2{font-size:15px}
-  /* Account */
+  .sv2{font-size:16px}
+  /* Account page */
   .aw{max-width:100%}
   .fg{grid-template-columns:1fr}
-  /* Modal */
-  .modalbg{padding:12px;align-items:flex-end}
-  .modal{border-radius:14px 14px 0 0;max-height:85vh;padding:18px}
+  /* Modals: sheet from bottom */
+  .modalbg{padding:0;align-items:flex-end;background:rgba(0,0,0,.75)}
+  .modal{border-radius:16px 16px 0 0;max-height:88vh;padding:20px 16px;width:100%;max-width:100%}
   .fg2{grid-template-columns:1fr}
-  /* Hide sidebar text labels on very small */
-  .sbi span{font-size:9px;line-height:1;margin-top:1px}
 }
 @media(max-width:400px){
   .dkrow{grid-template-columns:repeat(2,1fr)}
@@ -592,17 +642,17 @@ tbody td{padding:8px 12px;font-size:12px;color:#C0C0D8;white-space:nowrap;overfl
       </div>
 
       <!-- CALENDAR -->
-      <div class="pg" id="pg-calendar" style="height:100%;display:none;flex-direction:column">
-        <div style="background:var(--card);border:1px solid #1A1A2E;border-radius:10px;padding:16px;display:flex;flex-direction:column;height:calc(100vh - 86px)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-shrink:0">
-            <div><div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600" id="calmonth">—</div><div style="font-size:10px;color:var(--muted);margin-top:2px">P&L par journée</div></div>
+      <div class="pg" id="pg-calendar">
+        <div id="cal-wrap">
+          <div id="cal-top">
+            <div><div class="dct" id="calmonth">—</div><div class="dcs">P&L par journée</div></div>
             <div style="display:flex;gap:6px">
-              <button id="calprev" style="background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--sub);padding:4px 10px;font-size:14px">‹</button>
-              <button id="calnext" style="background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--sub);padding:4px 10px;font-size:14px">›</button>
+              <button id="calprev" class="nav-btn">‹</button>
+              <button id="calnext" class="nav-btn">›</button>
             </div>
           </div>
-          <div class="cg" id="calhdrs" style="flex-shrink:0;margin-bottom:4px"></div>
-          <div id="calbody" style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:3px;min-height:0"></div>
+          <div id="calhdrs" class="cal-hdrs-row"></div>
+          <div id="calbody" class="cal-body-grid"></div>
         </div>
       </div>
 
@@ -920,21 +970,24 @@ document.querySelectorAll('.ftag').forEach(btn=>btn.addEventListener('click',()=
 function renderCal(){
   const d=new Date(calY,calM,1);
   document.getElementById('calmonth').textContent=d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
-  document.getElementById('calhdrs').innerHTML=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(x=>`<div class="cgl">${x}</div>`).join('');
+  document.getElementById('calhdrs').innerHTML=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(x=>`<div class="cgl" style="font-size:10px;color:var(--muted);text-align:center;padding:5px 0;font-weight:600">${x}</div>`).join('');
   const bd={};allTrades.forEach(t=>{if(!bd[t.date])bd[t.date]=0;bd[t.date]+=pnlOf(t);});
   const off=(d.getDay()+6)%7,dim=new Date(calY,calM+1,0).getDate();
-  const totalCells=Math.ceil((off+dim)/7)*7;
+  const rows=Math.ceil((off+dim)/7);
+  const totalCells=rows*7;
+  // set grid-template-rows dynamically so cells fill height equally
+  const body=document.getElementById('calbody');
+  body.style.gridTemplateRows=`repeat(${rows},1fr)`;
   let html='';
-  for(let i=0;i<off;i++)html+=`<div class="cgc ce" style="grid-column:${i+1}"></div>`;
+  for(let i=0;i<off;i++)html+=`<div class="cgc ce"></div>`;
   for(let day=1;day<=dim;day++){
     const k=`${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const p=bd[k];const cls=p===undefined?'':(p>=0?'cw':'cl');
     html+=`<div class="cgc ${cls}"><div class="cgn">${day}</div>${p!==undefined?`<div class="cgp ${p>=0?'pos':'neg'}">${p>=0?'+':''}${Math.round(p)}$</div>`:''}</div>`;
   }
-  // fill remaining cells for even grid
-  const filled=off+dim;const rem=totalCells-filled;
+  const rem=totalCells-(off+dim);
   for(let i=0;i<rem;i++)html+=`<div class="cgc ce"></div>`;
-  document.getElementById('calbody').innerHTML=html;
+  body.innerHTML=html;
 }
 document.getElementById('calprev').addEventListener('click',()=>{calM--;if(calM<0){calM=11;calY--;}renderCal();});
 document.getElementById('calnext').addEventListener('click',()=>{calM++;if(calM>11){calM=0;calY++;}renderCal();});
