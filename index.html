@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MNQPRO</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2300cc6a'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-weight='900' font-size='10' fill='%23000'>MNQ</text></svg>">
+<title>Trading Zone</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2300cc6a'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-weight='900' font-size='10' fill='%23000'>TZ</text></svg>">
 <meta name="theme-color" content="#00cc6a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -570,6 +570,56 @@ input[type="number"]{-moz-appearance:textfield;}
 
 .export-row{display:flex;gap:8px;margin-top:16px;}
 
+
+/* ─── COMMUNAUTÉ ─── */
+.comm-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.comm-tabs{display:flex;gap:4px;background:var(--bg3);border-radius:12px;padding:4px;}
+.comm-tab{padding:8px 20px;font-size:12px;cursor:pointer;border-radius:9px;color:var(--text2);transition:all var(--trans);font-weight:600;border:none;background:none;}
+.comm-tab:hover{color:var(--text);}
+.comm-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.comm-opt-banner{background:linear-gradient(135deg,rgba(0,204,106,.08),rgba(0,200,255,.08));border:1px solid rgba(0,204,106,.2);border-radius:var(--r);padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.comm-opt-text h3{font-size:15px;font-weight:700;margin-bottom:4px;}
+.comm-opt-text p{font-size:12px;color:var(--text2);line-height:1.6;}
+.leaderboard-table{width:100%;}
+.lb-head,.lb-row{display:grid;gap:8px;padding:10px 14px;align-items:center;font-size:11px;}
+.lb-head{grid-template-columns:40px 1fr 90px 90px 90px 90px 100px;font-size:9px;letter-spacing:1px;color:var(--text3);border-bottom:1px solid var(--border);}
+.lb-row{grid-template-columns:40px 1fr 90px 90px 90px 90px 100px;border-radius:9px;transition:background var(--trans);cursor:default;}
+.lb-row:hover{background:var(--bg3);}
+.lb-row.top1{background:linear-gradient(90deg,rgba(255,215,0,.07),transparent);border-left:2px solid gold;}
+.lb-row.top2{background:linear-gradient(90deg,rgba(192,192,192,.07),transparent);border-left:2px solid silver;}
+.lb-row.top3{background:linear-gradient(90deg,rgba(205,127,50,.07),transparent);border-left:2px solid #cd7f32;}
+.lb-row.me{background:var(--green2);border:1px solid rgba(0,204,106,.2);}
+.rank-badge{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--mono);}
+.rank-gold{background:rgba(255,215,0,.15);color:gold;}
+.rank-silver{background:rgba(192,192,192,.12);color:silver;}
+.rank-bronze{background:rgba(205,127,50,.12);color:#cd7f32;}
+.rank-default{background:var(--bg3);color:var(--text3);}
+.comm-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.comm-pseudo{font-size:13px;font-weight:600;}
+.comm-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.stat-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--mono);}
+.pill-green{background:var(--green2);color:var(--green);}
+.pill-red{background:var(--red2);color:var(--red);}
+.pill-cyan{background:rgba(0,200,255,.12);color:var(--cyan);}
+.pill-gray{background:rgba(255,255,255,.06);color:var(--text2);}
+.comm-empty{text-align:center;padding:60px 20px;color:var(--text2);}
+.comm-empty .icon{font-size:48px;margin-bottom:16px;}
+.comm-empty p{font-size:13px;line-height:1.7;}
+.opt-in-toggle{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);cursor:pointer;transition:all var(--trans);}
+.opt-in-toggle:hover{border-color:var(--green);}
+.toggle-switch{width:36px;height:20px;border-radius:10px;position:relative;transition:background var(--trans);flex-shrink:0;}
+.toggle-switch.on{background:var(--green);}
+.toggle-switch.off{background:var(--border2);}
+.toggle-knob{width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;transition:left var(--trans);}
+.toggle-switch.on .toggle-knob{left:18px;}
+.toggle-switch.off .toggle-knob{left:2px;}
+.comm-filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.sort-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:11px;font-family:var(--mono);cursor:pointer;transition:all var(--trans);}
+.sort-btn:hover,.sort-btn.active{border-color:var(--green);color:var(--green);background:var(--green2);}
+.comm-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;transition:all var(--trans);}
+.comm-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.comm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:12px;}
+
 /* ─── RESPONSIVE FIXES ─── */
 @media(max-width:1200px){
   .g4{grid-template-columns:1fr 1fr;}
@@ -577,6 +627,7 @@ input[type="number"]{-moz-appearance:textfield;}
   .bt-empty-cards{grid-template-columns:1fr 1fr;}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -1039,7 +1090,7 @@ input[type="number"]{-moz-appearance:textfield;}
 <div id="app">
 <!-- SIDEBAR -->
 <nav id="sidebar">
-  <div class="logo" onclick="go('dashboard')">MNQ</div>
+  <div class="logo" onclick="go('dashboard')">TZ</div>
   <!-- Main nav -->
   <div class="nav-btn active" id="nb-dashboard" onclick="go('dashboard')" title="Dashboard">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -1066,8 +1117,12 @@ input[type="number"]{-moz-appearance:textfield;}
   <div class="nav-btn" id="nb-personal" onclick="go('personal')" title="Fonds Propre">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1" fill="currentColor"/></svg>
   </div>
+  <div class="nav-btn" id="nb-community" onclick="go('community')" title="Communauté">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  </div>
   <!-- Bottom: mode + reset -->
   <div class="nav-bottom">
+    <div class="nav-btn" id="nb-auth" onclick="handleAuthClick()" title="Mon compte" style="color:var(--text3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
     <div class="nav-sep" style="width:24px"></div>
     <div class="nav-btn" onclick="exportBackup()" title="💾 Sauvegarder toutes mes données" style="color:#00c8ff">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1091,7 +1146,7 @@ input[type="number"]{-moz-appearance:textfield;}
   <div id="topbar">
     <div class="tb-left">
       <h1 id="tb-title">Dashboard</h1>
-      <div class="sub" id="tb-sub">MNQ EDGE · Deep Flow Trading</div>
+      <div class="sub" id="tb-sub">TRADING ZONE · Deep Flow Trading</div>
     </div>
     <div class="tb-right">
       <div class="clock-pill" onclick="toggleClock(event)" id="clock-pill">
@@ -1297,6 +1352,11 @@ input[type="number"]{-moz-appearance:textfield;}
         <div id="personal-content"></div>
       </div>
 
+
+    <!-- ══════════════ COMMUNAUTÉ ══════════════ -->
+    <div class="page" id="page-community">
+      <div id="community-content"></div>
+    </div>
     </div><!-- /content -->
 
 </div><!-- /main -->
@@ -1305,7 +1365,7 @@ input[type="number"]{-moz-appearance:textfield;}
 // ══════════════════════════════════════════════════════
 //  STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════
-const STORE_KEY = 'mnqedge_v3';
+const STORE_KEY = 'tradingzone_v3';
 let S = {
   trades:[],challenges:[],funded:[],expenses:[],
   capital:{personal:0,gains:0},
@@ -1316,20 +1376,20 @@ let S = {
   jFilter:{account:'',scenario:'',result:''}
 };
 
-function loadS(){
+async function loadS(){
   try{
-    const raw=localStorage.getItem(STORE_KEY);
-    if(raw){
-      const p=JSON.parse(raw);
-      S={...S,...p};
-      // Déduplification par ID
-      if(S.trades) S.trades=S.trades.filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i);
-      if(S.btTrades) S.btTrades=S.btTrades.filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i);
-    }
-  }catch(e){console.warn('Load err',e);}
+    const uiCache=sessionStorage.getItem('tradingzone_ui');
+    if(uiCache) Object.assign(S,JSON.parse(uiCache));
+    const data=await DB.loadAll();
+    Object.assign(S,data);
+    if(!localStorage.getItem('tradingzone_migrated')&&localStorage.getItem('tradingzone_v3')) showMigrationBanner();
+  }catch(err){
+    const raw=localStorage.getItem('tradingzone_v3');
+    if(raw) Object.assign(S,JSON.parse(raw));
+  }
 }
 function saveS(){
-  try{ localStorage.setItem(STORE_KEY,JSON.stringify(S)); }catch(e){}
+  try{ sessionStorage.setItem('tradingzone_ui',JSON.stringify({lastAccount:S.lastAccount,activeCity:S.activeCity,calOffset:S.calOffset,anFilter:S.anFilter,jFilter:S.jFilter,targets:S.targets,_jPage:S._jPage,_expPage:S._expPage})); }catch(e){}
 }
 
 // ── TRADE form state ──
@@ -1398,7 +1458,7 @@ setInterval(tickClock,1000); tickClock();
 //  NAVIGATION
 // ══════════════════════════════════════════════════════
 const PAGE_META={
-  dashboard:{title:'Dashboard',sub:'MNQ EDGE · Deep Flow Trading',btn:'+ Trade',bfn:'openTradeModal'},
+  dashboard:{title:'Dashboard',sub:'TRADING ZONE · Deep Flow Trading',btn:'+ Trade',bfn:'openTradeModal'},
   journal:{title:'Journal de Trading',sub:'Historique complet · Tous challenges',btn:'+ Trade',bfn:'openTradeModal'},
   challenges:{title:'Prop Challenges',sub:'Gestion multi-challenges simultanés',btn:'+ Nouveau Challenge',bfn:'openChallengeModal'},
   funded:{title:'Comptes Funded 💰',sub:'Vos comptes financés · Payouts · Règles',btn:'+ Nouveau Funded',bfn:'openFundedModal'},
@@ -1406,6 +1466,7 @@ const PAGE_META={
   personal:{title:'Fonds Propre',sub:'Trading sur capital personnel',btn:'⚙ Config',bfn:'openPersonalConfig'},
   analyse:{title:'Analyse Avancée',sub:'Vue globale · Tous comptes',btn:null,bfn:null},
   backtest:{title:'Backtesting Lab',sub:'Construis ton edge statistique',btn:'+ Session',bfn:'openBTSessionModal'},
+  community:{title:'Communauté 🌐',sub:'Classement global · Traders actifs',btn:null,bfn:null},
 };
 let currentPage='dashboard';
 function go(p){
@@ -1437,6 +1498,7 @@ function go(p){
   if(p==='analyse') renderAnalyse();
   if(p==='backtest') renderBacktest();
   if(p==='personal') renderPersonal();
+  if(p==='community') renderCommunity();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1973,7 +2035,7 @@ function exportPDF(){
   const filter=S.anFilter.account;
   const trades=filter?S.trades.filter(t=>t.challenge===filter):S.trades;
   const date=localDate();
-  const title=filter?`Rapport — ${filter}`:'Rapport Global MNQ EDGE';
+  const title=filter?`Rapport — ${filter}`:'Rapport Global Trading Zone';
   const stats=calcStats(trades);
   const wins=trades.filter(t=>t.result==='WIN');
   const losses=trades.filter(t=>t.result==='LOSS');
@@ -2007,8 +2069,1000 @@ function exportPDF(){
     const r=tradeR(t);
     return `<tr><td>${t.date||'—'}</td><td>${t.scenario||'—'}</td><td>${t.direction||'—'}</td><td>${t.entry||'—'}</td><td class="${r>0?'win':'loss'}">${r>=0?'+':''}${r.toFixed(2)}R</td><td>${t.zone||'—'}</td><td>${t.quality||5}/10</td><td>${t.notes||'—'}</td></tr>`;
   }).join('')}</tbody></table>
-  <div class="footer">MNQ EDGE · Deep Flow Trading · ${date}</div>
-  </body></html>`;
+  <div class="footer">Trading Zone · Deep Flow Trading · ${date}</div>
+  
+<script>
+const SUPABASE_URL = 'https://nwmvqyykvqqhbaqiqzpr.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53bXZxeXlrdnFxaGJhcWlxenByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjYzMTEsImV4cCI6MjA5NjgwMjMxMX0.7RYCkY78L3q9kd9_Fd4Jtd_GcRMVP1rqHY0TueM6k6Y';
+
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── Auth helpers ───────────────────────────────────────
+
+const Auth = {
+  // Retourne le user connecté ou null
+  async getUser() {
+    const { data: { user } } = await _sb.auth.getUser();
+    return user;
+  },
+
+  // Login Google (redirect)
+  async loginGoogle() {
+    await _sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+  },
+
+  // Login email + mot de passe
+  async loginEmail(email, password) {
+    const { data, error } = await _sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  },
+
+  // Inscription email
+  async signupEmail(email, password) {
+    const { data, error } = await _sb.auth.signUp({ email, password });
+    if (error) throw error;
+    return data;
+  },
+
+  async logout() {
+    await _sb.auth.signOut();
+    window.location.reload();
+  },
+
+  // Callback déclenché à chaque changement d'auth
+  onChange(callback) {
+    _sb.auth.onAuthStateChange((_event, session) => {
+      callback(session?.user ?? null);
+    });
+  }
+};
+
+// ── Utilitaire : userId courant ────────────────────────
+async function uid() {
+  const user = await Auth.getUser();
+  if (!user) throw new Error('Non connecté');
+  return user.id;
+}
+
+// ── Mapping : objet JS → row Supabase ─────────────────
+
+function tradeToRow(t, userId) {
+  return {
+    id:             t.id || undefined,       // uuid auto si nouveau
+    user_id:        userId,
+    challenge_name: t.challenge || null,
+    date:           t.date || null,
+    entry_time:     t.entry || null,
+    scenario:       t.scenario || null,
+    direction:      t.direction || 'LONG',
+    result:         t.result || 'WIN',
+    rr:             parseFloat(t.rr) || 0,
+    one_r:          parseFloat(t.oneR) || 0,
+    zone:           t.zone || null,
+    quality:        parseInt(t.quality) || 5,
+    emotions:       Array.isArray(t.emotions) ? t.emotions : [],
+    notes:          t.notes || null,
+    is_error:       !!t.isError,
+    screenshot_url: t.screenshotUrl || null,
+    entry_price:    parseFloat(t.entryPrice) || null,
+    stop_price:     parseFloat(t.stopPrice)  || null,
+    target_price:   parseFloat(t.targetPrice)|| null,
+    mae:            parseFloat(t.mae) || null,
+    mfe:            parseFloat(t.mfe) || null,
+  };
+}
+
+function rowToTrade(row) {
+  return {
+    id:           row.id,
+    challenge:    row.challenge_name,
+    date:         row.date,
+    entry:        row.entry_time ? row.entry_time.slice(0,5) : '',
+    scenario:     row.scenario,
+    direction:    row.direction,
+    result:       row.result,
+    rr:           row.rr,
+    oneR:         row.one_r,
+    zone:         row.zone,
+    quality:      row.quality,
+    emotions:     row.emotions || [],
+    notes:        row.notes,
+    isError:      row.is_error,
+    screenshotUrl:row.screenshot_url,
+    entryPrice:   row.entry_price,
+    stopPrice:    row.stop_price,
+    targetPrice:  row.target_price,
+    mae:          row.mae,
+    mfe:          row.mfe,
+  };
+}
+
+function challengeToRow(ch, userId) {
+  return {
+    id:         ch.id?.startsWith('ch_') ? undefined : ch.id,
+    user_id:    userId,
+    name:       ch.name,
+    broker:     ch.broker || null,
+    capital:    parseFloat(ch.capital) || 50000,
+    cost:       parseFloat(ch.cost) || 0,
+    target:     parseFloat(ch.target) || 6,
+    ddmax:      parseFloat(ch.ddmax) || 4,
+    dll:        parseFloat(ch.dll) || 0,
+    one_r:      parseFloat(ch.oneR) || 200,
+    mindays:    parseInt(ch.mindays) || 0,
+    start_date: ch.start || null,
+    ddtype:     ch.ddtype || 'EOD',
+    cons:       ch.cons || 'non',
+    cons_pct:   parseFloat(ch.consPct) || 0,
+    status:     ch.status || 'active',
+    sort_order: ch.sortOrder || 0,
+  };
+}
+
+function rowToChallenge(row) {
+  return {
+    id:         row.id,
+    name:       row.name,
+    broker:     row.broker,
+    capital:    row.capital,
+    cost:       row.cost,
+    target:     row.target,
+    ddmax:      row.ddmax,
+    dll:        row.dll,
+    oneR:       row.one_r,
+    mindays:    row.mindays,
+    start:      row.start_date,
+    ddtype:     row.ddtype,
+    cons:       row.cons,
+    consPct:    row.cons_pct,
+    status:     row.status,
+    sortOrder:  row.sort_order,
+  };
+}
+
+function fundedToRow(f, userId) {
+  return {
+    id:               f.id?.startsWith('fu_') ? undefined : f.id,
+    user_id:          userId,
+    name:             f.name,
+    broker:           f.broker || null,
+    capital:          parseFloat(f.capital) || 50000,
+    dd_max_amt:       parseFloat(f.ddMaxAmt) || 2000,
+    dll:              parseFloat(f.dll) || 0,
+    one_r:            parseFloat(f.oneR) || 200,
+    payout:           parseFloat(f.payout) || 0,
+    min_pnl:          parseFloat(f.minpnl) || 0,
+    mindays:          parseInt(f.mindays) || 0,
+    ddtype:           f.ddtype || 'EOD',
+    cons:             f.cons || 'non',
+    cons_pct:         parseFloat(f.consPct) || 0,
+    payouts_received: Array.isArray(f.payoutsReceived) ? f.payoutsReceived : [],
+    sort_order:       f.sortOrder || 0,
+  };
+}
+
+function rowToFunded(row) {
+  return {
+    id:               row.id,
+    name:             row.name,
+    broker:           row.broker,
+    capital:          row.capital,
+    ddMaxAmt:         row.dd_max_amt,
+    dll:              row.dll,
+    oneR:             row.one_r,
+    payout:           row.payout,
+    minpnl:           row.min_pnl,
+    mindays:          row.mindays,
+    ddtype:           row.ddtype,
+    cons:             row.cons,
+    consPct:          row.cons_pct,
+    payoutsReceived:  row.payouts_received || [],
+    sortOrder:        row.sort_order,
+    status:           'active',
+  };
+}
+
+// ── DB : API principale ────────────────────────────────
+
+const DB = {
+
+  // ── Chargement initial (remplace loadS) ────────────
+  async loadAll() {
+    const userId = await uid();
+
+    const [
+      { data: profile },
+      { data: challenges },
+      { data: funded },
+      { data: trades },
+      { data: personalTrades },
+      { data: expenses },
+      { data: btSessions },
+      { data: btTrades },
+    ] = await Promise.all([
+      _sb.from('profiles').select('*').eq('id', userId).single(),
+      _sb.from('challenges').select('*').eq('user_id', userId).order('sort_order'),
+      _sb.from('funded').select('*').eq('user_id', userId).order('sort_order'),
+      _sb.from('trades').select('*').eq('user_id', userId).order('date', { ascending: false }),
+      _sb.from('personal_trades').select('*').eq('user_id', userId).order('date', { ascending: false }),
+      _sb.from('expenses').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      _sb.from('bt_sessions').select('*').eq('user_id', userId).order('sort_order'),
+      _sb.from('bt_trades').select('*').eq('user_id', userId).order('date', { ascending: false }),
+    ]);
+
+    // Reconstruit S avec la même structure qu'avant
+    return {
+      trades:        (trades || []).map(rowToTrade),
+      challenges:    (challenges || []).map(rowToChallenge),
+      funded:        (funded || []).map(rowToFunded),
+      expenses:      expenses || [],
+      btSessions:    btSessions || [],
+      btTrades:      (btTrades || []).map(r => ({
+        id:        r.id,
+        sessionId: r.session_id,
+        date:      r.date,
+        time:      r.entry_time ? r.entry_time.slice(0,5) : '',
+        scenario:  r.scenario,
+        direction: r.direction,
+        result:    r.result,
+        rr:        r.rr,
+        zone:      r.zone,
+        quality:   r.quality,
+        notes:     r.notes,
+      })),
+      personalTrades: (personalTrades || []).map(rowToTrade),
+      capital:   { personal: profile?.personal?.capital || 0, gains: 0 },
+      personal:  profile?.personal || {},
+      targets:   profile?.targets || { weekly: 0, monthly: 0 },
+      activeCity: profile?.active_city || 'Paris',
+      calOffset:  profile?.cal_offset || 0,
+      lastAccount: '',
+      anFilter:   { account: '' },
+      jFilter:    { account: '', scenario: '', result: '' },
+    };
+  },
+
+  // ── TRADES ─────────────────────────────────────────
+
+  async saveTrade(trade) {
+    const userId = await uid();
+    const row = tradeToRow(trade, userId);
+    const { data, error } = await _sb
+      .from('trades')
+      .upsert(row, { onConflict: 'id' })
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToTrade(data);
+  },
+
+  async deleteTrade(id) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('trades')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+  },
+
+  // ── CHALLENGES ─────────────────────────────────────
+
+  async saveChallenge(ch) {
+    const userId = await uid();
+    const row = challengeToRow(ch, userId);
+    const { data, error } = await _sb
+      .from('challenges')
+      .upsert(row, { onConflict: 'id' })
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToChallenge(data);
+  },
+
+  async deleteChallenge(id) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('challenges')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+  },
+
+  async updateChallengeStatus(id, status) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('challenges')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+  },
+
+  // ── FUNDED ─────────────────────────────────────────
+
+  async saveFunded(f) {
+    const userId = await uid();
+    const row = fundedToRow(f, userId);
+    const { data, error } = await _sb
+      .from('funded')
+      .upsert(row, { onConflict: 'id' })
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToFunded(data);
+  },
+
+  async deleteFunded(id) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('funded')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+  },
+
+  // ── EXPENSES ───────────────────────────────────────
+
+  async saveExpense(exp) {
+    const userId = await uid();
+    const { data, error } = await _sb
+      .from('expenses')
+      .upsert({ ...exp, user_id: userId }, { onConflict: 'id' })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteExpense(id) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('expenses')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+  },
+
+  // ── BT SESSIONS ────────────────────────────────────
+
+  async saveBTSession(sess) {
+    const userId = await uid();
+    const row = {
+      id:         sess.id?.startsWith('bts_') ? undefined : sess.id,
+      user_id:    userId,
+      name:       sess.name,
+      instrument: sess.instrument || 'MNQ',
+      tf:         sess.tf || '30s',
+      one_r:      parseFloat(sess.oneR) || 200,
+      from_date:  sess.from || null,
+      to_date:    sess.to || null,
+      notes:      sess.notes || null,
+      sort_order: sess.sortOrder || 0,
+    };
+    const { data, error } = await _sb
+      .from('bt_sessions')
+      .upsert(row, { onConflict: 'id' })
+      .select()
+      .single();
+    if (error) throw error;
+    return { ...sess, id: data.id };
+  },
+
+  async deleteBTSession(id) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('bt_sessions')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+  },
+
+  // ── BT TRADES ──────────────────────────────────────
+
+  async saveBTTrade(t) {
+    const userId = await uid();
+    const row = {
+      user_id:    userId,
+      session_id: t.sessionId,
+      date:       t.date || null,
+      entry_time: t.time || null,
+      scenario:   t.scenario || null,
+      direction:  t.direction || 'LONG',
+      result:     t.result || 'WIN',
+      rr:         parseFloat(t.rr) || 0,
+      zone:       t.zone || null,
+      quality:    parseInt(t.quality) || 5,
+      notes:      t.notes || null,
+    };
+    if (t.id && !String(t.id).startsWith('bt_')) row.id = t.id;
+    const { data, error } = await _sb
+      .from('bt_trades')
+      .upsert(row, { onConflict: 'id' })
+      .select()
+      .single();
+    if (error) throw error;
+    return { ...t, id: data.id };
+  },
+
+  async deleteBTTrade(id) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('bt_trades')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+  },
+
+  // ── PROFIL / SETTINGS ──────────────────────────────
+
+  async saveProfile(patch) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('profiles')
+      .update(patch)
+      .eq('id', userId);
+    if (error) throw error;
+  },
+
+  async saveTargets(targets) {
+    return this.saveProfile({ targets });
+  },
+
+  async savePersonalConfig(config) {
+    return this.saveProfile({ personal: config });
+  },
+
+  // ── SCREENSHOTS ────────────────────────────────────
+
+  async uploadScreenshot(file, tradeId) {
+    const userId = await uid();
+    const ext = file.name.split('.').pop();
+    const path = `${userId}/${tradeId}.${ext}`;
+    const { error } = await _sb.storage
+      .from('trade-screenshots')
+      .upload(path, file, { upsert: true });
+    if (error) throw error;
+    const { data } = _sb.storage
+      .from('trade-screenshots')
+      .getPublicUrl(path);
+    return data.publicUrl;
+  },
+
+  async deleteScreenshot(tradeId, ext = 'png') {
+    const userId = await uid();
+    const { error } = await _sb.storage
+      .from('trade-screenshots')
+      .remove([`${userId}/${tradeId}.${ext}`]);
+    if (error) throw error;
+  },
+
+  // ── DAILY REVIEWS ──────────────────────────────────
+
+  async saveDailyReview(review) {
+    const userId = await uid();
+    const { data, error } = await _sb
+      .from('daily_reviews')
+      .upsert({ ...review, user_id: userId }, { onConflict: 'user_id,date' })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getDailyReview(date) {
+    const userId = await uid();
+    const { data } = await _sb
+      .from('daily_reviews')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .single();
+    return data;
+  },
+
+  // ── COMMUNAUTÉ ─────────────────────────────────────
+
+  async publishCommunityStats(stats) {
+    const userId = await uid();
+    const { error } = await _sb
+      .from('community_stats')
+      .upsert({ ...stats, user_id: userId, opt_in: true, updated_at: new Date().toISOString() },
+               { onConflict: 'user_id' });
+    if (error) throw error;
+  },
+
+  async getCommunityLeaderboard() {
+    const { data, error } = await _sb
+      .from('community_stats')
+      .select('pseudo, win_rate, profit_factor, total_r, trade_count, best_scenario, updated_at')
+      .eq('opt_in', true)
+      .order('total_r', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return data || [];
+  },
+
+  // ── MIGRATION localStorage → Supabase ──────────────
+  // À appeler une seule fois après connexion du user
+
+  async migrateFromLocalStorage() {
+    const STORE_KEY = 'tradingzone_v3';
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return { migrated: false, reason: 'Aucune donnée locale' };
+
+    const local = JSON.parse(raw);
+    const userId = await uid();
+    let stats = { trades: 0, challenges: 0, funded: 0, expenses: 0, btSessions: 0, btTrades: 0 };
+
+    try {
+      // 1. Challenges
+      if (local.challenges?.length) {
+        for (const ch of local.challenges) {
+          await this.saveChallenge(ch);
+          stats.challenges++;
+        }
+      }
+
+      // 2. Funded
+      if (local.funded?.length) {
+        for (const f of local.funded) {
+          await this.saveFunded(f);
+          stats.funded++;
+        }
+      }
+
+      // 3. Trades (en batch de 50)
+      if (local.trades?.length) {
+        const rows = local.trades.map(t => tradeToRow(t, userId));
+        for (let i = 0; i < rows.length; i += 50) {
+          const batch = rows.slice(i, i + 50);
+          const { error } = await _sb.from('trades').upsert(batch, { onConflict: 'id', ignoreDuplicates: true });
+          if (error) console.warn('Batch trades error:', error);
+          stats.trades += batch.length;
+        }
+      }
+
+      // 4. Expenses
+      if (local.expenses?.length) {
+        const rows = local.expenses.map(e => ({ ...e, user_id: userId }));
+        await _sb.from('expenses').upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
+        stats.expenses = local.expenses.length;
+      }
+
+      // 5. BT Sessions
+      if (local.btSessions?.length) {
+        for (const sess of local.btSessions) {
+          await this.saveBTSession(sess);
+          stats.btSessions++;
+        }
+      }
+
+      // 6. BT Trades
+      if (local.btTrades?.length) {
+        for (const t of local.btTrades) {
+          await this.saveBTTrade(t);
+          stats.btTrades++;
+        }
+      }
+
+      // 7. Profil
+      if (local.personal || local.targets) {
+        await this.saveProfile({
+          personal:    local.personal || {},
+          targets:     local.targets || { weekly: 0, monthly: 0 },
+          active_city: local.activeCity || 'Paris',
+          cal_offset:  local.calOffset || 0,
+        });
+      }
+
+      // 8. Supprimer le localStorage après migration réussie
+      localStorage.removeItem(STORE_KEY);
+      localStorage.setItem('tradingzone_migrated', '1');
+
+      return { migrated: true, stats };
+
+    } catch (err) {
+      console.error('Migration error:', err);
+      return { migrated: false, error: err.message };
+    }
+  }
+};
+
+</script>
+<script>
+// ══════════════════════════════════════════════════════
+//  Trading Zone — Patch d'intégration Supabase
+//  Remplace saveS() / loadS() dans le script principal
+//  Colle ce bloc APRÈS db.js et AVANT le script existant
+// ══════════════════════════════════════════════════════
+
+// ── 1. Remplacer saveS() ──────────────────────────────
+// L'ancien saveS() faisait : localStorage.setItem(STORE_KEY, JSON.stringify(S))
+// Le nouveau est un no-op : chaque opération écrit directement dans Supabase
+// via DB.saveTrade(), DB.saveChallenge(), etc.
+// On garde un cache local léger pour la réactivité UI.
+
+function saveS() {
+  // Cache local pour accès instantané entre les pages
+  // (les writes réels se font dans chaque fonction CRUD)
+  try {
+    const cache = {
+      lastAccount: S.lastAccount,
+      activeCity:  S.activeCity,
+      calOffset:   S.calOffset,
+      anFilter:    S.anFilter,
+      jFilter:     S.jFilter,
+      showArchived: S.showArchived,
+      targets:     S.targets,
+      _jPage:      S._jPage,
+      _expPage:    S._expPage,
+      _expCalOffset: S._expCalOffset,
+    };
+    sessionStorage.setItem('tradingzone_ui', JSON.stringify(cache));
+  } catch(e) {}
+}
+
+// ── 2. Remplacer loadS() ─────────────────────────────
+// L'ancien loadS() lisait depuis localStorage
+// Le nouveau charge depuis Supabase au démarrage
+
+async function loadS() {
+  try {
+    // Restaurer les préférences UI depuis sessionStorage
+    const uiCache = sessionStorage.getItem('tradingzone_ui');
+    if (uiCache) Object.assign(S, JSON.parse(uiCache));
+
+    // Charger toutes les données depuis Supabase
+    const data = await DB.loadAll();
+    Object.assign(S, data);
+
+    // Vérifier si migration localStorage nécessaire
+    const migrated = localStorage.getItem('tradingzone_migrated');
+    const oldData  = localStorage.getItem('tradingzone_v3');
+    if (!migrated && oldData) {
+      showMigrationBanner();
+    }
+
+  } catch (err) {
+    console.error('loadS error:', err);
+    // Fallback sur localStorage si Supabase injoignable
+    const raw = localStorage.getItem('tradingzone_v3');
+    if (raw) Object.assign(S, JSON.parse(raw));
+  }
+}
+
+// ── 3. Bannière de migration localStorage ────────────
+function showMigrationBanner() {
+  const banner = document.createElement('div');
+  banner.id = 'migration-banner';
+  banner.style.cssText = `
+    position:fixed;bottom:70px;right:22px;z-index:9998;
+    background:#0f1219;border:1px solid rgba(0,200,255,.4);
+    border-radius:14px;padding:16px 20px;max-width:320px;
+    box-shadow:0 12px 40px rgba(0,0,0,.6);
+  `;
+  banner.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:#00c8ff;margin-bottom:8px">
+      📦 Données locales détectées
+    </div>
+    <div style="font-size:11px;color:#8892a4;margin-bottom:14px;line-height:1.6">
+      Tu as des trades dans l'ancienne version.
+      Migrer les importe tout dans Supabase.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="runMigration()" style="flex:1;padding:8px;background:#00cc6a;border:none;border-radius:8px;color:#000;font-weight:700;font-size:11px;cursor:pointer">
+        Migrer maintenant
+      </button>
+      <button onclick="document.getElementById('migration-banner').remove()" style="padding:8px 12px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#8892a4;font-size:11px;cursor:pointer">
+        Plus tard
+      </button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+}
+
+async function runMigration() {
+  const banner = document.getElementById('migration-banner');
+  if (banner) banner.innerHTML = `
+    <div style="font-size:12px;color:#00c8ff;text-align:center;padding:8px">
+      ⏳ Migration en cours...
+    </div>
+  `;
+  const result = await DB.migrateFromLocalStorage();
+  if (result.migrated) {
+    const s = result.stats;
+    notif(`✓ Migration réussie — ${s.trades}t, ${s.challenges}ch, ${s.funded}f, ${s.btTrades}bt`);
+    if (banner) banner.remove();
+    await loadS();
+    renderAll();
+  } else {
+    notif('Erreur migration : ' + (result.reason || result.error), 'err');
+    if (banner) banner.remove();
+  }
+}
+
+// ── 4. Remplacer saveTrade() ─────────────────────────
+// Remplacement de la fonction existante dans index.html
+// Chercher "function saveTrade(){" et remplacer par :
+
+async function saveTrade() {
+  const scenario = document.getElementById('tf-scenario').value;
+  const account  = document.getElementById('tf-account').value;
+  const rr       = parseFloat(document.getElementById('tf-rr').value) || (_tRes === 'LOSS' ? 1 : 0);
+  if (!scenario) { notif('Scénario requis', 'err'); return; }
+
+  const tradeData = {
+    challenge: account,
+    date:      document.getElementById('tf-date').value,
+    scenario,
+    direction: _tDir,
+    result:    _tRes,
+    rr,
+    oneR:      parseFloat(document.getElementById('tf-1r').value) || 0,
+    entry:     document.getElementById('tf-entry').value,
+    zone:      document.getElementById('tf-zone').value,
+    quality:   parseInt(document.getElementById('tf-quality').value),
+    emotions:  [..._tEmos],
+    notes:     document.getElementById('tf-notes').value,
+    isError:   document.getElementById('tf-is-error')?.value === '1',
+  };
+
+  if (_editTradeId) tradeData.id = _editTradeId;
+
+  try {
+    const saved = await DB.saveTrade(tradeData);
+    if (_editTradeId) {
+      const idx = S.trades.findIndex(t => t.id === _editTradeId);
+      if (idx !== -1) S.trades[idx] = saved;
+      _editTradeId = null;
+      notif('Trade mis à jour ✓');
+    } else {
+      S.trades.push(saved);
+      if (account) S.lastAccount = account;
+      notif('Trade enregistré · ' + (_tRes === 'WIN' ? '+' + rr.toFixed(2) + 'R' : _tRes === 'LOSS' ? '-1R' : '0R'));
+    }
+    saveS();
+    closeModal('modal-trade');
+    autoCheckAccounts();
+    renderAll();
+  } catch (err) {
+    notif('Erreur : ' + err.message, 'err');
+  }
+}
+
+// ── 5. Remplacer deleteTrade() ───────────────────────
+
+async function deleteTrade(id) {
+  const trade = S.trades.find(t => t.id === id);
+  try {
+    await DB.deleteTrade(id);
+    S.trades = S.trades.filter(t => t.id !== id);
+    saveS();
+    autoCheckAccounts();
+    notif('Trade supprimé' + (trade?.challenge ? ' — ' + trade.challenge : ''));
+    renderAll();
+  } catch (err) {
+    notif('Erreur suppression : ' + err.message, 'err');
+  }
+}
+
+// ── 6. Remplacer saveChallenge() ────────────────────
+
+async function saveChallenge() {
+  const name = document.getElementById('ch-name').value.trim();
+  if (!name) { notif('Nom requis', 'err'); return; }
+  if (S.challenges.find(c => c.name === name)) { notif('Nom déjà existant', 'err'); return; }
+
+  const cost = document.getElementById('ch-cost').value || '0';
+  const ch = {
+    name,
+    broker:   document.getElementById('ch-broker').value,
+    capital:  document.getElementById('ch-capital').value || '50000',
+    cost,
+    target:   document.getElementById('ch-target').value || '6',
+    ddmax:    document.getElementById('ch-ddmax').value || '4',
+    dll:      document.getElementById('ch-dll').value || '0',
+    oneR:     document.getElementById('ch-1r').value || '200',
+    mindays:  document.getElementById('ch-mindays').value || '0',
+    start:    document.getElementById('ch-start').value,
+    ddtype:   document.getElementById('ch-ddtype').value,
+    cons:     document.getElementById('ch-cons').value,
+    consPct:  document.getElementById('ch-cons-pct').value || '',
+    status:   'active',
+  };
+
+  try {
+    const saved = await DB.saveChallenge(ch);
+    S.challenges.push(saved);
+    if (parseFloat(cost) > 0) {
+      const exp = { name: `Challenge — ${name}`, amount: parseFloat(cost), cat: 'Challenge', date: localDate(), isGain: false };
+      const savedExp = await DB.saveExpense(exp);
+      S.expenses.push(savedExp);
+    }
+    saveS();
+    closeModal('modal-challenge');
+    notif('Challenge créé ✓');
+    renderChallenges();
+  } catch (err) {
+    notif('Erreur : ' + err.message, 'err');
+  }
+}
+
+// ── 7. Remplacer saveFunded() ────────────────────────
+
+async function saveFunded() {
+  const name = document.getElementById('fu-name').value.trim();
+  if (!name) { notif('Nom requis', 'err'); return; }
+
+  const f = {
+    name,
+    broker:   document.getElementById('fu-broker').value,
+    capital:  document.getElementById('fu-capital').value || '50000',
+    ddMaxAmt: document.getElementById('fu-ddmax-amt').value || '2000',
+    dll:      document.getElementById('fu-dll').value || '0',
+    oneR:     document.getElementById('fu-1r').value || '200',
+    payout:   document.getElementById('fu-payout').value || '0',
+    minpnl:   document.getElementById('fu-minpnl').value || '0',
+    mindays:  document.getElementById('fu-mindays').value || '0',
+    ddtype:   document.getElementById('fu-ddtype').value,
+    cons:     document.getElementById('fu-cons').value,
+    consPct:  document.getElementById('fu-cons-pct').value || '',
+    payoutsReceived: [],
+  };
+
+  try {
+    const saved = await DB.saveFunded(f);
+    S.funded.push(saved);
+    saveS();
+    closeModal('modal-funded');
+    notif('Compte Funded créé ✓');
+    renderFunded();
+  } catch (err) {
+    notif('Erreur : ' + err.message, 'err');
+  }
+}
+
+// ── 8. Remplacer saveBTTrade() ───────────────────────
+
+async function saveBTTrade() {
+  if (!btDetailSession) { notif('Aucune session active', 'err'); return; }
+  const scenario = document.getElementById('btt-scenario').value;
+  if (!scenario) { notif('Scénario requis', 'err'); return; }
+
+  const rrRaw = parseFloat(document.getElementById('btt-rr').value);
+  const rr = isNaN(rrRaw) ? (_btRes === 'WIN' ? 2 : _btRes === 'LOSS' ? 1 : 0) : rrRaw;
+
+  const t = {
+    sessionId: btDetailSession,
+    date:      document.getElementById('btt-date').value,
+    time:      document.getElementById('btt-time').value,
+    scenario,
+    direction: _btDir,
+    result:    _btRes,
+    rr,
+    zone:      document.getElementById('btt-zone').value,
+    quality:   document.getElementById('btt-quality').value || '5',
+    notes:     document.getElementById('btt-notes').value,
+  };
+  if (_editBTTradeId) t.id = _editBTTradeId;
+
+  try {
+    const saved = await DB.saveBTTrade(t);
+    if (_editBTTradeId) {
+      const idx = S.btTrades.findIndex(x => x.id === _editBTTradeId);
+      if (idx !== -1) S.btTrades[idx] = saved;
+      notif('Trade BT mis à jour ✓');
+    } else {
+      S.btTrades.push(saved);
+      notif('Trade BT enregistré');
+    }
+    _editBTTradeId = null;
+    saveS();
+    closeModal('modal-bttrade');
+    showBTDetail(btDetailSession);
+  } catch (err) {
+    notif('Erreur : ' + err.message, 'err');
+  }
+}
+
+// ── 9. Auth UI — à ajouter dans le HTML ─────────────
+// Insérer dans la sidebar (.nav-bottom) :
+/*
+  <div class="nav-btn" id="nb-auth" onclick="handleAuthClick()" title="Mon compte">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+  </div>
+*/
+
+async function handleAuthClick() {
+  const user = await Auth.getUser();
+  if (user) {
+    if (confirm(`Déconnexion de ${user.email} ?`)) Auth.logout();
+  } else {
+    showAuthModal();
+  }
+}
+
+function showAuthModal() {
+  const existing = document.getElementById('modal-auth');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'modal-auth';
+  el.className = 'modal-bg open';
+  el.innerHTML = `
+  <div class="modal" style="width:400px">
+    <div class="modal-title">Connexion
+      <button class="modal-close" onclick="document.getElementById('modal-auth').remove()">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button onclick="Auth.loginGoogle()" style="padding:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continuer avec Google
+      </button>
+      <div style="text-align:center;font-size:11px;color:var(--text3)">— ou —</div>
+      <input class="finp" id="auth-email" type="email" placeholder="email@example.com">
+      <input class="finp" id="auth-pw" type="password" placeholder="Mot de passe">
+      <div style="display:flex;gap:8px">
+        <button onclick="Auth.loginEmail(document.getElementById('auth-email').value, document.getElementById('auth-pw').value).then(()=>location.reload()).catch(e=>notif(e.message,'err'))" style="flex:1;padding:10px;background:var(--green);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer">
+          Connexion
+        </button>
+        <button onclick="Auth.signupEmail(document.getElementById('auth-email').value, document.getElementById('auth-pw').value).then(()=>notif('Vérifie tes emails ✓')).catch(e=>notif(e.message,'err'))" style="flex:1;padding:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);cursor:pointer">
+          S'inscrire
+        </button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+}
+
+// ── 10. Init modifiée (remplace DOMContentLoaded) ────
+// Chercher "document.addEventListener('DOMContentLoaded'" et remplacer par :
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Vérifier l'auth avant tout
+  Auth.onChange(async (user) => {
+    if (user) {
+      // Utilisateur connecté : charger ses données
+      await loadS();
+      initAllCustomSelects();
+      initAllDatePickers();
+      go('dashboard');
+      tickClock();
+      updateAuthBtn(user);
+    } else {
+      // Non connecté : afficher l'état vide + modal auth
+      initAllCustomSelects();
+      initAllDatePickers();
+      go('dashboard');
+      tickClock();
+      setTimeout(() => showAuthModal(), 500);
+    }
+  });
+});
+
+function updateAuthBtn(user) {
+  const btn = document.getElementById('nb-auth');
+  if (btn) {
+    btn.title = user.email;
+    btn.style.color = 'var(--green)';
+  }
+}
+
+</script>
+</body></html>`;
   const blob=new Blob([html],{type:'text/html'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`mnq-rapport-${(filter||'global').replace(/\s+/g,'-').toLowerCase()}-${date}.html`;
@@ -5147,7 +6201,7 @@ function exportAnalyseReport(){
 
   const html=`<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8">
-<title>Rapport MNQ EDGE — ${accountName}</title>
+<title>Rapport Trading Zone — ${accountName}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:#04040a;color:#e8edf5;font-family:'Segoe UI',sans-serif;padding:32px;}
@@ -5165,7 +6219,7 @@ tr:nth-child(even){background:#141820;}
 .green{color:#00cc6a;}.red{color:#ff3b5c;}.abs{color:#00b4d8;}.exh{color:#e879f9;}
 footer{text-align:center;color:#4a5568;font-size:11px;margin-top:24px;font-family:monospace;}
 </style></head><body>
-<h1>📊 Rapport d'Analyse — MNQ EDGE</h1>
+<h1>📊 Rapport d'Analyse — Trading Zone</h1>
 <div class="sub">Compte : <strong style="color:#e8edf5">${accountName}</strong> &nbsp;·&nbsp; Généré le ${date} &nbsp;·&nbsp; ${trades.length} trades</div>
 
 ${acc?`<div class="section"><h2>Informations du compte</h2>
@@ -5220,7 +6274,7 @@ ${[...trades].sort((a,b)=>{
 }).join('')}
 </table></div>
 
-<footer>MNQ EDGE · Deep Flow Trading · Rapport généré le ${date}</footer>
+<footer>Trading Zone · Deep Flow Trading · Rapport généré le ${date}</footer>
 </body></html>`;
 
   const filename=`mnq-rapport-${filter?filter.replace(/\s/g,'-'):'global'}-${localDate()}.html`;
@@ -5785,12 +6839,309 @@ document.addEventListener('click',e=>{
 // ══════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded',()=>{
-  loadS();
-  initAllCustomSelects();
-  initAllDatePickers();
-  go('dashboard');
-  tickClock();
+
+// ══════════════════════════════════════════════════════
+//  COMMUNAUTÉ
+// ══════════════════════════════════════════════════════
+let _commTab='leaderboard', _commSort='total_r', _commOptIn=false;
+
+async function renderCommunity(){
+  const el=document.getElementById('community-content');
+  if(!el) return;
+
+  // Charger le statut opt-in du user
+  try{
+    const user=await Auth.getUser();
+    if(user){
+      const {data}=await _sb.from('community_stats').select('opt_in,pseudo').eq('user_id',user.id).single();
+      _commOptIn=data?.opt_in||false;
+    }
+  }catch(e){}
+
+  el.innerHTML=`
+  <div class="comm-header">
+    <div>
+      <h2 style="font-size:17px;font-weight:700;margin-bottom:2px">Communauté Trading Zone</h2>
+      <div style="font-size:11px;color:var(--text2)">Classement global des traders · Stats anonymisées · Opt-in uniquement</div>
+    </div>
+    <div class="comm-tabs">
+      <button class="comm-tab ${_commTab==='leaderboard'?'active':''}" onclick="_commTab='leaderboard';renderCommunity()">🏆 Classement</button>
+      <button class="comm-tab ${_commTab==='cards'?'active':''}" onclick="_commTab='cards';renderCommunity()">👤 Profils</button>
+      <button class="comm-tab ${_commTab==='myprofil'?'active':''}" onclick="_commTab='myprofil';renderCommunity()">⚙ Mon Profil</button>
+    </div>
+  </div>
+
+  <!-- Bannière opt-in -->
+  <div class="comm-opt-banner" id="comm-opt-banner" style="${_commOptIn?'display:none':''}">
+    <div style="font-size:32px">🌐</div>
+    <div class="comm-opt-text" style="flex:1">
+      <h3>Rejoins la communauté</h3>
+      <p>Publie tes stats anonymisées pour apparaître dans le classement.<br>Tu gardes le contrôle — tu peux te retirer à tout moment.</p>
+    </div>
+    <button class="btn btn-green" onclick="toggleOptIn(true)">Rejoindre</button>
+  </div>
+
+  ${_commTab==='leaderboard'?renderLeaderboardHTML():_commTab==='cards'?renderProfileCardsHTML():renderMyProfilHTML()}
+  `;
+  // Charger les données après le rendu
+  if(_commTab==='leaderboard') loadLeaderboard();
+  if(_commTab==='cards') loadProfileCards();
+}
+
+function renderLeaderboardHTML(){
+  return `
+  <div class="comm-filters">
+    <span style="font-size:10px;color:var(--text3);letter-spacing:1px">TRIER PAR</span>
+    <button class="sort-btn ${_commSort==='total_r'?'active':''}" onclick="_commSort='total_r';loadLeaderboard()">Total R</button>
+    <button class="sort-btn ${_commSort==='win_rate'?'active':''}" onclick="_commSort='win_rate';loadLeaderboard()">Win Rate</button>
+    <button class="sort-btn ${_commSort==='profit_factor'?'active':''}" onclick="_commSort='profit_factor';loadLeaderboard()">Profit Factor</button>
+    <button class="sort-btn ${_commSort==='trade_count'?'active':''}" onclick="_commSort='trade_count';loadLeaderboard()">Nb Trades</button>
+    <span id="comm-count" style="margin-left:auto;font-size:10px;color:var(--text3)"></span>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="lb-head">
+      <span>#</span><span>Trader</span>
+      <span>Win Rate</span><span>Profit Factor</span>
+      <span>Total R</span><span>Trades</span>
+      <span>Top Setup</span>
+    </div>
+    <div id="lb-body">
+      <div style="padding:40px;text-align:center;color:var(--text3)">
+        <div style="font-size:24px;margin-bottom:8px">⏳</div>Chargement...
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderProfileCardsHTML(){
+  return `
+  <div id="comm-cards-container">
+    <div style="padding:40px;text-align:center;color:var(--text3)">
+      <div style="font-size:24px;margin-bottom:8px">⏳</div>Chargement...
+    </div>
+  </div>`;
+}
+
+function renderMyProfilHTML(){
+  return `
+  <div style="max-width:600px">
+    <div class="card mb10">
+      <div class="card-lbl mb10">MON PROFIL COMMUNAUTÉ</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="form-group">
+          <div class="flbl">Pseudo public</div>
+          <input class="finp" id="comm-pseudo" placeholder="ex: TradingZone_Erwann" maxlength="30">
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg3);border-radius:var(--r2);border:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600">Apparaître dans le classement</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Tes stats (win rate, total R, profit factor) seront visibles</div>
+          </div>
+          <div id="opt-toggle" class="opt-in-toggle" onclick="toggleOptIn(!_commOptIn)" style="border:none;padding:0;background:none">
+            <div class="toggle-switch ${_commOptIn?'on':'off'}" id="toggle-sw">
+              <div class="toggle-knob"></div>
+            </div>
+            <span style="font-size:12px;color:${_commOptIn?'var(--green)':'var(--text3)'}" id="toggle-lbl">${_commOptIn?'Activé':'Désactivé'}</span>
+          </div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--r2);padding:14px;border:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--text3);letter-spacing:1px;margin-bottom:10px">MES STATS PUBLIÉES</div>
+          <div id="my-stats-preview" style="font-size:12px;color:var(--text2)">Calcul en cours...</div>
+        </div>
+        <button class="btn btn-green" onclick="saveMyProfil()" style="width:100%">💾 Sauvegarder mon profil</button>
+      </div>
+    </div>
+    <div class="card" style="font-size:11px;color:var(--text3);line-height:1.7;padding:14px 16px">
+      🔒 <strong style="color:var(--text2)">Confidentialité</strong> — Seuls le pseudo, win rate, profit factor, total R, nombre de trades et ton meilleur scénario sont partagés. Aucune donnée sensible (challenges, PnL en $, comptes) n'est visible.
+    </div>
+  </div>`;
+}
+
+async function loadLeaderboard(){
+  const el=document.getElementById('lb-body'); if(!el) return;
+  try{
+    const data=await DB.getCommunityLeaderboard();
+    const countEl=document.getElementById('comm-count');
+    if(countEl) countEl.textContent=`${data.length} trader(s) classé(s)`;
+
+    if(!data.length){
+      el.innerHTML=`<div class="comm-empty"><div class="icon">🌐</div><p>Aucun trader dans le classement pour l'instant.<br>Sois le premier à rejoindre la communauté !</p></div>`;
+      return;
+    }
+
+    // Trier
+    data.sort((a,b)=>{
+      if(_commSort==='win_rate') return (b.win_rate||0)-(a.win_rate||0);
+      if(_commSort==='profit_factor') return (b.profit_factor||0)-(a.profit_factor||0);
+      if(_commSort==='trade_count') return (b.trade_count||0)-(a.trade_count||0);
+      return (b.total_r||0)-(a.total_r||0);
+    });
+
+    // Récupérer le user actuel pour highlight
+    const me=await Auth.getUser();
+
+    const rows=data.map((row,i)=>{
+      const rank=i+1;
+      const rankClass=rank===1?'top1':rank===2?'top2':rank===3?'top3':'';
+      const rankBadgeClass=rank===1?'rank-gold':rank===2?'rank-silver':rank===3?'rank-bronze':'rank-default';
+      const rankIcon=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
+      const wr=row.win_rate!=null?(row.win_rate*100).toFixed(1)+'%':'—';
+      const pf=row.profit_factor!=null?parseFloat(row.profit_factor).toFixed(2):'—';
+      const tr=row.total_r!=null?(row.total_r>=0?'+':'')+parseFloat(row.total_r).toFixed(1)+'R':'—';
+      const tc=row.trade_count||0;
+      const setup=row.best_scenario||'—';
+      const pseudo=row.pseudo||'Trader#'+String(row.user_id||'').slice(-4);
+      const isMe=me&&row.user_id===me.id;
+      // Avatar couleur basée sur le pseudo
+      const colors=['#00cc6a','#00c8ff','#a855f7','#f59e0b','#ff3b5c','#00b4d8'];
+      const avatarColor=colors[pseudo.charCodeAt(0)%colors.length];
+      const initial=pseudo.charAt(0).toUpperCase();
+      const wrColor=row.win_rate>=0.5?'var(--green)':'var(--red)';
+      const trColor=(row.total_r||0)>=0?'var(--green)':'var(--red)';
+      return `<div class="lb-row ${rankClass} ${isMe?'me':''}">
+        <div><div class="rank-badge ${rankBadgeClass}">${rankIcon}</div></div>
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <div class="comm-avatar" style="background:${avatarColor}22;color:${avatarColor};border:1px solid ${avatarColor}44">${initial}</div>
+          <div style="min-width:0">
+            <div class="comm-pseudo">${pseudo}${isMe?' <span style="font-size:9px;background:var(--green2);color:var(--green);padding:1px 6px;border-radius:10px">Moi</span>':''}</div>
+            <div class="comm-sub">${tc} trades</div>
+          </div>
+        </div>
+        <div><span class="stat-pill ${row.win_rate>=0.5?'pill-green':'pill-red'}">${wr}</span></div>
+        <div><span class="stat-pill pill-cyan">${pf}</span></div>
+        <div><span style="font-weight:700;font-family:var(--mono);color:${trColor}">${tr}</span></div>
+        <div><span style="font-family:var(--mono);font-size:11px">${tc}</span></div>
+        <div><span style="font-size:10px;color:${setup.includes('Abs')?'var(--abs)':'var(--exh)'}">${setup}</span></div>
+      </div>`;
+    }).join('');
+    el.innerHTML=rows;
+  }catch(err){
+    el.innerHTML=`<div style="padding:20px;color:var(--red);font-size:12px">Erreur chargement: ${err.message}</div>`;
+  }
+}
+
+async function loadProfileCards(){
+  const el=document.getElementById('comm-cards-container'); if(!el) return;
+  try{
+    const data=await DB.getCommunityLeaderboard();
+    if(!data.length){
+      el.innerHTML=`<div class="comm-empty"><div class="icon">🌐</div><p>Aucun profil dans la communauté.</p></div>`;
+      return;
+    }
+    const me=await Auth.getUser();
+    const cards=data.map(row=>{
+      const pseudo=row.pseudo||'Trader#'+String(row.user_id||'').slice(-4);
+      const isMe=me&&row.user_id===me.id;
+      const wr=row.win_rate!=null?(row.win_rate*100).toFixed(1)+'%':'—';
+      const pf=row.profit_factor!=null?parseFloat(row.profit_factor).toFixed(2):'—';
+      const tr=row.total_r!=null?(row.total_r>=0?'+':'')+parseFloat(row.total_r).toFixed(1)+'R':'—';
+      const colors=['#00cc6a','#00c8ff','#a855f7','#f59e0b','#ff3b5c','#00b4d8'];
+      const avatarColor=colors[pseudo.charCodeAt(0)%colors.length];
+      const updatedStr=row.updated_at?new Date(row.updated_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'—';
+      return `<div class="comm-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div class="comm-avatar" style="width:40px;height:40px;border-radius:12px;font-size:16px;background:${avatarColor}22;color:${avatarColor};border:1px solid ${avatarColor}44">${pseudo.charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-size:14px;font-weight:700">${pseudo}${isMe?' <span style="font-size:9px;background:var(--green2);color:var(--green);padding:1px 6px;border-radius:10px">Moi</span>':''}</div>
+            <div style="font-size:10px;color:var(--text3)">Mis à jour le ${updatedStr}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:8px;color:var(--text3);margin-bottom:3px">WIN RATE</div>
+            <div style="font-size:14px;font-weight:700;font-family:var(--mono);color:${(row.win_rate||0)>=0.5?'var(--green)':'var(--red)'}">${wr}</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:8px;color:var(--text3);margin-bottom:3px">TOTAL R</div>
+            <div style="font-size:14px;font-weight:700;font-family:var(--mono);color:${(row.total_r||0)>=0?'var(--green)':'var(--red)'}">${tr}</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:8px;color:var(--text3);margin-bottom:3px">PF</div>
+            <div style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--cyan)">${pf}</div>
+          </div>
+        </div>
+        ${row.best_scenario?`<div style="margin-top:8px;font-size:10px;color:var(--text3)">Top setup: <span style="color:${row.best_scenario.includes('Abs')?'var(--abs)':'var(--exh)'};font-weight:600">${row.best_scenario}</span></div>`:''}
+      </div>`;
+    }).join('');
+    el.innerHTML=`<div class="comm-grid">${cards}</div>`;
+  }catch(err){
+    el.innerHTML=`<div style="color:var(--red);font-size:12px;padding:16px">Erreur: ${err.message}</div>`;
+  }
+}
+
+async function toggleOptIn(val){
+  _commOptIn=val;
+  const sw=document.getElementById('toggle-sw');
+  const lbl=document.getElementById('toggle-lbl');
+  const banner=document.getElementById('comm-opt-banner');
+  if(sw) sw.className=`toggle-switch ${val?'on':'off'}`;
+  if(lbl){lbl.textContent=val?'Activé':'Désactivé';lbl.style.color=val?'var(--green)':'var(--text3)';}
+  if(banner) banner.style.display=val?'none':'';
+  if(!val){
+    // Désactiver dans Supabase
+    try{
+      const user=await Auth.getUser();
+      if(user) await _sb.from('community_stats').upsert({user_id:user.id,opt_in:false,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+    }catch(e){}
+    notif('Retiré du classement');
+  }
+}
+
+async function saveMyProfil(){
+  const pseudo=document.getElementById('comm-pseudo')?.value.trim();
+  if(!pseudo){notif('Entre un pseudo','err');return;}
+  if(pseudo.length<3){notif('Pseudo trop court (min 3 caractères)','err');return;}
+  try{
+    // Calculer les stats depuis les trades locaux
+    const stats=calcStats(S.trades);
+    const sMap={};
+    S.trades.forEach(t=>{if(t.scenario){if(!sMap[t.scenario])sMap[t.scenario]={w:0,tot:0};sMap[t.scenario].tot++;if(t.result==='WIN')sMap[t.scenario].w++;}});
+    const bestScen=Object.entries(sMap).sort((a,b)=>(b[1].w/b[1].tot)-(a[1].w/a[1].tot))[0]?.[0]||null;
+    await DB.publishCommunityStats({
+      pseudo,
+      win_rate:stats?stats.wr:0,
+      profit_factor:stats&&isFinite(stats.pf)?stats.pf:0,
+      total_r:stats?stats.totalR:0,
+      trade_count:S.trades.length,
+      best_scenario:bestScen,
+    });
+    _commOptIn=true;
+    notif('Profil publié ✓ — Tu apparais dans le classement');
+    renderCommunity();
+  }catch(err){notif('Erreur: '+err.message,'err');}
+}
+
+// Aperçu stats sur mon profil
+async function loadMyStatsPreview(){
+  const el=document.getElementById('my-stats-preview'); if(!el) return;
+  const stats=calcStats(S.trades);
+  const pseudo=document.getElementById('comm-pseudo');
+  // Charger le pseudo existant
+  try{
+    const user=await Auth.getUser();
+    if(user){
+      const {data}=await _sb.from('community_stats').select('pseudo').eq('user_id',user.id).single();
+      if(data?.pseudo&&pseudo) pseudo.value=data.pseudo;
+    }
+  }catch(e){}
+  if(!stats){el.innerHTML='<span style="color:var(--text3)">Aucun trade enregistré</span>';return;}
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div>Win Rate : <strong style="color:${stats.wr>=0.5?'var(--green)':'var(--red)'}">${(stats.wr*100).toFixed(1)}%</strong></div>
+      <div>Total R : <strong style="color:${stats.totalR>=0?'var(--green)':'var(--red)'}">${stats.totalR>=0?'+':''}${stats.totalR.toFixed(1)}R</strong></div>
+      <div>Profit Factor : <strong style="color:var(--cyan)">${isFinite(stats.pf)?stats.pf.toFixed(2):'∞'}</strong></div>
+      <div>Trades : <strong>${S.trades.length}</strong></div>
+    </div>`;
+}
+
+// Appeler loadMyStatsPreview quand on arrive sur l'onglet Mon Profil
+const _origRenderCommunity=renderCommunity;
+
+document.addEventListener('DOMContentLoaded', async ()=>{
+  Auth.onChange(async (user)=>{
+    if(user){await loadS();initAllCustomSelects();initAllDatePickers();go('dashboard');tickClock();updateAuthBtn(user);}
+    else{initAllCustomSelects();initAllDatePickers();go('dashboard');tickClock();setTimeout(()=>showAuthModal(),500);}
+  });
 });
 </script>
 </body>
