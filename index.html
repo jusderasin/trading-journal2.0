@@ -6829,14 +6829,15 @@ async function loadMyStats(){
 // ══════════════════════════════════════════════════════
 
 const THEMES = [
-  {id:'green',  name:'Green',  accent:'#00cc6a', glow:'rgba(0,204,106,.3)'},
-  {id:'cyan',   name:'Cyan',   accent:'#00c8ff', glow:'rgba(0,200,255,.3)'},
-  {id:'purple', name:'Purple', accent:'#a855f7', glow:'rgba(168,85,247,.3)'},
-  {id:'orange', name:'Orange', accent:'#f59e0b', glow:'rgba(245,158,11,.3)'},
-  {id:'red',    name:'Red',    accent:'#ff3b5c', glow:'rgba(255,59,92,.3)'},
-  {id:'blue',   name:'Blue',   accent:'#3b82f6', glow:'rgba(59,130,246,.3)'},
-  {id:'gold',   name:'Gold',   accent:'#ffd700', glow:'rgba(255,215,0,.3)'},
-  {id:'pink',   name:'Pink',   accent:'#ec4899', glow:'rgba(236,72,153,.3)'},
+  {id:'green',   name:'Green',   accent:'#00cc6a', glow:'rgba(0,204,106,.3)'},
+  {id:'topstep', name:'TopStep', accent:'#a3e635', glow:'rgba(163,230,53,.3)', bg:'#050d1a', bg1:'#071224', bg2:'#0a1a30', bg3:'#0d2040', border:'#112a4a', border2:'#1a3a60'},
+  {id:'cyan',    name:'Cyan',    accent:'#00c8ff', glow:'rgba(0,200,255,.3)'},
+  {id:'purple',  name:'Purple',  accent:'#a855f7', glow:'rgba(168,85,247,.3)'},
+  {id:'orange',  name:'Orange',  accent:'#f59e0b', glow:'rgba(245,158,11,.3)'},
+  {id:'red',     name:'Red',     accent:'#ff3b5c', glow:'rgba(255,59,92,.3)'},
+  {id:'blue',    name:'Blue',    accent:'#3b82f6', glow:'rgba(59,130,246,.3)'},
+  {id:'gold',    name:'Gold',    accent:'#ffd700', glow:'rgba(255,215,0,.3)'},
+  {id:'pink',    name:'Pink',    accent:'#ec4899', glow:'rgba(236,72,153,.3)'},
 ];
 
 const SWATCH_COLORS = [
@@ -6976,11 +6977,24 @@ function applyTheme(id) {
   root.style.setProperty('--green', t.accent);
   root.style.setProperty('--green2', t.accent + '1e');
   root.style.setProperty('--green3', t.accent + '0d');
+  // Fond spécial (ex TopStep = bleu marine)
+  if (t.bg) {
+    root.style.setProperty('--bg', t.bg);
+    root.style.setProperty('--bg1', t.bg1);
+    root.style.setProperty('--bg2', t.bg2);
+    root.style.setProperty('--bg3', t.bg3);
+    root.style.setProperty('--border', t.border);
+    root.style.setProperty('--border2', t.border2);
+    document.body.style.background = t.bg;
+  } else {
+    // Réinitialiser le fond par défaut
+    const defaults = {'--bg':'#04040a','--bg1':'#0a0c14','--bg2':'#0f1219','--bg3':'#141820','--border':'#1a1f2e','--border2':'#232a3a'};
+    Object.entries(defaults).forEach(([k,v]) => root.style.setProperty(k,v));
+    document.body.style.background = '#04040a';
+  }
   // Logo
   const logo = document.querySelector('.logo');
   if (logo) { logo.style.borderColor = t.accent; logo.style.color = t.accent; }
-  // Nav active color via CSS var
-  document.querySelectorAll('.nav-btn.active').forEach(b => b.style.color = t.accent);
   S.theme = id;
   saveS();
   DB.saveProfile({ theme: id }).catch(() => {});
