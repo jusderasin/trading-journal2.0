@@ -1,0 +1,41 @@
+{
+  "name": "TradingZone — Journal de Trading",
+  "short_name": "TradingZone",
+  "description": "Le journal de trading ultime pour traders prop firm",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070b14",
+  "theme_color": "#00d4a0",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23070b14'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='110'%3E📊%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23070b14'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='300'%3E📊%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity", "utilities"],
+  "lang": "fr",
+  "dir": "ltr",
+  "shortcuts": [
+    {
+      "name": "Nouveau Trade",
+      "short_name": "+ Trade",
+      "description": "Ajouter un trade rapidement",
+      "url": "/?action=new-trade"
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Stats",
+      "description": "Voir le dashboard",
+      "url": "/?page=dashboard"
+    }
+  ]
+}
