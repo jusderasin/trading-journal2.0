@@ -3602,25 +3602,7 @@ function editTrade(id){
   },150);
 }
 
-function deleteTrade(id){
-  const trade=S.trades.find(t=>t.id===id);
-  S.trades=S.trades.filter(t=>t.id!==id);
-  saveS();
-  autoCheckAccounts();
-  notif('Trade supprimé' + (trade&&trade.challenge?' — '+trade.challenge:''));
-  // Re-render current page
-  renderAll();
-  // Silently update challenges/funded DOM in background
-  // so stats are fresh when user navigates there
-  if(currentPage!=='challenges'){
-    const el=document.getElementById('challenges-list');
-    if(el) renderChallengesInto(el);
-  }
-  if(currentPage!=='funded'){
-    const el=document.getElementById('funded-list');
-    if(el) renderFundedInto(el);
-  }
-}
+
 
 // ══════════════════════════════════════════════════════
 //  CHALLENGES
@@ -5885,116 +5867,11 @@ function setBTDir(d){
 // ══════════════════════════════════════════════════════
 //  SAVE FUNCTIONS
 // ══════════════════════════════════════════════════════
-function saveTrade(){
-  const scenario=document.getElementById('tf-scenario').value;
-  const account=document.getElementById('tf-account').value;
-  const rr=parseFloat(document.getElementById('tf-rr').value)||(_tRes==='LOSS'?1:0);
-  if(!scenario){notif('Scénario requis','err');return;}
-  const tradeData={
-    date:document.getElementById('tf-date').value,
-    scenario,direction:_tDir,result:_tRes,
-    rr,
-    oneR:parseFloat(document.getElementById('tf-1r').value)||0,
-    entry:document.getElementById('tf-entry').value,
-    zone:document.getElementById('tf-zone').value,
-    quality:parseInt(document.getElementById('tf-quality').value),
-    emotions:[..._tEmos],
-    notes:document.getElementById('tf-notes').value,
-    isError:document.getElementById('tf-is-error')?.value==='1',
-  };
 
-  // Mode Fonds Propre
-  if(window._personalMode){
-    window._personalMode=false;
-    if(!S.personalTrades) S.personalTrades=[];
-    S.personalTrades.unshift({id:Date.now(),...tradeData});
-    saveS();
-    closeModal('modal-trade');
-    // Remettre le titre et le compte
-    const titleEl=document.querySelector('#modal-trade .modal-title');
-    if(titleEl) titleEl.childNodes[0].textContent='Nouveau Trade ';
-    const accWrap=document.getElementById('tf-account')?.closest('.form-group');
-    if(accWrap) accWrap.style.display='';
-    notif('Trade Fonds Propre enregistré ✓');
-    renderPersonal();
-    return;
-  }
 
-  tradeData.challenge=account;
-  if(_editTradeId){
-    // Mode modification
-    const idx=S.trades.findIndex(t=>t.id===_editTradeId);
-    if(idx!==-1) S.trades[idx]={...S.trades[idx],...tradeData};
-    _editTradeId=null;
-    notif('Trade mis à jour ✓');
-  } else {
-    // Nouveau trade
-    S.trades.push({id:Date.now(),...tradeData});
-    if(account) S.lastAccount=account;
-    notif('Trade enregistré · '+(_tRes==='WIN'?'+'+rr.toFixed(2)+'R':_tRes==='LOSS'?'-1R':'0R'));
-  }
-  saveS();
-  closeModal('modal-trade');
-  autoCheckAccounts();
-  renderAll();
-}
 
-function saveChallenge(){
-  const name=document.getElementById('ch-name').value.trim();
-  if(!name){notif('Nom requis','err');return;}
-  if(S.challenges.find(c=>c.name===name)){notif('Nom déjà existant','err');return;}
-  const cost=document.getElementById('ch-cost').value||'0';
-  S.challenges.push({
-    id:'ch_'+Date.now(),name,
-    broker:document.getElementById('ch-broker').value,
-    capital:document.getElementById('ch-capital').value||'50000',
-    cost,
-    target:document.getElementById('ch-target').value||'6',
-    ddmax:document.getElementById('ch-ddmax').value||'4',
-    dll:document.getElementById('ch-dll').value||'0',
-    oneR:document.getElementById('ch-1r').value||'200',
-    mindays:document.getElementById('ch-mindays').value||'0',
-    start:document.getElementById('ch-start').value,
-    ddtype:document.getElementById('ch-ddtype').value,
-    cons:document.getElementById('ch-cons').value,
-    consPct:document.getElementById('ch-cons-pct').value||'',
-    status:'active',
-  });
-  // Auto-ajouter le coût dans les dépenses
-  if(parseFloat(cost)>0){
-    S.expenses.push({
-      id:Date.now(),
-      name:`Challenge — ${name}`,
-      amount:parseFloat(cost),
-      cat:'Challenge',
-      date:localDate(),
-      isGain:false
-    });
-  }
-  saveS();closeModal('modal-challenge');notif('Challenge créé ✓');renderChallenges();
-}
 
-function saveFunded(){
-  const name=document.getElementById('fu-name').value.trim();
-  if(!name){notif('Nom requis','err');return;}
-  S.funded.push({
-    id:'fu_'+Date.now(),name,
-    broker:document.getElementById('fu-broker').value,
-    capital:document.getElementById('fu-capital').value||'50000',
-    ddMaxAmt:document.getElementById('fu-ddmax-amt').value||'2000',
-    dll:document.getElementById('fu-dll').value||'0',
-    oneR:document.getElementById('fu-1r').value||'200',
-    payout:document.getElementById('fu-payout').value||'0',
-    minpnl:document.getElementById('fu-minpnl').value||'0',
-    mindays:document.getElementById('fu-mindays').value||'0',
-    ddtype:document.getElementById('fu-ddtype').value,
-    cons:document.getElementById('fu-cons').value,
-    consPct:document.getElementById('fu-cons-pct').value||'',
-    payoutsReceived:[], // historique des payouts reçus
-    status:'active',
-  });
-  saveS();closeModal('modal-funded');notif('Compte Funded créé ✓');renderFunded();
-}
+
 
 function saveExpense(){
   const name=document.getElementById('exp-name').value.trim();
@@ -6027,34 +5904,7 @@ function saveBTSession(){
   showBTDetail(sess.id);
 }
 
-function saveBTTrade(){
-  if(!btDetailSession){notif('Aucune session active','err');return;}
-  const scenario=document.getElementById('btt-scenario').value;
-  if(!scenario){notif('Scénario requis','err');return;}
-  const rrRaw=parseFloat(document.getElementById('btt-rr').value);
-  const rr=isNaN(rrRaw)?(_btRes==='WIN'?2:_btRes==='LOSS'?1:0):rrRaw;
-  const quality=document.getElementById('btt-quality').value||'5';
-  const tradeData={
-    sessionId:btDetailSession,
-    date:document.getElementById('btt-date').value,
-    time:document.getElementById('btt-time').value,
-    scenario,direction:_btDir,result:_btRes,rr,
-    zone:document.getElementById('btt-zone').value,
-    quality,notes:document.getElementById('btt-notes').value,
-  };
-  if(_editBTTradeId){
-    const idx=S.btTrades.findIndex(t=>t.id===_editBTTradeId);
-    if(idx!==-1) S.btTrades[idx]={...S.btTrades[idx],...tradeData};
-    notif('Trade BT mis à jour ✓');
-    const sid=_editBTSessId;
-    _editBTTradeId=null;_editBTSessId=null;
-    saveS();closeModal('modal-bttrade');showBTDetail(sid);
-  } else {
-    S.btTrades.push({id:Date.now(),...tradeData});
-    saveS();closeModal('modal-bttrade');notif('Trade BT enregistré');
-    showBTDetail(btDetailSession);
-  }
-}
+
 
 // ══════════════════════════════════════════════════════
 //  FILTER DROPDOWNS
