@@ -596,26 +596,6 @@ input[type="number"]{-moz-appearance:textfield;}
 .comm-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;transition:all var(--trans);}
 .comm-card:hover{border-color:var(--border2);transform:translateY(-1px);}
 
-
-/* ─── SETTINGS ─── */
-.set-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;margin-bottom:14px;}
-.set-title{font-size:13px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.set-title svg{width:16px;height:16px;color:var(--green);}
-.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:8px;}
-.theme-btn{border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;border:2px solid var(--border);transition:all var(--trans);background:var(--bg3);}
-.theme-btn:hover{border-color:var(--border3);}
-.theme-btn.active{border-color:var(--accent, var(--green));}
-.theme-dot{width:28px;height:28px;border-radius:50%;margin:0 auto 8px;}
-.theme-name{font-size:10px;font-weight:600;letter-spacing:.5px;}
-.scen-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);margin-bottom:6px;transition:all var(--trans);}
-.scen-item:hover{border-color:var(--border2);}
-.scen-dot-pick{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid rgba(255,255,255,.2);flex-shrink:0;}
-.scen-name-inp{flex:1;background:transparent;border:none;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;}
-.scen-cat-inp{width:110px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:10px;font-family:var(--mono);outline:none;border-radius:6px;padding:3px 8px;}
-.color-picker-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
-.color-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all var(--trans);}
-.color-swatch:hover,.color-swatch.sel{border-color:#fff;transform:scale(1.15);}
-
 /* ─── RESPONSIVE FIXES ─── */
 @media(max-width:1200px){
   .g4{grid-template-columns:1fr 1fr;}
@@ -1351,9 +1331,7 @@ input[type="number"]{-moz-appearance:textfield;}
         <div id="personal-content"></div>
       </div>
 
-    <div class="page" id="page-settings">
-      <div id="settings-content"></div>
-    </div>
+    <div class="page" id="page-settings"><div id="settings-content"></div></div>
     <div class="page" id="page-community">
       <div id="community-content"></div>
     </div>
@@ -2426,7 +2404,7 @@ const PAGE_META={
   analyse:{title:'Analyse Avancée',sub:'Vue globale · Tous comptes',btn:null,bfn:null},
   backtest:{title:'Backtesting Lab',sub:'Construis ton edge statistique',btn:'+ Session',bfn:'openBTSessionModal'},
   community:{title:'Communauté 🌐',sub:'Classement global · Traders actifs',btn:null,bfn:null},
-  settings:{title:'Paramètres ⚙',sub:'Scénarios · Thèmes · Préférences',btn:null,bfn:null},
+  settings:{title:'Paramètres',sub:'Scénarios · Thèmes · Compte',btn:null,bfn:null},
 };
 let currentPage='dashboard';
 function go(p){
@@ -6848,139 +6826,200 @@ async function loadMyStats(){
   el.innerHTML=h;
 }
 
-
 // ══════════════════════════════════════════════════════
-//  SETTINGS — Scenarios custom + Themes
+//  SETTINGS — Thèmes puissants + Scénarios custom
 // ══════════════════════════════════════════════════════
 
+// Thèmes: changent VRAIMENT toutes les couleurs de l'interface
 const THEMES = [
-  {id:'green',  name:'Green',   accent:'#00cc6a', bg:'#04040a', bg2:'#0f1219'},
-  {id:'cyan',   name:'Cyan',    accent:'#00c8ff', bg:'#04040a', bg2:'#0a1219'},
-  {id:'purple', name:'Purple',  accent:'#a855f7', bg:'#06040a', bg2:'#100f19'},
-  {id:'orange', name:'Orange',  accent:'#f59e0b', bg:'#0a0604', bg2:'#19110a'},
-  {id:'red',    name:'Red',     accent:'#ff3b5c', bg:'#0a0404', bg2:'#190a0a'},
-  {id:'blue',   name:'Blue',    accent:'#3b82f6', bg:'#04060a', bg2:'#0a0f19'},
-  {id:'white',  name:'Blanc',   accent:'#e8edf5', bg:'#04040a', bg2:'#0f1219'},
-  {id:'gold',   name:'Gold',    accent:'#ffd700', bg:'#06050a', bg2:'#15120a'},
+  {id:'green',  name:'Green',   accent:'#00cc6a', glow:'rgba(0,204,106,.25)',
+   vars:{'--green':'#00cc6a','--green2':'rgba(0,204,106,0.12)','--green3':'rgba(0,204,106,0.06)','--abs':'#00b4d8','--exh':'#f59e0b'}},
+  {id:'cyan',   name:'Cyan',    accent:'#00c8ff', glow:'rgba(0,200,255,.25)',
+   vars:{'--green':'#00c8ff','--green2':'rgba(0,200,255,0.12)','--green3':'rgba(0,200,255,0.06)','--abs':'#00c8ff','--exh':'#f59e0b'}},
+  {id:'purple', name:'Purple',  accent:'#a855f7', glow:'rgba(168,85,247,.25)',
+   vars:{'--green':'#a855f7','--green2':'rgba(168,85,247,0.12)','--green3':'rgba(168,85,247,0.06)','--abs':'#00b4d8','--exh':'#f59e0b'}},
+  {id:'orange', name:'Orange',  accent:'#f59e0b', glow:'rgba(245,158,11,.25)',
+   vars:{'--green':'#f59e0b','--green2':'rgba(245,158,11,0.12)','--green3':'rgba(245,158,11,0.06)','--abs':'#00b4d8','--exh':'#f59e0b'}},
+  {id:'red',    name:'Red',     accent:'#ff3b5c', glow:'rgba(255,59,92,.25)',
+   vars:{'--green':'#ff3b5c','--green2':'rgba(255,59,92,0.12)','--green3':'rgba(255,59,92,0.06)','--abs':'#00b4d8','--exh':'#f59e0b'}},
+  {id:'blue',   name:'Blue',    accent:'#3b82f6', glow:'rgba(59,130,246,.25)',
+   vars:{'--green':'#3b82f6','--green2':'rgba(59,130,246,0.12)','--green3':'rgba(59,130,246,0.06)','--abs':'#00b4d8','--exh':'#f59e0b'}},
+  {id:'gold',   name:'Gold',    accent:'#ffd700', glow:'rgba(255,215,0,.25)',
+   vars:{'--green':'#ffd700','--green2':'rgba(255,215,0,0.12)','--green3':'rgba(255,215,0,0.06)','--abs':'#00b4d8','--exh':'#f59e0b'}},
+  {id:'pink',   name:'Pink',    accent:'#ec4899', glow:'rgba(236,72,153,.25)',
+   vars:{'--green':'#ec4899','--green2':'rgba(236,72,153,0.12)','--green3':'rgba(236,72,153,0.06)','--abs':'#00b4d8','--exh':'#f59e0b'}},
 ];
 
 const SWATCH_COLORS = [
   '#00cc6a','#00c8ff','#a855f7','#f59e0b','#ff3b5c','#3b82f6',
-  '#ffd700','#e8edf5','#ff8c00','#00b4d8','#84cc16','#ec4899',
+  '#ffd700','#ec4899','#ff8c00','#00b4d8','#84cc16','#e8edf5',
 ];
 
-let _currentTheme = S.theme || 'green';
-let _customScenarios = []; // chargés depuis Supabase
+// Scénarios par défaut (peuvent être supprimés par l'user)
+const DEFAULT_SCENARIOS = [
+  {id:'def_abs1', name:'Absorption DT1',  category:'ABSORPTION', color:'#00b4d8', isDefault:true},
+  {id:'def_abs2', name:'Absorption DT2',  category:'ABSORPTION', color:'#00b4d8', isDefault:true},
+  {id:'def_abs12',name:'Absorption DT12', category:'ABSORPTION', color:'#00b4d8', isDefault:true},
+  {id:'def_exh1', name:'Exhaustion DT1',  category:'EXHAUSTION', color:'#f59e0b', isDefault:true},
+  {id:'def_exh2', name:'Exhaustion DT2',  category:'EXHAUSTION', color:'#f59e0b', isDefault:true},
+  {id:'def_exh12',name:'Exhaustion DT12', category:'EXHAUSTION', color:'#f59e0b', isDefault:true},
+];
+
+let _currentTheme = 'green';
+let _allScenarios = []; // defaults + custom
+let _hiddenDefaults = []; // IDs de scénarios par défaut cachés
 
 async function renderSettings() {
   const el = document.getElementById('settings-content');
   if (!el) return;
 
-  // Charger les scenarios custom depuis Supabase
+  // Charger depuis Supabase
   try {
     const user = await Auth.getUser();
     if (user) {
       const { data } = await _sb.from('custom_scenarios')
         .select('*').eq('user_id', user.id).order('sort_order');
-      _customScenarios = data || [];
+      _allScenarios = data || [];
+
+      // Charger les préférences (thème + hidden defaults)
+      const { data: prof } = await _sb.from('profiles')
+        .select('theme, theme_custom').eq('id', user.id).single();
+      if (prof) {
+        _currentTheme = prof.theme || 'green';
+        _hiddenDefaults = prof.theme_custom?.hiddenDefaults || [];
+      }
     }
   } catch(e) {}
 
-  let html = '';
+  // Scénarios par défaut visibles = ceux qui ne sont pas cachés
+  const visibleDefaults = DEFAULT_SCENARIOS.filter(s => !_hiddenDefaults.includes(s.id));
+  const t = THEMES.find(x => x.id === _currentTheme) || THEMES[0];
 
-  // ── Section Thèmes ──
-  html += '<div class="set-section">';
-  html += '<div class="set-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>Thème de couleur</div>';
-  html += '<div class="theme-grid" id="theme-grid">';
-  THEMES.forEach(t => {
-    const active = _currentTheme === t.id;
-    html += '<div class="theme-btn' + (active ? ' active' : '') + '" onclick="applyTheme(\'' + t.id + '\')" style="' + (active ? 'border-color:' + t.accent + ';box-shadow:0 0 12px ' + t.accent + '44' : '') + '">';
-    html += '<div class="theme-dot" style="background:' + t.accent + ';box-shadow:0 0 10px ' + t.accent + '66"></div>';
-    html += '<div class="theme-name" style="color:' + (active ? t.accent : 'var(--text2)') + '">' + t.name + '</div>';
-    html += '</div>';
+  let h = '';
+
+  // ══ SECTION THÈME ══
+  h += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px">';
+  h += '<div style="font-size:13px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>';
+  h += 'Thème de couleur</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">';
+  THEMES.forEach(theme => {
+    const active = _currentTheme === theme.id;
+    h += '<div onclick="applyTheme(\'' + theme.id + '\')" style="';
+    h += 'border-radius:14px;padding:18px 12px;text-align:center;cursor:pointer;';
+    h += 'border:2px solid ' + (active ? theme.accent : 'var(--border)') + ';';
+    h += 'background:' + (active ? theme.accent + '15' : 'var(--bg3)') + ';';
+    h += 'transition:all .2s;';
+    h += (active ? 'box-shadow:0 0 20px ' + theme.glow + ';' : '') + '">';
+    h += '<div style="width:36px;height:36px;border-radius:50%;margin:0 auto 10px;';
+    h += 'background:' + theme.accent + ';';
+    h += 'box-shadow:0 0 16px ' + theme.glow + ';"></div>';
+    h += '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:' + (active ? theme.accent : 'var(--text2)') + '">' + theme.name + '</div>';
+    if (active) h += '<div style="font-size:9px;color:' + theme.accent + ';margin-top:4px">ACTIF ✓</div>';
+    h += '</div>';
   });
-  html += '</div>';
-  html += '<div style="margin-top:14px;font-size:11px;color:var(--text3)">Le thème est sauvegardé automatiquement sur ton compte.</div>';
-  html += '</div>';
+  h += '</div>';
+  h += '<div style="margin-top:12px;font-size:11px;color:var(--text3)">Thème sauvegardé automatiquement · Appliqué partout dans l\'interface</div>';
+  h += '</div>';
 
-  // ── Section Scénarios ──
-  html += '<div class="set-section">';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
-  html += '<div class="set-title" style="margin:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Mes Scénarios</div>';
-  html += '<button class="btn btn-green btn-sm" onclick="addCustomScen()">+ Ajouter</button>';
-  html += '</div>';
+  // ══ SECTION SCÉNARIOS ══
+  h += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">';
+  h += '<div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+  h += 'Mes Scénarios</div>';
+  h += '<button class="btn btn-green btn-sm" onclick="addCustomScen()">+ Ajouter scénario</button>';
+  h += '</div>';
 
-  // Scénarios par défaut (lecture seule)
-  html += '<div style="font-size:9px;letter-spacing:1.5px;color:var(--text3);margin-bottom:8px;">SCÉNARIOS PAR DÉFAUT</div>';
-  const defaults = [
-    {name:'Absorption DT1', cat:'ABSORPTION', color:'#00b4d8'},
-    {name:'Absorption DT2', cat:'ABSORPTION', color:'#00b4d8'},
-    {name:'Absorption DT12', cat:'ABSORPTION', color:'#00b4d8'},
-    {name:'Exhaustion DT1', cat:'EXHAUSTION', color:'#f59e0b'},
-    {name:'Exhaustion DT2', cat:'EXHAUSTION', color:'#f59e0b'},
-    {name:'Exhaustion DT12', cat:'EXHAUSTION', color:'#f59e0b'},
-  ];
-  defaults.forEach(s => {
-    html += '<div class="scen-item" style="opacity:.6">';
-    html += '<div class="scen-dot-pick" style="background:' + s.color + ';cursor:default"></div>';
-    html += '<span style="flex:1;font-size:12px;font-family:var(--mono);color:var(--text2)">' + s.name + '</span>';
-    html += '<span style="font-size:9px;background:' + s.color + '22;color:' + s.color + ';padding:2px 8px;border-radius:10px;font-weight:700">' + s.cat + '</span>';
-    html += '<span style="font-size:9px;color:var(--text3)">défaut</span>';
-    html += '</div>';
-  });
+  // Scénarios par défaut VISIBLES
+  if (visibleDefaults.length > 0) {
+    h += '<div style="font-size:9px;letter-spacing:1.5px;color:var(--text3);margin-bottom:8px;padding:0 4px">SCÉNARIOS PAR DÉFAUT</div>';
+    visibleDefaults.forEach(s => {
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);margin-bottom:6px">';
+      h += '<div style="width:18px;height:18px;border-radius:50%;background:' + s.color + ';flex-shrink:0"></div>';
+      h += '<span style="flex:1;font-size:12px;font-family:var(--mono);color:var(--text)">' + s.name + '</span>';
+      h += '<span style="font-size:9px;background:' + s.color + '22;color:' + s.color + ';padding:2px 8px;border-radius:10px;font-weight:700">' + s.category + '</span>';
+      h += '<button onclick="hideDefaultScen(\'' + s.id + '\')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:6px;transition:all .15s" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text3)\'">✕</button>';
+      h += '</div>';
+    });
+  }
 
   // Scénarios custom
-  if (_customScenarios.length) {
-    html += '<div style="font-size:9px;letter-spacing:1.5px;color:var(--text3);margin:14px 0 8px;">MES SCÉNARIOS CUSTOM</div>';
-    _customScenarios.forEach((s, i) => {
-      html += '<div class="scen-item" id="scen-item-' + s.id + '">';
-      html += '<div class="scen-dot-pick" style="background:' + s.color + '" onclick="pickScenColor(\'' + s.id + '\',this)"></div>';
-      html += '<input class="scen-name-inp" value="' + s.name.replace(/'/g, '&#39;') + '" id="scen-name-' + s.id + '" placeholder="Nom du scénario" onblur="saveScenName(\'' + s.id + '\')">';
-      html += '<select class="scen-cat-inp" id="scen-cat-' + s.id + '" onchange="saveScenCat(\'' + s.id + '\')">';
-      ['CUSTOM','ABSORPTION','EXHAUSTION','BREAKOUT','REVERSAL','TREND','RANGE'].forEach(c => {
-        html += '<option value="' + c + '"' + (s.category === c ? ' selected' : '') + '>' + c + '</option>';
+  if (_allScenarios.length > 0) {
+    h += '<div style="font-size:9px;letter-spacing:1.5px;color:var(--text3);margin:' + (visibleDefaults.length ? '16px' : '0') + ' 0 8px;padding:0 4px">MES SCÉNARIOS CUSTOM</div>';
+    _allScenarios.forEach(s => {
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border2);margin-bottom:6px" id="scen-item-' + s.id + '">';
+      h += '<div style="width:18px;height:18px;border-radius:50%;background:' + s.color + ';cursor:pointer;flex-shrink:0;border:2px solid rgba(255,255,255,.2)" onclick="pickScenColor(\'' + s.id + '\',this)" title="Changer la couleur"></div>';
+      h += '<input style="flex:1;background:transparent;border:none;color:var(--text);font-size:12px;font-family:var(--mono);outline:none" value="' + s.name.replace(/"/g, '&quot;') + '" id="scen-name-' + s.id + '" onblur="saveScenName(\'' + s.id + '\')" onkeydown="if(event.key===\'Enter\')this.blur()">';
+      h += '<select style="background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:10px;font-family:var(--mono);border-radius:6px;padding:3px 8px;outline:none" id="scen-cat-' + s.id + '" onchange="saveScenCat(\'' + s.id + '\')">';
+      ['CUSTOM','ABSORPTION','EXHAUSTION','BREAKOUT','REVERSAL','TREND','RANGE','ICT','SMC','AUTRE'].forEach(c => {
+        h += '<option value="' + c + '"' + (s.category === c ? ' selected' : '') + '>' + c + '</option>';
       });
-      html += '</select>';
-      html += '<button onclick="deleteCustomScen(\'' + s.id + '\')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px" title="Supprimer">🗑</button>';
-      html += '</div>';
+      h += '</select>';
+      h += '<button onclick="deleteCustomScen(\'' + s.id + '\')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:6px;transition:all .15s" onmouseover="this.style.color=\'var(--red)\'" onmouseout="this.style.color=\'var(--text3)\'">🗑</button>';
+      h += '</div>';
     });
-  } else {
-    html += '<div style="font-size:12px;color:var(--text3);padding:16px 0">Aucun scénario custom. Clique sur + Ajouter.</div>';
   }
-  html += '</div>';
 
-  // ── Section Preferences ──
-  html += '<div class="set-section">';
-  html += '<div class="set-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Mon Compte</div>';
-  html += '<div style="font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:10px">';
+  if (visibleDefaults.length === 0 && _allScenarios.length === 0) {
+    h += '<div style="font-size:12px;color:var(--text3);padding:20px 0;text-align:center">Tous les scénarios ont été supprimés. Clique sur + Ajouter.</div>';
+  }
+
+  // Scénarios cachés → possibilité de les remettre
+  const hiddenList = DEFAULT_SCENARIOS.filter(s => _hiddenDefaults.includes(s.id));
+  if (hiddenList.length > 0) {
+    h += '<div style="margin-top:14px;padding:12px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid var(--border)">';
+    h += '<div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:8px">SCÉNARIOS MASQUÉS</div>';
+    hiddenList.forEach(s => {
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0">';
+      h += '<div style="width:12px;height:12px;border-radius:50%;background:' + s.color + ';opacity:.4;flex-shrink:0"></div>';
+      h += '<span style="flex:1;font-size:11px;color:var(--text3)">' + s.name + '</span>';
+      h += '<button onclick="restoreDefaultScen(\'' + s.id + '\')" style="font-size:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:2px 8px;border-radius:6px;cursor:pointer">Restaurer</button>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  h += '</div>';
+
+  // ══ SECTION COMPTE ══
+  h += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px">';
+  h += '<div style="font-size:13px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  h += 'Mon Compte</div>';
   try {
     const user = await Auth.getUser();
     if (user) {
-      html += '<div>Email: <strong style="color:var(--text)">' + user.email + '</strong></div>';
-      html += '<div>ID: <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">' + user.id + '</span></div>';
+      h += '<div style="display:flex;flex-direction:column;gap:8px;font-size:12px">';
+      h += '<div style="color:var(--text2)">Email: <strong style="color:var(--text)">' + user.email + '</strong></div>';
+      h += '<div style="color:var(--text3);font-size:10px;font-family:var(--mono)">ID: ' + user.id + '</div>';
+      h += '<div style="margin-top:12px">';
+      h += '<button class="btn btn-sm" onclick="Auth.logout()" style="background:var(--red2);border:1px solid rgba(255,59,92,.3);color:var(--red);display:flex;align-items:center;gap:6px">';
+      h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
+      h += 'Se déconnecter</button>';
+      h += '</div></div>';
     }
-  } catch(e) {}
-  html += '<div style="display:flex;gap:8px;margin-top:8px">';
-  html += '<button class="btn btn-outline btn-sm" onclick="Auth.logout()" style="color:var(--red);border-color:rgba(255,59,92,.3)">Se déconnecter</button>';
-  html += '</div></div></div>';
+  } catch(e) {
+    h += '<div style="color:var(--text3);font-size:12px">Non connecté</div>';
+  }
+  h += '</div>';
 
-  el.innerHTML = html;
+  el.innerHTML = h;
 }
 
 function applyTheme(id) {
   const t = THEMES.find(x => x.id === id);
   if (!t) return;
   _currentTheme = id;
-  // Appliquer les variables CSS
   const root = document.documentElement;
-  root.style.setProperty('--green', t.accent);
-  root.style.setProperty('--green2', t.accent + '22');
-  root.style.setProperty('--green3', t.accent + '11');
-  // Sauvegarder
+  Object.entries(t.vars).forEach(([k, v]) => root.style.setProperty(k, v));
+  // Mettre à jour aussi le logo couleur
+  const logo = document.querySelector('.logo');
+  if (logo) { logo.style.borderColor = t.accent; logo.style.color = t.accent; }
   S.theme = id;
   saveS();
-  DB.saveProfile({ theme: id }).catch(e => {});
-  notif('Thème ' + t.name + ' appliqué ✓');
+  DB.saveProfile({ theme: id }).catch(() => {});
+  notif('Thème ' + t.name + ' appliqué');
   renderSettings();
 }
 
@@ -6989,26 +7028,50 @@ function loadSavedTheme() {
   if (tid !== 'green') applyTheme(tid);
 }
 
+async function hideDefaultScen(id) {
+  _hiddenDefaults = [...new Set([..._hiddenDefaults, id])];
+  await saveScenariosPrefs();
+  rebuildScenarios();
+  renderSettings();
+  notif('Scénario masqué');
+}
+
+async function restoreDefaultScen(id) {
+  _hiddenDefaults = _hiddenDefaults.filter(x => x !== id);
+  await saveScenariosPrefs();
+  rebuildScenarios();
+  renderSettings();
+  notif('Scénario restauré');
+}
+
+async function saveScenariosPrefs() {
+  try {
+    await DB.saveProfile({
+      theme_custom: { hiddenDefaults: _hiddenDefaults }
+    });
+  } catch(e) {}
+}
+
 async function addCustomScen() {
   try {
     const user = await Auth.getUser();
-    if (!user) { notif('Connecte-toi d\'abord', 'err'); return; }
+    if (!user) { notif('Connecte-toi', 'err'); return; }
     const { data, error } = await _sb.from('custom_scenarios').insert({
       user_id: user.id,
-      name: 'Nouveau Scénario',
+      name: 'Mon Scénario',
       category: 'CUSTOM',
       color: '#00cc6a',
-      sort_order: _customScenarios.length,
+      sort_order: _allScenarios.length,
     }).select().single();
     if (error) throw error;
-    _customScenarios.push(data);
-    notif('Scénario ajouté ✓');
+    _allScenarios.push(data);
+    rebuildScenarios();
     renderSettings();
-    // Focus sur le nom
     setTimeout(() => {
       const inp = document.getElementById('scen-name-' + data.id);
       if (inp) { inp.focus(); inp.select(); }
-    }, 100);
+    }, 80);
+    notif('Scénario ajouté');
   } catch(e) { notif('Erreur: ' + e.message, 'err'); }
 }
 
@@ -7019,102 +7082,113 @@ async function saveScenName(id) {
   if (!name) return;
   try {
     await _sb.from('custom_scenarios').update({ name }).eq('id', id);
-    const s = _customScenarios.find(x => x.id === id);
+    const s = _allScenarios.find(x => x.id === id);
     if (s) s.name = name;
-    notif('Scénario mis à jour ✓');
     rebuildScenarios();
-  } catch(e) { notif('Erreur: ' + e.message, 'err'); }
+    notif('Nom mis à jour');
+  } catch(e) {}
 }
 
 async function saveScenCat(id) {
   const sel = document.getElementById('scen-cat-' + id);
   if (!sel) return;
-  const category = sel.value;
   try {
-    await _sb.from('custom_scenarios').update({ category }).eq('id', id);
-    const s = _customScenarios.find(x => x.id === id);
-    if (s) s.category = category;
-  } catch(e) { notif('Erreur: ' + e.message, 'err'); }
+    await _sb.from('custom_scenarios').update({ category: sel.value }).eq('id', id);
+    const s = _allScenarios.find(x => x.id === id);
+    if (s) s.category = sel.value;
+    rebuildScenarios();
+  } catch(e) {}
 }
 
 function pickScenColor(id, dotEl) {
-  // Supprimer tout picker existant
   document.querySelectorAll('.color-picker-popup').forEach(x => x.remove());
   const popup = document.createElement('div');
   popup.className = 'color-picker-popup';
-  popup.style.cssText = 'position:fixed;z-index:999;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px;display:flex;flex-wrap:wrap;gap:6px;width:180px;box-shadow:0 12px 40px rgba(0,0,0,.6)';
   const rect = dotEl.getBoundingClientRect();
-  popup.style.top = (rect.bottom + 8) + 'px';
-  popup.style.left = rect.left + 'px';
+  popup.style.cssText = 'position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px;display:flex;flex-wrap:wrap;gap:6px;width:192px;box-shadow:0 16px 50px rgba(0,0,0,.7);top:' + (rect.bottom + 8) + 'px;left:' + rect.left + 'px';
   SWATCH_COLORS.forEach(col => {
     const sw = document.createElement('div');
-    sw.className = 'color-swatch';
-    sw.style.background = col;
+    sw.style.cssText = 'width:24px;height:24px;border-radius:50%;background:' + col + ';cursor:pointer;border:2px solid transparent;transition:all .15s';
+    sw.onmouseover = () => { sw.style.borderColor = '#fff'; sw.style.transform = 'scale(1.15)'; };
+    sw.onmouseout = () => { sw.style.borderColor = 'transparent'; sw.style.transform = 'scale(1)'; };
     sw.onclick = async (e) => {
       e.stopPropagation();
       dotEl.style.background = col;
       popup.remove();
       try {
         await _sb.from('custom_scenarios').update({ color: col }).eq('id', id);
-        const s = _customScenarios.find(x => x.id === id);
+        const s = _allScenarios.find(x => x.id === id);
         if (s) s.color = col;
         rebuildScenarios();
-      } catch(e2) { notif('Erreur couleur', 'err'); }
+      } catch(e2) {}
     };
     popup.appendChild(sw);
   });
   document.body.appendChild(popup);
-  setTimeout(() => document.addEventListener('click', () => popup.remove(), {once:true}), 10);
+  const close = () => { popup.remove(); document.removeEventListener('click', close); };
+  setTimeout(() => document.addEventListener('click', close), 10);
 }
 
 async function deleteCustomScen(id) {
   try {
     await _sb.from('custom_scenarios').delete().eq('id', id);
-    _customScenarios = _customScenarios.filter(s => s.id !== id);
-    notif('Scénario supprimé');
-    renderSettings();
+    _allScenarios = _allScenarios.filter(s => s.id !== id);
     rebuildScenarios();
+    renderSettings();
+    notif('Scénario supprimé');
   } catch(e) { notif('Erreur: ' + e.message, 'err'); }
 }
 
-// Rebuild le select scénario dans la modal trade avec les custom
+// Reconstruit le menu scénario dans la modal trade
 function rebuildScenarios() {
   const menu = document.getElementById('scen-menu');
   if (!menu) return;
-  let html = '<div class="csel-group abs">ABSORPTION</div>';
-  html += '<div class="csel-item" onclick="selectScen(\'Absorption DT1\',\'Absorption · DeepTrade 1ère mèche\')"><span class="csel-dot" style="background:var(--abs)"></span>Absorption · DeepTrade 1ère mèche</div>';
-  html += '<div class="csel-item" onclick="selectScen(\'Absorption DT2\',\'Absorption · DeepTrade 2ème mèche\')"><span class="csel-dot" style="background:var(--abs)"></span>Absorption · DeepTrade 2ème mèche</div>';
-  html += '<div class="csel-item" onclick="selectScen(\'Absorption DT12\',\'Absorption · DeepTrade 2 mèches\')"><span class="csel-dot" style="background:var(--abs)"></span>Absorption · DeepTrade 2 mèches</div>';
-  html += '<div class="csel-group exh">EXHAUSTION</div>';
-  html += '<div class="csel-item" onclick="selectScen(\'Exhaustion DT1\',\'Exhaustion · DeepTrade 1ère mèche\')"><span class="csel-dot" style="background:var(--exh)"></span>Exhaustion · DeepTrade 1ère mèche</div>';
-  html += '<div class="csel-item" onclick="selectScen(\'Exhaustion DT2\',\'Exhaustion · DeepTrade 2ème mèche\')"><span class="csel-dot" style="background:var(--exh)"></span>Exhaustion · DeepTrade 2ème mèche</div>';
-  html += '<div class="csel-item" onclick="selectScen(\'Exhaustion DT12\',\'Exhaustion · DeepTrade 2 mèches\')"><span class="csel-dot" style="background:var(--exh)"></span>Exhaustion · DeepTrade 2 mèches</div>';
-  // Grouper les custom par catégorie
-  const cats = [...new Set(_customScenarios.map(s => s.category))];
-  cats.forEach(cat => {
-    const items = _customScenarios.filter(s => s.category === cat);
-    html += '<div class="csel-group" style="color:var(--text3)">' + cat + '</div>';
+  const visibleDefaults = DEFAULT_SCENARIOS.filter(s => !_hiddenDefaults.includes(s.id));
+  let h = '';
+  // Grouper les défaults par catégorie
+  const defCats = [...new Set(visibleDefaults.map(s => s.category))];
+  defCats.forEach(cat => {
+    const items = visibleDefaults.filter(s => s.category === cat);
+    const col = cat === 'ABSORPTION' ? 'var(--abs)' : 'var(--exh)';
+    h += '<div class="csel-group ' + (cat === 'ABSORPTION' ? 'abs' : 'exh') + '">' + cat + '</div>';
     items.forEach(s => {
-      html += '<div class="csel-item" onclick="selectScen(\'' + s.name.replace(/'/g, "\\'") + '\',\'' + s.name.replace(/'/g, "\\'") + '\')"><span class="csel-dot" style="background:' + s.color + '"></span>' + s.name + '</div>';
+      h += '<div class="csel-item" onclick="selectScen(\'' + s.name + '\',\'' + s.name + '\')"><span class="csel-dot" style="background:' + s.color + '"></span>' + s.name + '</div>';
     });
   });
-  menu.innerHTML = html;
+  // Custom par catégorie
+  const cats = [...new Set(_allScenarios.map(s => s.category))];
+  cats.forEach(cat => {
+    const items = _allScenarios.filter(s => s.category === cat);
+    h += '<div class="csel-group" style="color:var(--text3)">' + cat + '</div>';
+    items.forEach(s => {
+      const safe = s.name.replace(/'/g, "\\'");
+      h += '<div class="csel-item" onclick="selectScen(\'' + safe + '\',\'' + safe + '\')"><span class="csel-dot" style="background:' + s.color + '"></span>' + s.name + '</div>';
+    });
+  });
+  menu.innerHTML = h;
 }
 
 async function loadCustomScenariosOnStart() {
   try {
     const user = await Auth.getUser();
     if (!user) return;
-    const { data } = await _sb.from('custom_scenarios')
+    const { data: scens } = await _sb.from('custom_scenarios')
       .select('*').eq('user_id', user.id).order('sort_order');
-    _customScenarios = data || [];
-    if (_customScenarios.length) rebuildScenarios();
+    _allScenarios = scens || [];
+    const { data: prof } = await _sb.from('profiles')
+      .select('theme, theme_custom').eq('id', user.id).single();
+    if (prof) {
+      _currentTheme = prof.theme || 'green';
+      _hiddenDefaults = prof.theme_custom?.hiddenDefaults || [];
+      loadSavedTheme();
+    }
+    if (_allScenarios.length || _hiddenDefaults.length) rebuildScenarios();
   } catch(e) {}
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
   Auth.onChange(async (user)=>{
-    if(user){await loadS();initAllCustomSelects();initAllDatePickers();go('dashboard');tickClock();updateAuthBtn(user);loadSavedTheme();await loadCustomScenariosOnStart();}
+    if(user){await loadS();initAllCustomSelects();initAllDatePickers();go('dashboard');tickClock();updateAuthBtn(user);await loadCustomScenariosOnStart();}
     else{initAllCustomSelects();initAllDatePickers();go('dashboard');tickClock();setTimeout(()=>showAuthModal(),500);}
   });
 });
