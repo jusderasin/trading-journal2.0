@@ -1063,43 +1063,50 @@ input[type="number"]{-moz-appearance:textfield;}
 </div>
 
 <!-- ══ APP ══ -->
+
+<!-- Burger Button -->
+<button id="burger-btn" onclick="toggleBurger()" aria-label="Menu">
+  <span></span><span></span><span></span>
+</button>
+<!-- Overlay -->
+<div id="sidebar-overlay" onclick="closeBurger()"></div>
 <div id="app">
 <!-- SIDEBAR -->
 <nav id="sidebar">
-  <div class="logo" onclick="go('dashboard')">TZ</div>
+  <div class="logo logo-wrap" onclick="go('dashboard'); closeBurger()"><img class="logo-img" src="data:image/png;base64,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" alt="TZ"></div>
   <!-- Main nav -->
   <div class="nav-btn active" id="nb-dashboard" onclick="go('dashboard')" title="Dashboard">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-  </div>
+  <span class="nav-btn-label">Dashboard</span></div>
   <div class="nav-btn" id="nb-journal" onclick="go('journal')" title="Journal de Trading">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
-  </div>
+  <span class="nav-btn-label">Journal</span></div>
   <div class="nav-btn" id="nb-challenges" onclick="go('challenges')" title="Prop Challenges">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9H4.5a2.5 2.5 0 0 0 0 5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 1 0 5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
-  </div>
+  <span class="nav-btn-label">Challenges</span></div>
   <div class="nav-btn" id="nb-funded" onclick="go('funded')" title="Comptes Funded">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-  </div>
+  <span class="nav-btn-label">Funded</span></div>
   <div class="nav-btn" id="nb-money" onclick="go('money')" title="Capital & Money Management">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><path d="M9.5 10a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 2s-2.5.5-2.5 2a2.5 2.5 0 0 0 5 0"/></svg>
-  </div>
+  <span class="nav-btn-label">Capital</span></div>
   <div class="nav-sep"></div>
   <div class="nav-btn" id="nb-analyse" onclick="go('analyse')" title="Analyse Avancée">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><circle cx="18" cy="7" r="3"/><line x1="20.12" y1="5.88" x2="22" y2="4"/></svg>
-  </div>
+  <span class="nav-btn-label">Analyse</span></div>
   <div class="nav-btn" id="nb-backtest" onclick="go('backtest')" title="Backtesting Lab">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/><polyline points="3.5 8 7 8 7 4.5"/><path d="M3.64 8A9 9 0 0 1 21 12"/></svg>
-  </div>
+  <span class="nav-btn-label">Backtesting</span></div>
   <div class="nav-btn" id="nb-personal" onclick="go('personal')" title="Fonds Propre">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/><circle cx="16" cy="14" r="1" fill="currentColor"/></svg>
-  </div>
+  <span class="nav-btn-label">Fonds Propre</span></div>
   <div class="nav-btn" id="nb-community" onclick="go('community')" title="Communauté">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-  </div>
-  <div class="nav-btn" id="nb-settings" onclick="go('settings')" title="Paramètres"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+  <span class="nav-btn-label">Communauté</span></div>
   <!-- Bottom: mode + reset -->
   <div class="nav-bottom">
-    <div class="nav-btn" id="nb-auth" onclick="handleAuthClick()" title="Mon compte" style="color:var(--text3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <div class="nav-btn" id="nb-settings" onclick="go('settings')" title="Paramètres"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="nav-btn-label">Paramètres</span></div>
+    <div class="nav-btn" id="nb-auth" onclick="handleAuthClick()" title="Mon compte" style="color:var(--text3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="nav-btn-label">Mon Compte</span></div>
     <div class="nav-sep" style="width:24px"></div>
     <div class="nav-btn" onclick="exportBackup()" title="💾 Sauvegarder toutes mes données" style="color:#00c8ff">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1108,9 +1115,6 @@ input[type="number"]{-moz-appearance:textfield;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     </div>
     <div class="nav-sep" style="width:24px"></div>
-    <div class="nav-btn mode" onclick="toggleMode()" title="Mode nuit/jour" id="nb-mode">
-      <svg id="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </div>
     <div class="nav-btn danger" onclick="confirmReset()" title="Reset toutes les données">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </div>
@@ -2407,6 +2411,7 @@ const PAGE_META={
 let currentPage='dashboard';
 function go(p){
   currentPage=p;
+  closeBurger();
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-btn[id^="nb-"]').forEach(el=>el.classList.remove('active'));
   const pg=document.getElementById('page-'+p);
@@ -6013,6 +6018,109 @@ tr:nth-child(even){background:#141820;}
 .badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;}
 .green{color:#00cc6a;}.red{color:#ff3b5c;}.abs{color:#00b4d8;}.exh{color:#e879f9;}
 footer{text-align:center;color:#4a5568;font-size:11px;margin-top:24px;font-family:monospace;}
+
+/* ─── THÈME SOBRE UNIQUE ─── */
+:root {
+  --green: #e2e8f0;
+  --green2: rgba(226,232,240,0.10);
+  --green3: rgba(226,232,240,0.05);
+  --bg: #080b0f;
+  --bg1: #0c1016;
+  --bg2: #101419;
+  --bg3: #141920;
+  --border: #1c2330;
+  --border2: #232c3a;
+  --border3: #2d3848;
+  --text: #dde4ef;
+  --text2: #7a8799;
+  --text3: #3d4d5e;
+  --cyan: #7ec8e3;
+  --purple: #9d8ccc;
+  --abs: #5ba3c9;
+  --exh: #c9a85b;
+  --red: #e07070;
+  --red2: rgba(224,112,112,0.12);
+  --yellow: #d4b86a;
+}
+/* Logo sobre */
+.logo { border-color: rgba(226,232,240,0.3) !important; color: rgba(226,232,240,0.9) !important; }
+/* Nav active sobre */
+.nav-btn.active { background: rgba(226,232,240,0.08) !important; border-color: rgba(226,232,240,0.2) !important; color: var(--text) !important; }
+/* Btn green sobre */
+.btn-green { background: rgba(226,232,240,0.12) !important; color: var(--text) !important; border: 1px solid rgba(226,232,240,0.25) !important; }
+.btn-green:hover { background: rgba(226,232,240,0.18) !important; }
+
+/* ─── MENU BURGER ─── */
+/* La sidebar est CACHÉE par défaut, overlay par-dessus le contenu */
+#sidebar {
+  position: fixed !important;
+  top: 0; left: 0;
+  transform: translateX(-100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1);
+  z-index: 300;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 56px;
+  box-shadow: none;
+}
+#sidebar.open {
+  transform: translateX(0);
+  width: 220px !important;
+  min-width: 220px !important;
+  box-shadow: 6px 0 40px rgba(0,0,0,.7);
+}
+/* Le main occupe tout l'espace */
+#app { display: block !important; }
+#main { margin-left: 0 !important; width: 100%; }
+#topbar { padding-left: 62px; }
+#content { padding-top: 22px; }
+
+/* Overlay sombre derrière le menu */
+#sidebar-overlay {
+  position: fixed; inset: 0; z-index: 299;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(3px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+#sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+
+/* Bouton burger */
+#burger-btn {
+  position: fixed; top: 10px; left: 10px; z-index: 301;
+  width: 38px; height: 38px; border-radius: 9px;
+  background: var(--bg2); border: 1px solid var(--border2);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px; cursor: pointer;
+  transition: all var(--trans);
+}
+#burger-btn:hover { border-color: var(--border3); background: var(--bg3); }
+#burger-btn span {
+  display: block; width: 16px; height: 1.5px;
+  background: var(--text2); border-radius: 2px;
+  transition: all .22s;
+}
+#burger-btn.open span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); background: var(--text); }
+#burger-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+#burger-btn.open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); background: var(--text); }
+
+/* Sidebar ouverte: items avec label */
+#sidebar.open { align-items: flex-start !important; padding: 14px 8px !important; }
+#sidebar.open .logo-wrap { margin: 0 auto 14px; }
+#sidebar.open .nav-btn {
+  width: 100%; justify-content: flex-start !important;
+  gap: 10px; padding: 0 12px; height: 40px;
+  border-radius: 10px;
+}
+#sidebar.open .nav-sep { width: 100%; margin: 5px 0; }
+#sidebar.open .nav-bottom { width: 100%; }
+.nav-btn-label { display: none; font-size: 12px; font-weight: 500; white-space: nowrap; }
+#sidebar.open .nav-btn-label { display: block; }
+
+/* Logo image */
+.logo-img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.logo { display: flex !important; align-items: center !important; justify-content: center !important; background: none !important; border: none !important; overflow: hidden; }
 </style></head><body>
 <h1>📊 Rapport d'Analyse — TRADING ZONE</h1>
 <div class="sub">Compte : <strong style="color:#e8edf5">${accountName}</strong> &nbsp;·&nbsp; Généré le ${date} &nbsp;·&nbsp; ${trades.length} trades</div>
@@ -6865,25 +6973,7 @@ async function renderSettings() {
   if (!el) return;
   await _loadScenarios();
 
-  const t = THEMES.find(x => x.id === _currentThemeId) || THEMES[0];
   let h = '';
-
-  // ══ THÈMES ══
-  h += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px">';
-  h += '<div style="font-size:13px;font-weight:700;margin-bottom:18px;color:var(--text)">Thème de couleur</div>';
-  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">';
-  THEMES.forEach(theme => {
-    const active = _currentThemeId === theme.id;
-    h += '<div onclick="applyTheme(\'' + theme.id + '\')" style="border-radius:14px;padding:18px 10px;text-align:center;cursor:pointer;';
-    h += 'border:2px solid ' + (active ? theme.accent : 'var(--border)') + ';';
-    h += 'background:' + (active ? theme.accent + '18' : 'var(--bg3)') + ';';
-    h += 'transition:all .2s;' + (active ? 'box-shadow:0 0 20px ' + theme.glow + ';' : '') + '">';
-    h += '<div style="width:38px;height:38px;border-radius:50%;margin:0 auto 10px;background:' + theme.accent + ';box-shadow:0 0 18px ' + theme.glow + '"></div>';
-    h += '<div style="font-size:11px;font-weight:700;color:' + (active ? theme.accent : 'var(--text2)') + '">' + theme.name + '</div>';
-    if (active) h += '<div style="font-size:9px;margin-top:3px;color:' + theme.accent + '">ACTIF ✓</div>';
-    h += '</div>';
-  });
-  h += '</div></div>';
 
   // ══ SCÉNARIOS ══
   h += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px">';
@@ -6895,7 +6985,6 @@ async function renderSettings() {
   if (!_scenarios.length) {
     h += '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">Aucun scénario. Clique sur + Ajouter.</div>';
   } else {
-    // Grouper par catégorie
     const cats = [...new Set(_scenarios.map(s => s.category))];
     cats.forEach(cat => {
       const items = _scenarios.filter(s => s.category === cat);
@@ -6903,18 +6992,14 @@ async function renderSettings() {
       h += '<div style="font-size:9px;letter-spacing:1.5px;color:' + catColor + ';margin:12px 0 6px;padding:0 4px">' + cat + '</div>';
       items.forEach(s => {
         h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);margin-bottom:5px">';
-        // Dot cliquable pour couleur
-        h += '<div style="width:18px;height:18px;border-radius:50%;background:' + s.color + ';flex-shrink:0;cursor:pointer;border:2px solid rgba(255,255,255,.15)" onclick="pickScenColor(\'' + s.id + '\',this)" title="Changer couleur"></div>';
-        // Nom éditable
-        h += '<input style="flex:1;background:transparent;border:none;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;min-width:0" value="' + s.name.replace(/"/g,'&quot;') + '" id="sn-' + s.id + '" onblur="saveScenName(\'' + s.id + '\')" onkeydown="if(event.key===\'Enter\')this.blur()">';
-        // Catégorie
-        h += '<select style="background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:10px;font-family:var(--mono);border-radius:6px;padding:3px 7px;outline:none;cursor:pointer" id="sc-' + s.id + '" onchange="saveScenCat(\'' + s.id + '\')">';
+        h += '<div style="width:18px;height:18px;border-radius:50%;background:' + s.color + ';flex-shrink:0;cursor:pointer;border:2px solid rgba(255,255,255,.1)" onclick="pickScenColor('' + s.id + '',this)" title="Changer couleur"></div>';
+        h += '<input style="flex:1;background:transparent;border:none;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;min-width:0" value="' + s.name.replace(/"/g,'&quot;') + '" id="sn-' + s.id + '" onblur="saveScenName('' + s.id + '')" onkeydown="if(event.key==='Enter')this.blur()">';
+        h += '<select style="background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:10px;font-family:var(--mono);border-radius:6px;padding:3px 7px;outline:none;cursor:pointer" id="sc-' + s.id + '" onchange="saveScenCat('' + s.id + '')">';
         ['ABSORPTION','EXHAUSTION','BREAKOUT','REVERSAL','TREND','ICT','SMC','CUSTOM'].forEach(c => {
           h += '<option' + (s.category===c?' selected':'') + '>' + c + '</option>';
         });
         h += '</select>';
-        // Supprimer
-        h += '<button onclick="deleteScenario(\'' + s.id + '\')" title="Supprimer" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0" onmouseover="this.style.background=\'var(--red2)\';this.style.color=\'var(--red)\'" onmouseout="this.style.background=\'none\';this.style.color=\'var(--text3)\'">✕</button>';
+        h += '<button onclick="deleteScenario('' + s.id + '')" title="Supprimer" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0" onmouseover="this.style.background='var(--red2)';this.style.color='var(--red)'" onmouseout="this.style.background='none';this.style.color='var(--text3)'">✕</button>';
         h += '</div>';
       });
     });
@@ -6929,7 +7014,7 @@ async function renderSettings() {
     if (user) {
       h += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Email : <strong style="color:var(--text)">' + user.email + '</strong></div>';
       h += '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:16px">' + user.id + '</div>';
-      h += '<button onclick="Auth.logout()" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:9px;background:var(--red2);border:1px solid rgba(255,59,92,.35);color:var(--red);cursor:pointer;font-size:12px;font-family:var(--mono);font-weight:700;transition:all .2s" onmouseover="this.style.background=\'rgba(255,59,92,.2)\'" onmouseout="this.style.background=\'var(--red2)\'">';
+      h += '<button onclick="Auth.logout()" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:9px;background:var(--red2);border:1px solid rgba(255,59,92,.35);color:var(--red);cursor:pointer;font-size:12px;font-family:var(--mono);font-weight:700;transition:all .2s" onmouseover="this.style.background='rgba(255,59,92,.2)'" onmouseout="this.style.background='var(--red2)'">';
       h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Se déconnecter</button>';
     }
   } catch(e) {}
@@ -7116,6 +7201,29 @@ function rebuildScenarios() {
     });
     mkSel('btt-scenario-csel','btt-scenario', items, {placeholder:'— Scénario —'});
   }
+}
+
+
+// ─── MENU BURGER ───────────────────────────────────────
+function toggleBurger() {
+  const sidebar = document.getElementById('sidebar');
+  const btn = document.getElementById('burger-btn');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen = sidebar.classList.contains('open');
+  if (isOpen) { closeBurger(); }
+  else {
+    sidebar.classList.add('open');
+    btn.classList.add('open');
+    overlay.classList.add('open');
+  }
+}
+function closeBurger() {
+  const s = document.getElementById('sidebar');
+  const b = document.getElementById('burger-btn');
+  const o = document.getElementById('sidebar-overlay');
+  if(s) s.classList.remove('open');
+  if(b) b.classList.remove('open');
+  if(o) o.classList.remove('open');
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
