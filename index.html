@@ -286,9 +286,12 @@ html, body {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  z-index: 100;
-  transition: transform 0.3s;
+  z-index: 200;
+  transition: transform 0.25s ease;
+  transform: translateX(-100%);
+  box-shadow: 4px 0 32px rgba(0,0,0,0.5);
 }
+.sidebar.open { transform: translateX(0); }
 
 .sidebar-logo {
   padding: 18px 16px 14px;
@@ -397,7 +400,7 @@ html, body {
 
 /* MAIN */
 .main {
-  margin-left: var(--sidebar-w);
+  margin-left: 0;
   height: 100vh;
   overflow-y: auto;
   display: flex;
@@ -1211,7 +1214,7 @@ input[type="range"]::-webkit-slider-thumb {
 .mobile-nav-item span { font-size: 9px; font-weight: 600; letter-spacing: 0.3px; white-space: nowrap; }
 
 .hamburger {
-  display: none;
+  display: flex;
   width: 34px; height: 34px;
   background: transparent;
   border: 1px solid var(--border);
@@ -1222,7 +1225,9 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--text-2);
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s, border-color 0.15s;
 }
+.hamburger:hover { color: var(--accent); border-color: var(--accent); }
 .hamburger svg { stroke: currentColor; }
 
 /* SIDEBAR OVERLAY */
@@ -1231,30 +1236,21 @@ input[type="range"]::-webkit-slider-thumb {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.5);
-  z-index: 99;
+  z-index: 150;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
+.sidebar-overlay.open { display: block; }
 
 /* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
-    z-index: 200;
-    width: 240px;
-    box-shadow: 4px 0 32px rgba(0,0,0,0.6);
-  }
-
-  .sidebar.open { transform: translateX(0); }
-  .sidebar-overlay.open { display: block; }
-
   .main {
-    margin-left: 0;
     padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
   }
 
   .mobile-nav { display: block; }
-  .hamburger { display: flex; }
 
   .grid-4 { grid-template-columns: 1fr 1fr; }
   .grid-3 { grid-template-columns: 1fr 1fr; }
