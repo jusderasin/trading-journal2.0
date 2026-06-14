@@ -2856,12 +2856,14 @@ async function loadProfilePage() {
 }
 
 async function saveProfile() {
+  const isPublic = document.getElementById('p-is-public').checked;
+  const displayName = document.getElementById('p-display-name').value.trim();
   const updates = {
-    display_name: document.getElementById('p-display-name').value.trim(),
+    display_name: displayName,
     bio: document.getElementById('p-bio').value.trim(),
     strategy: document.getElementById('p-strategy').value.trim(),
     years_experience: parseInt(document.getElementById('p-experience').value),
-    is_public: document.getElementById('p-is-public').checked,
+    is_public: isPublic,
     share_winrate: document.getElementById('p-share-wr').checked,
     share_pf: document.getElementById('p-share-pf').checked,
     share_equity: document.getElementById('p-share-equity').checked,
@@ -2870,8 +2872,30 @@ async function saveProfile() {
   const { error } = await sb.from('profiles').update(updates).eq('id', currentUser.id);
   if (error) return toast('Erreur: ' + error.message, 'error');
   currentProfile = { ...currentProfile, ...updates };
+
+  // Sync community_stats : opt_in suit is_public + on met à jour les stats
+  await syncCommunityStats(isPublic, displayName);
+
   await loadProfile();
   toast('Profil sauvegardé ✓', 'success');
+}
+
+async function syncCommunityStats(optIn, pseudo) {
+  // Calculer les stats actuelles
+  const trades = await loadTrades();
+  const stats = calcStats(trades);
+  const pseudo_val = pseudo || currentProfile?.username || currentUser.email?.split('@')[0] || 'Trader';
+
+  await sb.from('community_stats').upsert({
+    user_id: currentUser.id,
+    pseudo: pseudo_val,
+    opt_in: optIn,
+    win_rate: parseFloat(stats.wr) || 0,
+    profit_factor: parseFloat(stats.pf) || 0,
+    total_r: parseFloat(stats.pnl) / (parseFloat(currentProfile?.one_r || 200)),
+    trade_count: stats.total,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'user_id' });
 }
 
 function uploadAvatar() {
@@ -3507,6 +3531,10 @@ async function saveTrade() {
   await loadDashboard();
   if (currentPage === 'journal') loadJournal();
   await checkBadges();
+  // Sync leaderboard stats en background si profil public
+  if (currentProfile?.is_public) {
+    syncCommunityStats(true, currentProfile?.display_name || currentProfile?.username);
+  }
 }
 
 async function deleteTrade(id) {
