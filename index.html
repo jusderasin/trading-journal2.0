@@ -2106,23 +2106,27 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 </div>
 
-<!-- Modal: Ajouter un compte -->
+<!-- Modal: Ajouter/Modifier un compte -->
 <div class="modal-overlay" id="modal-account">
-  <div class="modal">
+  <div class="modal modal-wide">
     <div class="modal-header">
       <div class="modal-title" id="account-modal-title">Nouveau Compte</div>
       <button class="modal-close" onclick="closeModal('modal-account')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="tabs" style="margin-bottom:20px">
-        <div class="tab active" onclick="setAccountMode('challenge', this)">⚡ Evaluation</div>
-        <div class="tab" onclick="setAccountMode('funded', this)">💰 Funded / PA</div>
+      <!-- Type: Eval ou Funded -->
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <div id="atype-challenge" onclick="setAccountMode('challenge')" style="flex:1;padding:12px;background:var(--accent-dim);border:2px solid var(--accent);border-radius:10px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--accent)">⚡ Evaluation</div>
+        <div id="atype-funded" onclick="setAccountMode('funded')" style="flex:1;padding:12px;background:var(--bg-3);border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--text-3)">💰 Funded / PA</div>
       </div>
+      <input type="hidden" id="a-mode" value="challenge">
+      <input type="hidden" id="a-editing-id" value="">
 
+      <!-- Broker + Nom -->
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Prop Firm *</label>
-          <select id="a-broker">
+          <select id="a-broker" onchange="document.getElementById('a-broker-custom-wrap').style.display=this.value==='Custom'?'block':'none'">
             <option value="Apex Trader Funding">Apex Trader Funding</option>
             <option value="Phidias / DeepCharts">Phidias / DeepCharts</option>
             <option value="TopStep">TopStep</option>
@@ -2130,33 +2134,51 @@ input[type="range"]::-webkit-slider-thumb {
             <option value="Earn2Trade">Earn2Trade</option>
             <option value="Tradeify">Tradeify</option>
             <option value="MyFundedFutures">MyFundedFutures</option>
-            <option value="Custom">Custom</option>
+            <option value="FTMO">FTMO</option>
+            <option value="Lucid">Lucid</option>
+            <option value="Alpha Futures">Alpha Futures</option>
+            <option value="Aqua Futures">Aqua Futures</option>
+            <option value="Custom">Autre / Custom</option>
           </select>
         </div>
         <div class="form-group" id="a-broker-custom-wrap" style="display:none">
-          <label class="form-label">Nom personnalisé</label>
+          <label class="form-label">Nom custom</label>
           <input type="text" id="a-broker-custom" placeholder="Nom de la prop firm">
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Nom du compte</label>
-        <input type="text" id="a-name" placeholder="Ex: Apex 50K #1">
+        <label class="form-label">Nom du compte *</label>
+        <input type="text" id="a-name" placeholder="Ex: MFF 25K #1">
+      </div>
+
+      <!-- Capital (boutons rapides + input) -->
+      <div class="form-group">
+        <label class="form-label">Capital ($)</label>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <button type="button" onclick="setCapital(10000)" class="btn-outline" style="font-size:11px;padding:5px 10px">10K</button>
+          <button type="button" onclick="setCapital(25000)" class="btn-outline" style="font-size:11px;padding:5px 10px">25K</button>
+          <button type="button" onclick="setCapital(50000)" class="btn-outline" style="font-size:11px;padding:5px 10px">50K</button>
+          <button type="button" onclick="setCapital(100000)" class="btn-outline" style="font-size:11px;padding:5px 10px">100K</button>
+          <button type="button" onclick="setCapital(150000)" class="btn-outline" style="font-size:11px;padding:5px 10px">150K</button>
+        </div>
+        <input type="number" id="a-capital" value="50000" placeholder="Capital en $">
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Capital ($)</label>
-          <input type="number" id="a-capital" value="50000">
+          <label class="form-label">Valeur 1R ($)</label>
+          <input type="number" id="a-one-r" value="200" placeholder="ex: 200">
         </div>
         <div class="form-group">
-          <label class="form-label">1R = ($)</label>
-          <input type="number" id="a-one-r" value="200">
+          <label class="form-label">Date de début</label>
+          <input type="date" id="a-start-date">
         </div>
       </div>
 
-      <!-- Règles eval -->
+      <!-- ===== CHAMPS EVALUATION ===== -->
       <div id="a-eval-fields">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-4);margin:12px 0 10px">Règles de l'évaluation</div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Profit Target (%)</label>
@@ -2170,10 +2192,10 @@ input[type="range"]::-webkit-slider-thumb {
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Daily Loss Limit ($)</label>
-            <input type="number" id="a-dll" value="0">
+            <input type="number" id="a-dll" value="0" placeholder="0 = pas de limite">
           </div>
           <div class="form-group">
-            <label class="form-label">Jours min</label>
+            <label class="form-label">Jours min trading</label>
             <input type="number" id="a-mindays" value="0">
           </div>
         </div>
@@ -2181,8 +2203,8 @@ input[type="range"]::-webkit-slider-thumb {
           <div class="form-group">
             <label class="form-label">Type de DD</label>
             <select id="a-ddtype">
-              <option value="EOD">EOD (End of Day)</option>
-              <option value="INTRADAY">Intraday</option>
+              <option value="EOD">EOD — End of Day</option>
+              <option value="REAL_TIME">Real Time ⚠️</option>
               <option value="TRAILING">Trailing</option>
             </select>
           </div>
@@ -2194,40 +2216,109 @@ input[type="range"]::-webkit-slider-thumb {
             </select>
           </div>
         </div>
+        <div class="form-row" id="a-cons-pct-row" style="display:none">
+          <div class="form-group">
+            <label class="form-label">% Consistance</label>
+            <input type="number" id="a-cons-pct" value="50" placeholder="ex: 50">
+          </div>
+          <div class="form-group">
+            <label class="form-label">PnL min / jour ($) <span style="color:var(--text-4)">optionnel</span></label>
+            <input type="number" id="a-min-pnl-day" value="0" placeholder="Gain min requis chaque jour">
+          </div>
+        </div>
       </div>
 
-      <!-- Règles funded -->
+      <!-- ===== CHAMPS FUNDED ===== -->
       <div id="a-funded-fields" style="display:none">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-4);margin:12px 0 10px">Règles du compte Funded</div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Max DD Amount ($)</label>
+            <label class="form-label">DD Max ($)</label>
             <input type="number" id="a-dd-amt" value="2000">
           </div>
           <div class="form-group">
             <label class="form-label">Daily Loss Limit ($)</label>
-            <input type="number" id="a-dll-funded" value="0">
+            <input type="number" id="a-dll-funded" value="0" placeholder="0 = pas de limite">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Objectif payout ($)</label>
+            <label class="form-label">Objectif Payout ($)</label>
             <input type="number" id="a-payout" value="0">
           </div>
           <div class="form-group">
-            <label class="form-label">PnL min payout ($)</label>
-            <input type="number" id="a-min-pnl" value="0">
+            <label class="form-label">Fréquence payout (jours)</label>
+            <input type="number" id="a-payout-freq" value="0" placeholder="ex: 14">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Jours min trading</label>
+            <input type="number" id="a-mindays-funded" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">PnL min / jour ($) <span style="color:var(--text-4)">optionnel</span></label>
+            <input type="number" id="a-min-pnl" value="0" placeholder="Gain minimum requis">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Type DD</label>
+            <select id="a-ddtype-funded">
+              <option value="EOD">EOD — End of Day</option>
+              <option value="REAL_TIME">Real Time ⚠️</option>
+              <option value="TRAILING">Trailing</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Consistance</label>
+            <select id="a-cons-funded">
+              <option value="non">Non</option>
+              <option value="oui">Oui</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" id="a-cons-funded-row" style="display:none">
+          <div class="form-group">
+            <label class="form-label">% Consistance</label>
+            <input type="number" id="a-cons-pct-funded" value="50">
           </div>
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Date de début</label>
-        <input type="date" id="a-start-date">
-      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-outline" onclick="closeModal('modal-account')">Annuler</button>
-      <button class="btn-sm" onclick="saveAccount()">Enregistrer</button>
+      <button class="btn-sm" onclick="saveAccount()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Payout reçu -->
+<div class="modal-overlay" id="modal-payout">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">💸 Payout Reçu</div>
+      <button class="modal-close" onclick="closeModal('modal-payout')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="payout-account-id">
+      <div class="form-group">
+        <label class="form-label">Montant reçu ($)</label>
+        <input type="number" id="payout-amount" placeholder="ex: 1500" step="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" id="payout-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" id="payout-notes" placeholder="ex: 1er payout Apex">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('modal-payout')">Annuler</button>
+      <button class="btn-sm" onclick="savePayout()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -2914,58 +3005,39 @@ function setAccountType(type, el) {
   renderAccounts();
 }
 
-function renderAccounts() {
-  const grid = document.getElementById('accounts-grid');
-  if (accountMode === 'payouts') {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">Historique des payouts</div><div class="empty-sub">Bientôt disponible</div></div>';
-    return;
-  }
-  const list = accountMode === 'challenge' ? allAccounts.challenges : allAccounts.funded;
-  if (!list.length) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🏦</div><div class="empty-title">Aucun compte</div><div class="empty-sub">Ajoute ton premier compte prop firm</div></div>';
-    return;
-  }
-  grid.innerHTML = list.map(a => {
-    const isChallenge = accountMode === 'challenge';
-    const pnlTrades = allTrades.filter(t => {
-      const tAccount = t.challenge_name;
-      return tAccount === a.id || tAccount === a.name;
-    });
-    const totalPnl = pnlTrades.reduce((s, t) => s + (parseFloat(t.one_r || 0) * parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0)), 0);
-    const capital = parseFloat(a.capital || 50000);
-    const target = isChallenge ? (capital * parseFloat(a.target || 6) / 100) : 0;
-    const pct = target > 0 ? Math.min(100, (totalPnl / target) * 100) : 0;
-    const statusColors = { active: 'green', breached: 'red', passed: 'blue', suspended: 'yellow' };
-    const statusColor = statusColors[a.status] || 'green';
-    return `
-      <div class="account-card">
-        <div class="account-broker">${a.broker}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div class="account-name">${a.name}</div>
-          <span class="pill ${statusColor}">${a.status || 'Active'}</span>
-        </div>
-        <div class="account-stat"><span>Capital</span><span>$${Number(a.capital).toLocaleString()}</span></div>
-        ${isChallenge ? `<div class="account-stat"><span>Objectif</span><span>+${a.target}% ($${Math.round(capital * a.target / 100).toLocaleString()})</span></div>` : ''}
-        <div class="account-stat"><span>Max DD</span><span>${isChallenge ? a.ddmax + '%' : '$' + a.dd_max_amt}</span></div>
-        <div class="account-stat"><span>Daily Limit</span><span>${a.dll > 0 ? '$' + a.dll : '—'}</span></div>
-        ${a.mindays > 0 ? `<div class="account-stat"><span>Jours min</span><span>${a.mindays}</span></div>` : ''}
-        ${isChallenge && target > 0 ? `
-          <div class="account-progress">
-            <div class="account-progress-fill" style="width:${pct}%;background:${pct > 80 ? 'var(--green)' : 'var(--accent)'}"></div>
-          </div>
-          <div style="font-size:11px;color:var(--text-3);margin-top:4px;text-align:right">${Math.round(pct)}% de l'objectif</div>
-        ` : ''}
-        <div style="display:flex;gap:6px;margin-top:10px">
-          <button class="btn-outline" style="font-size:11px;flex:1" onclick="editAccount('${a.id}','${accountMode}')">✏️ Éditer</button>
-          <button class="btn-outline" style="font-size:11px;color:var(--red);border-color:var(--red)" onclick="deleteAccount('${a.id}','${accountMode}')">🗑️</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+// ---- HELPERS COMPTES ----
+function setCapital(val) {
+  document.getElementById('a-capital').value = val;
 }
+
+function setAccountMode(mode) {
+  document.getElementById('a-mode').value = mode;
+  const isChallenge = mode === 'challenge';
+  const cEl = document.getElementById('atype-challenge');
+  const fEl = document.getElementById('atype-funded');
+  cEl.style.cssText = isChallenge
+    ? 'flex:1;padding:12px;background:var(--accent-dim);border:2px solid var(--accent);border-radius:10px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--accent)'
+    : 'flex:1;padding:12px;background:var(--bg-3);border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--text-3)';
+  fEl.style.cssText = !isChallenge
+    ? 'flex:1;padding:12px;background:#f59e0b15;border:2px solid var(--yellow);border-radius:10px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--yellow)'
+    : 'flex:1;padding:12px;background:var(--bg-3);border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--text-3)';
+  document.getElementById('a-eval-fields').style.display = isChallenge ? 'block' : 'none';
+  document.getElementById('a-funded-fields').style.display = !isChallenge ? 'block' : 'none';
+}
+
+// Consistency toggle
+document.addEventListener('change', e => {
+  if (e.target.id === 'a-cons') {
+    document.getElementById('a-cons-pct-row').style.display = e.target.value === 'oui' ? 'flex' : 'none';
+  }
+  if (e.target.id === 'a-cons-funded') {
+    document.getElementById('a-cons-funded-row').style.display = e.target.value === 'oui' ? 'flex' : 'none';
+  }
+});
 
 function openAddAccount() {
   document.getElementById('account-modal-title').textContent = 'Nouveau Compte';
+  document.getElementById('a-editing-id').value = '';
   document.getElementById('a-name').value = '';
   document.getElementById('a-capital').value = '50000';
   document.getElementById('a-one-r').value = '200';
@@ -2973,61 +3045,115 @@ function openAddAccount() {
   document.getElementById('a-ddmax').value = '4';
   document.getElementById('a-dll').value = '0';
   document.getElementById('a-mindays').value = '0';
+  document.getElementById('a-dd-amt').value = '2000';
+  document.getElementById('a-dll-funded').value = '0';
+  document.getElementById('a-payout').value = '0';
+  document.getElementById('a-min-pnl').value = '0';
   document.getElementById('a-start-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('a-broker-custom-wrap').style.display = 'none';
+  document.getElementById('a-cons-pct-row').style.display = 'none';
+  setAccountMode('challenge');
   openModal('modal-account');
 }
 
-function setAccountMode(mode, el) {
-  document.querySelectorAll('#modal-account .tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('a-eval-fields').style.display = mode === 'challenge' ? 'block' : 'none';
-  document.getElementById('a-funded-fields').style.display = mode === 'funded' ? 'block' : 'none';
-  accountMode = mode;
+async function editAccount(id, type) {
+  const list = type === 'challenge' ? allAccounts.challenges : allAccounts.funded;
+  const a = list.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('account-modal-title').textContent = 'Modifier le Compte ' + (type === 'funded' ? 'Funded' : 'Eval');
+  document.getElementById('a-editing-id').value = id;
+  document.getElementById('a-name').value = a.name || '';
+  document.getElementById('a-capital').value = a.capital || 50000;
+  document.getElementById('a-one-r').value = a.one_r || 200;
+  document.getElementById('a-start-date').value = a.start_date || '';
+
+  const isCustom = !['Apex Trader Funding','Phidias / DeepCharts','TopStep','Bulenox','Earn2Trade','Tradeify','MyFundedFutures','FTMO','Lucid','Alpha Futures','Aqua Futures'].includes(a.broker);
+  document.getElementById('a-broker').value = isCustom ? 'Custom' : a.broker;
+  if (isCustom) { document.getElementById('a-broker-custom').value = a.broker; document.getElementById('a-broker-custom-wrap').style.display = 'block'; }
+  else { document.getElementById('a-broker-custom-wrap').style.display = 'none'; }
+
+  if (type === 'challenge') {
+    setAccountMode('challenge');
+    document.getElementById('a-target').value = a.target || 6;
+    document.getElementById('a-ddmax').value = a.ddmax || 4;
+    document.getElementById('a-dll').value = a.dll || 0;
+    document.getElementById('a-mindays').value = a.mindays || 0;
+    document.getElementById('a-ddtype').value = a.ddtype || 'EOD';
+    document.getElementById('a-cons').value = a.cons || 'non';
+    if (a.cons === 'oui') { document.getElementById('a-cons-pct-row').style.display = 'flex'; document.getElementById('a-cons-pct').value = a.cons_pct || 50; }
+  } else {
+    setAccountMode('funded');
+    document.getElementById('a-dd-amt').value = a.dd_max_amt || 2000;
+    document.getElementById('a-dll-funded').value = a.dll || 0;
+    document.getElementById('a-payout').value = a.payout || 0;
+    document.getElementById('a-payout-freq').value = a.payout_freq || 0;
+    document.getElementById('a-mindays-funded').value = a.mindays || 0;
+    document.getElementById('a-min-pnl').value = a.min_pnl || 0;
+    document.getElementById('a-ddtype-funded').value = a.ddtype || 'EOD';
+    document.getElementById('a-cons-funded').value = a.cons || 'non';
+    if (a.cons === 'oui') { document.getElementById('a-cons-funded-row').style.display = 'flex'; document.getElementById('a-cons-pct-funded').value = a.cons_pct || 50; }
+  }
+  openModal('modal-account');
 }
 
-document.getElementById('a-broker').addEventListener('change', function() {
-  document.getElementById('a-broker-custom-wrap').style.display = this.value === 'Custom' ? 'block' : 'none';
-});
-
 async function saveAccount() {
-  const broker = document.getElementById('a-broker').value === 'Custom'
-    ? document.getElementById('a-broker-custom').value
-    : document.getElementById('a-broker').value;
+  const mode = document.getElementById('a-mode').value;
+  const editId = document.getElementById('a-editing-id').value;
+  const brokerVal = document.getElementById('a-broker').value;
+  const broker = brokerVal === 'Custom' ? document.getElementById('a-broker-custom').value.trim() : brokerVal;
   const name = document.getElementById('a-name').value.trim();
   if (!name) return toast('Entre un nom pour le compte', 'error');
+  if (!broker) return toast('Sélectionne une prop firm', 'error');
 
-  const isChallenge = accountMode === 'challenge';
+  const isChallenge = mode === 'challenge';
   const table = isChallenge ? 'challenges' : 'funded';
 
-  const data = isChallenge ? {
-    user_id: currentUser.id, broker, name,
-    capital: document.getElementById('a-capital').value,
-    one_r: document.getElementById('a-one-r').value,
-    target: document.getElementById('a-target').value,
-    ddmax: document.getElementById('a-ddmax').value,
-    dll: document.getElementById('a-dll').value,
-    mindays: document.getElementById('a-mindays').value,
-    ddtype: document.getElementById('a-ddtype').value,
-    cons: document.getElementById('a-cons').value,
-    start_date: document.getElementById('a-start-date').value,
-    status: 'active'
-  } : {
-    user_id: currentUser.id, broker, name,
-    capital: document.getElementById('a-capital').value,
-    one_r: document.getElementById('a-one-r').value,
-    dd_max_amt: document.getElementById('a-dd-amt').value,
-    dll: document.getElementById('a-dll-funded').value,
-    payout: document.getElementById('a-payout').value,
-    min_pnl: document.getElementById('a-min-pnl').value
-  };
+  let data;
+  if (isChallenge) {
+    data = {
+      user_id: currentUser.id, broker, name,
+      capital: parseFloat(document.getElementById('a-capital').value) || 50000,
+      one_r: parseFloat(document.getElementById('a-one-r').value) || 200,
+      target: parseFloat(document.getElementById('a-target').value) || 6,
+      ddmax: parseFloat(document.getElementById('a-ddmax').value) || 4,
+      dll: parseFloat(document.getElementById('a-dll').value) || 0,
+      mindays: parseInt(document.getElementById('a-mindays').value) || 0,
+      ddtype: document.getElementById('a-ddtype').value,
+      cons: document.getElementById('a-cons').value,
+      cons_pct: document.getElementById('a-cons').value === 'oui' ? parseFloat(document.getElementById('a-cons-pct').value) : null,
+      start_date: document.getElementById('a-start-date').value || null,
+      status: 'active'
+    };
+  } else {
+    data = {
+      user_id: currentUser.id, broker, name,
+      capital: parseFloat(document.getElementById('a-capital').value) || 25000,
+      one_r: parseFloat(document.getElementById('a-one-r').value) || 200,
+      dd_max_amt: parseFloat(document.getElementById('a-dd-amt').value) || 2000,
+      dll: parseFloat(document.getElementById('a-dll-funded').value) || 0,
+      payout: parseFloat(document.getElementById('a-payout').value) || 0,
+      payout_freq: parseInt(document.getElementById('a-payout-freq').value) || 0,
+      mindays: parseInt(document.getElementById('a-mindays-funded').value) || 0,
+      min_pnl: parseFloat(document.getElementById('a-min-pnl').value) || 0,
+      ddtype: document.getElementById('a-ddtype-funded').value,
+      cons: document.getElementById('a-cons-funded').value,
+      cons_pct: document.getElementById('a-cons-funded').value === 'oui' ? parseFloat(document.getElementById('a-cons-pct-funded').value) : null,
+      start_date: document.getElementById('a-start-date').value || null
+    };
+  }
 
-  const { error } = await sb.from(table).insert(data);
+  let error;
+  if (editId) {
+    ({ error } = await sb.from(table).update(data).eq('id', editId));
+  } else {
+    ({ error } = await sb.from(table).insert(data));
+  }
   if (error) return toast('Erreur: ' + error.message, 'error');
   await loadAccounts();
   populateAccountSelects();
   renderAccounts();
   closeModal('modal-account');
-  toast('Compte ajouté ✓', 'success');
+  toast(editId ? 'Compte modifié ✓' : 'Compte ajouté ✓', 'success');
 }
 
 async function deleteAccount(id, type) {
@@ -3039,8 +3165,202 @@ async function deleteAccount(id, type) {
   toast('Compte supprimé', 'success');
 }
 
-function editAccount(id, type) {
-  toast('Édition des comptes bientôt disponible', 'error');
+function openPayoutModal(accountId) {
+  document.getElementById('payout-account-id').value = accountId;
+  document.getElementById('payout-amount').value = '';
+  document.getElementById('payout-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('payout-notes').value = '';
+  openModal('modal-payout');
+}
+
+async function savePayout() {
+  const amount = parseFloat(document.getElementById('payout-amount').value);
+  const accountId = document.getElementById('payout-account-id').value;
+  if (!amount || !accountId) return toast('Montant requis', 'error');
+  const acc = allAccounts.funded.find(a => a.id === accountId);
+  const { error } = await sb.from('payouts').insert({
+    user_id: currentUser.id,
+    account_id: accountId,
+    account_name: acc?.name || '',
+    amount,
+    date: document.getElementById('payout-date').value,
+    notes: document.getElementById('payout-notes').value,
+    status: 'received'
+  });
+  if (error) return toast('Erreur: ' + error.message, 'error');
+  closeModal('modal-payout');
+  toast(`Payout de $${amount.toLocaleString()} enregistré ✓`, 'success');
+  renderAccounts();
+}
+
+function renderAccounts() {
+  const grid = document.getElementById('accounts-grid');
+
+  if (accountMode === 'payouts') {
+    loadPayoutsPage(grid);
+    return;
+  }
+
+  const list = accountMode === 'challenge' ? allAccounts.challenges : allAccounts.funded;
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏦</div><div class="empty-title">Aucun compte ${accountMode === 'challenge' ? 'en évaluation' : 'funded'}</div><div class="empty-sub">Clique sur "+ Ajouter un compte"</div></div>`;
+    return;
+  }
+
+  const isChallenge = accountMode === 'challenge';
+  grid.innerHTML = list.map(a => {
+    const accTrades = allTrades.filter(t => t.challenge_name === a.id);
+    const wins = accTrades.filter(t => t.result === 'WIN').length;
+    const losses = accTrades.filter(t => t.result === 'LOSS').length;
+    const bes = accTrades.filter(t => t.result === 'BE').length;
+    const totalR = accTrades.reduce((s, t) => {
+      const r = parseFloat(t.rr || 0);
+      return s + (t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0);
+    }, 0);
+    const totalPnl = totalR * parseFloat(a.one_r || 200);
+    const wr = accTrades.length > 0 ? Math.round(wins / accTrades.length * 100) : 0;
+    const capital = parseFloat(a.capital || 50000);
+
+    // Barres de progression
+    const targetAmt = isChallenge ? capital * parseFloat(a.target || 6) / 100 : parseFloat(a.payout || 0);
+    const ddMaxAmt = isChallenge ? capital * parseFloat(a.ddmax || 4) / 100 : parseFloat(a.dd_max_amt || 2000);
+    const dllAmt = parseFloat(a.dll || 0);
+    const payoutPct = targetAmt > 0 ? Math.min(100, totalPnl / targetAmt * 100) : 0;
+    const ddPct = ddMaxAmt > 0 ? Math.min(100, Math.abs(Math.min(0, totalPnl)) / ddMaxAmt * 100) : 0;
+
+    const statusMap = { active:'green', breached:'red', passed:'blue', suspended:'yellow', funded:'green' };
+    const sc = statusMap[a.status] || 'green';
+    const statusLabel = { active:'ACTIVE', breached:'BREACHED', passed:'FUNDED ✓', suspended:'SUSPENDU', funded:'FUNDED' }[a.status] || 'ACTIVE';
+
+    // Tags règles
+    const tags = [];
+    if (a.ddtype) tags.push(`<span style="background:var(--bg-4);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;color:var(--text-2)">${a.ddtype}</span>`);
+    if (a.cons === 'oui') tags.push(`<span style="background:#8b5cf615;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;color:var(--purple)">Cons. ${a.cons_pct || 50}%</span>`);
+    if (a.min_pnl > 0 || a.min_pnl_day > 0) tags.push(`<span style="background:var(--bg-4);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;color:var(--text-2)">Min $${a.min_pnl || a.min_pnl_day}/j</span>`);
+
+    // Jours tradés (nombre de jours distincts avec des trades)
+    const tradingDays = new Set(accTrades.map(t => t.date)).size;
+    const minDays = parseInt(a.mindays || 0);
+
+    return `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;transition:border-color .2s" onmouseenter="this.style.borderColor='var(--border-light)'" onmouseleave="this.style.borderColor='var(--border)'">
+
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">${a.broker}</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text-0)">${a.name}</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:1px">$${Number(capital).toLocaleString()} · 1R=$${a.one_r || 200}</div>
+        </div>
+        <span class="pill ${sc}" style="font-size:10px;font-weight:800;letter-spacing:.5px">${statusLabel}</span>
+      </div>
+
+      <!-- Tags règles -->
+      ${tags.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">${tags.join('')}</div>` : ''}
+
+      <!-- Barres progression -->
+      ${targetAmt > 0 ? `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:4px">
+          <span>${isChallenge ? 'Objectif Profit' : 'Objectif Payout'}</span>
+          <span style="font-family:var(--mono);font-weight:600;color:${totalPnl >= 0 ? 'var(--green)' : 'var(--red)'}">$${Math.round(totalPnl).toLocaleString()} / $${Math.round(targetAmt).toLocaleString()}</span>
+        </div>
+        <div style="height:5px;background:var(--bg-4);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.max(0, payoutPct)}%;background:${payoutPct >= 100 ? 'var(--green)' : 'var(--accent)'};border-radius:3px;transition:width .5s"></div>
+        </div>
+      </div>` : ''}
+
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:4px">
+          <span>Drawdown</span>
+          <span style="font-family:var(--mono);font-weight:600;color:${ddPct > 70 ? 'var(--red)' : 'var(--text-2)'}">$${Math.round(Math.abs(Math.min(0, totalPnl))).toLocaleString()} / $${Math.round(ddMaxAmt).toLocaleString()}</span>
+        </div>
+        <div style="height:5px;background:var(--bg-4);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.min(100, ddPct)}%;background:${ddPct > 70 ? 'var(--red)' : ddPct > 40 ? 'var(--yellow)' : 'var(--blue)'};border-radius:3px;transition:width .5s"></div>
+        </div>
+      </div>
+
+      ${dllAmt > 0 ? `
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:4px">
+          <span>Daily Loss Limit</span>
+          <span style="font-family:var(--mono);font-weight:600;color:var(--text-2)">$0 / $${dllAmt.toLocaleString()}</span>
+        </div>
+        <div style="height:5px;background:var(--bg-4);border-radius:3px"></div>
+      </div>` : ''}
+
+      <!-- Mini stats -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px">
+        <div style="background:var(--bg-3);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Trades</div>
+          <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text-0)">${accTrades.length} <span style="font-size:10px;color:var(--green)">${wins}W</span> <span style="font-size:10px;color:var(--red)">${losses}L</span> <span style="font-size:10px;color:var(--text-3)">${bes}B</span></div>
+        </div>
+        <div style="background:var(--bg-3);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Win Rate</div>
+          <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:${wr >= 50 ? 'var(--green)' : 'var(--red)'}">${accTrades.length > 0 ? wr + '%' : '—'}</div>
+        </div>
+        <div style="background:var(--bg-3);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Total R</div>
+          <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:${totalR >= 0 ? 'var(--green)' : 'var(--red)'}">${totalR >= 0 ? '+' : ''}${totalR.toFixed(1)}R</div>
+        </div>
+        <div style="background:var(--bg-3);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">PnL Total</div>
+          <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:${totalPnl >= 0 ? 'var(--green)' : 'var(--red)'}">${totalPnl >= 0 ? '+' : ''}$${Math.round(totalPnl).toLocaleString()}</div>
+        </div>
+        ${!isChallenge ? `
+        <div style="background:var(--bg-3);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Payouts</div>
+          <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--purple)">€0</div>
+        </div>` : ''}
+        <div style="background:var(--bg-3);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Jours</div>
+          <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text-0)">${tradingDays}${minDays > 0 ? '/' + minDays : ''}</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${!isChallenge ? `<button class="btn-outline" style="font-size:11px;flex:1" onclick="openPayoutModal('${a.id}')">💰 Payout reçu</button>` : ''}
+        <button class="btn-outline" style="font-size:11px;flex:1" onclick="editAccount('${a.id}','${accountMode}')">✏️ Modifier</button>
+        <button class="btn-outline" style="font-size:11px;flex:1" onclick="analyzeAccount('${a.id}')">📊 Analyser</button>
+        <button class="btn-icon" style="width:32px;height:32px;font-size:13px;color:var(--red);flex-shrink:0" onclick="deleteAccount('${a.id}','${accountMode}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadPayoutsPage(grid) {
+  const { data } = await sb.from('payouts').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
+  if (!data?.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">💸</div><div class="empty-title">Aucun payout enregistré</div><div class="empty-sub">Enregistre tes payouts depuis tes cartes Funded</div></div>';
+    return;
+  }
+  const total = data.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+  grid.innerHTML = `<div style="grid-column:1/-1">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:20px">
+      <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase">Total payouts reçus</div><div style="font-size:28px;font-weight:800;font-family:var(--mono);color:var(--green)">$${total.toLocaleString()}</div></div>
+      <div style="margin-left:auto"><div style="font-size:11px;color:var(--text-3)">${data.length} payout(s)</div></div>
+    </div>
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>Compte</th><th>Montant</th><th>Notes</th><th>Statut</th></tr></thead>
+        <tbody>${data.map(p => `<tr>
+          <td>${p.date || '—'}</td>
+          <td style="font-weight:600">${p.account_name || '—'}</td>
+          <td class="mono" style="color:var(--green);font-weight:700">+$${parseFloat(p.amount).toLocaleString()}</td>
+          <td style="color:var(--text-3);font-size:12px">${p.notes || '—'}</td>
+          <td><span class="pill green">Reçu</span></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function analyzeAccount(id) {
+  // Filtrer le journal sur ce compte et naviguer vers analytics
+  const el = document.getElementById('analytics-account');
+  if (el) el.value = id;
+  navigate('analytics');
+  setTimeout(() => loadAnalytics(), 100);
 }
 
 // ============================================
