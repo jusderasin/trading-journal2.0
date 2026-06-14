@@ -27,43 +27,43 @@
    Dark fintech, accent vert néon, mono data
    ============================================ */
 :root {
-  --bg-0: #070b14;
-  --bg-1: #0d1220;
-  --bg-2: #111827;
-  --bg-3: #1a2235;
-  --bg-4: #1e293b;
-  --border: #1e293b;
-  --border-light: #2d3748;
+  --bg-0: #040608;
+  --bg-1: #07090f;
+  --bg-2: #0c0f19;
+  --bg-3: #111520;
+  --bg-4: #161b28;
+  --border: #161b28;
+  --border-light: #1e2535;
 
-  --text-0: #f1f5f9;
-  --text-1: #cbd5e1;
-  --text-2: #94a3b8;
-  --text-3: #64748b;
-  --text-4: #475569;
+  --text-0: #e8edf5;
+  --text-1: #b0bacf;
+  --text-2: #7a8599;
+  --text-3: #4a5568;
+  --text-4: #2d3748;
 
-  --green: #00d4a0;
-  --green-dim: #00d4a020;
-  --green-mid: #00d4a040;
-  --red: #f43f5e;
-  --red-dim: #f43f5e15;
-  --yellow: #f59e0b;
-  --blue: #3b82f6;
-  --purple: #8b5cf6;
-  --cyan: #06b6d4;
+  --green: #00c896;
+  --green-dim: #00c89612;
+  --green-mid: #00c89630;
+  --red: #e8354f;
+  --red-dim: #e8354f10;
+  --yellow: #e8a020;
+  --blue: #3b7dd8;
+  --purple: #7c55e8;
+  --cyan: #00b8d4;
 
-  --accent: #00d4a0;
-  --accent-dim: #00d4a015;
-  --accent-glow: 0 0 20px #00d4a030;
+  --accent: #00c896;
+  --accent-dim: #00c89610;
+  --accent-glow: 0 0 20px #00c89625;
 
-  --radius: 10px;
-  --radius-lg: 14px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 4px 32px rgba(0,0,0,0.6);
 
   --font: 'Inter', -apple-system, sans-serif;
   --mono: 'JetBrains Mono', monospace;
 
-  --sidebar-w: 220px;
-  --header-h: 56px;
+  --sidebar-w: 200px;
+  --header-h: 52px;
 }
 
 /* LIGHT MODE */
@@ -1338,7 +1338,9 @@ input[type="range"]::-webkit-slider-thumb {
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
-      <div class="logo-mark">📊</div>
+      <div class="logo-mark" style="background:none;box-shadow:none">
+        <img src="data:image/png;base64,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" style="width:48px;height:48px;border-radius:12px;object-fit:cover">
+      </div>
       <h1>TradingZone</h1>
       <p>Le journal de trading ultime</p>
     </div>
@@ -1399,7 +1401,9 @@ input[type="range"]::-webkit-slider-thumb {
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div class="lm">📊</div>
+      <div class="lm" style="background:none;box-shadow:none;padding:0">
+        <img src="data:image/png;base64,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" style="width:32px;height:32px;border-radius:8px;object-fit:cover">
+      </div>
       <span>TradingZone</span>
     </div>
 
@@ -1740,7 +1744,6 @@ input[type="range"]::-webkit-slider-thumb {
       <div class="tabs" style="margin-bottom:16px">
         <div class="tab active" onclick="setAccountType('challenge', this)">⚡ Evaluation</div>
         <div class="tab" onclick="setAccountType('funded', this)">💰 Funded</div>
-        <div class="tab" onclick="setAccountType('payouts', this)">💸 Payouts</div>
       </div>
 
       <div id="accounts-grid" class="grid-3"></div>
@@ -1904,45 +1907,16 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
 
         <div class="card">
-          <div class="card-header"><div class="card-title">Objectifs de Performance</div></div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Objectif PnL mensuel ($)</label>
-              <input type="number" id="goal-pnl" placeholder="5000">
-            </div>
-            <div class="form-group">
-              <label>Objectif Win Rate (%)</label>
-              <input type="number" id="goal-wr" placeholder="60">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Max trades/jour</label>
-              <input type="number" id="goal-max-trades" placeholder="5">
-            </div>
-            <div class="form-group">
-              <label>Max perte journalière ($)</label>
-              <input type="number" id="goal-max-loss" placeholder="500">
-            </div>
-          </div>
-          <button class="btn-sm" onclick="saveGoals()">Sauvegarder les objectifs</button>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><div class="card-title">Tags & Setups Personnalisés</div></div>
-          <div id="custom-tags-list" style="margin-bottom:12px"></div>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="new-tag-name" placeholder="Nom du setup" style="flex:1;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:9px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
-            <input type="color" id="new-tag-color" value="#00d4a0" style="width:42px;height:40px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg-3)">
-            <button class="btn-sm" onclick="addCustomTag()">Ajouter</button>
+          <div class="card-header"><div class="card-title">Données</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-outline" onclick="openImportModal('import')">📥 Importer des trades</button>
+            <button class="btn-outline" onclick="openImportModal('export')">📤 Exporter mes données</button>
           </div>
         </div>
 
         <div class="card">
           <div class="card-header"><div class="card-title">Compte</div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn-outline" onclick="openImportModal('export')">📤 Exporter mes données</button>
-            <button class="btn-outline" onclick="openImportModal('import')">📥 Importer des trades</button>
             <button class="btn-outline" style="color:var(--red);border-color:var(--red)" onclick="doLogout()">🚪 Déconnexion</button>
           </div>
         </div>
@@ -2958,7 +2932,30 @@ async function syncCommunityStats(optIn, pseudo) {
 }
 
 function uploadAvatar() {
-  toast('Upload avatar: crée un bucket "avatars" dans Supabase Storage et active Public.', 'error');
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return toast('Image trop grande (max 2MB)', 'error');
+    // Encoder en base64 et stocker dans le profil
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result;
+      const { error } = await sb.from('profiles').update({ avatar_url: base64 }).eq('id', currentUser.id);
+      if (error) return toast('Erreur upload: ' + error.message, 'error');
+      currentProfile.avatar_url = base64;
+      // Mettre à jour tous les avatars affichés
+      document.querySelectorAll('#sidebar-avatar, #profile-avatar-big').forEach(el => {
+        if (el.id === 'profile-avatar-big') el.innerHTML = `<img src="${base64}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`;
+        else el.innerHTML = `<img src="${base64}" alt="avatar">`;
+      });
+      toast('Photo de profil mise à jour ✓', 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
 }
 
 // ============================================
@@ -3319,7 +3316,7 @@ function renderAccounts() {
 
       <!-- Actions -->
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${!isChallenge ? `<button class="btn-outline" style="font-size:11px;flex:1" onclick="openPayoutModal('${a.id}')">💰 Payout reçu</button>` : ''}
+        ${isChallenge ? `<button class="btn-sm" style="font-size:11px;flex:1;background:var(--yellow);color:#000" onclick="promoteToFunded('${a.id}')">🚀 Passer en Funded</button>` : ''}
         <button class="btn-outline" style="font-size:11px;flex:1" onclick="editAccount('${a.id}','${accountMode}')">✏️ Modifier</button>
         <button class="btn-outline" style="font-size:11px;flex:1" onclick="analyzeAccount('${a.id}')">📊 Analyser</button>
         <button class="btn-icon" style="width:32px;height:32px;font-size:13px;color:var(--red);flex-shrink:0" onclick="deleteAccount('${a.id}','${accountMode}')">🗑️</button>
@@ -3356,11 +3353,43 @@ async function loadPayoutsPage(grid) {
 }
 
 function analyzeAccount(id) {
-  // Filtrer le journal sur ce compte et naviguer vers analytics
   const el = document.getElementById('analytics-account');
   if (el) el.value = id;
   navigate('analytics');
   setTimeout(() => loadAnalytics(), 100);
+}
+
+async function promoteToFunded(challengeId) {
+  const challenge = allAccounts.challenges.find(a => a.id === challengeId);
+  if (!challenge) return;
+  if (!confirm(`Passer "${challenge.name}" en Funded ? Le compte eval sera supprimé et un compte Funded sera créé.`)) return;
+
+  // Créer le compte funded avec les mêmes infos
+  const fundedData = {
+    user_id: currentUser.id,
+    broker: challenge.broker,
+    name: challenge.name,
+    capital: challenge.capital,
+    one_r: challenge.one_r,
+    dd_max_amt: Math.round(parseFloat(challenge.capital || 50000) * parseFloat(challenge.ddmax || 4) / 100),
+    dll: challenge.dll || 0,
+    ddtype: challenge.ddtype || 'EOD',
+    cons: challenge.cons || 'non',
+    cons_pct: challenge.cons_pct || null,
+    start_date: new Date().toISOString().split('T')[0]
+  };
+
+  const { error: insertErr } = await sb.from('funded').insert(fundedData);
+  if (insertErr) return toast('Erreur: ' + insertErr.message, 'error');
+
+  // Supprimer le compte eval
+  await sb.from('challenges').delete().eq('id', challengeId);
+
+  await loadAccounts();
+  populateAccountSelects();
+  // Switcher sur l'onglet Funded
+  setAccountType('funded', document.querySelectorAll('#page-accounts .tab')[1]);
+  toast(`"${challenge.name}" passé en Funded ✓`, 'success');
 }
 
 // ============================================
