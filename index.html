@@ -1812,24 +1812,71 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn-sm" onclick="openAddSession()">+ Nouvelle session</button>
       </div>
 
-      <div class="grid-2">
-        <!-- Sessions list -->
-        <div class="gap-16" id="bt-sessions-list"></div>
+      <!-- Sessions list -->
+      <div id="bt-sessions-list" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
 
-        <!-- Session detail -->
-        <div id="bt-session-detail" style="display:none">
+      <!-- Session detail (full width) -->
+      <div id="bt-session-detail" style="display:none">
+          <!-- Header + KPIs -->
           <div class="card" style="margin-bottom:16px">
             <div id="bt-session-info"></div>
-            <div style="margin-top:12px;display:flex;gap:8px">
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
               <button class="btn-sm" onclick="openAddBtTrade()">+ Ajouter trade BT</button>
+              <button class="btn-outline" onclick="openImportModal('import');setImportFlux('bt')">📥 Import</button>
               <button class="btn-outline" onclick="exportBtCsv()">📤 Export</button>
             </div>
           </div>
-          <div class="card" style="overflow:hidden;padding:0">
+
+          <!-- Analytics BT -->
+          <div id="bt-analytics" class="gap-16">
+            <!-- Equity + Daily -->
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header"><div class="card-title">Equity Curve (R)</div></div>
+                <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-equity"></canvas></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">PnL par Jour</div></div>
+                <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-daily"></canvas></div>
+              </div>
+            </div>
+
+            <!-- RR Distribution + WR par direction -->
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header"><div class="card-title">Distribution des RR</div></div>
+                <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-rr"></canvas></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">Long vs Short</div></div>
+                <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-ls"></canvas></div>
+              </div>
+            </div>
+
+            <!-- Drawdown + Heatmap -->
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header"><div class="card-title">Drawdown</div></div>
+                <div class="chart-wrap" style="height:160px"><canvas id="bt-chart-dd"></canvas></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">Streaks</div></div>
+                <div id="bt-streaks"></div>
+              </div>
+            </div>
+
+            <!-- Heatmap heure x jour -->
+            <div class="card">
+              <div class="card-header"><div class="card-title">Heatmap PnL — Heure × Jour</div></div>
+              <div id="bt-heatmap"></div>
+            </div>
+          </div>
+
+          <!-- Trades table -->
+          <div class="card" style="overflow:hidden;padding:0;margin-top:16px">
             <div id="bt-trades-table"></div>
           </div>
         </div>
-      </div>
     </div>
 
     <!-- ========== PAGE: COMMUNITY ========== -->
@@ -4724,15 +4771,14 @@ function renderBtSessions() {
     return;
   }
   el.innerHTML = btSessions.map(s => `
-    <div class="card" style="cursor:pointer;transition:border-color 0.2s" onclick="selectBtSession('${s.id}')" id="bt-session-card-${s.id}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;cursor:pointer;transition:border-color 0.2s;min-width:180px;flex:1;max-width:320px" onclick="selectBtSession('${s.id}')" id="bt-session-card-${s.id}" onmouseenter="this.style.borderColor='var(--border-light)'" onmouseleave="if(!this.classList.contains('selected'))this.style.borderColor='var(--border)'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-0)">${s.name}</div>
-          <div style="font-size:11px;color:var(--text-3)">${s.instrument} · ${s.tf} · ${s.from_date || ''} → ${s.to_date || ''}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text-0)">${s.name}</div>
+          <div style="font-size:10px;color:var(--text-3)">${s.instrument} · ${s.tf}</div>
         </div>
-        <button class="btn-icon" style="font-size:13px;color:var(--red)" onclick="event.stopPropagation();deleteBtSession('${s.id}')">🗑️</button>
+        <button class="btn-icon" style="width:22px;height:22px;font-size:11px;color:var(--red)" onclick="event.stopPropagation();deleteBtSession('${s.id}')">✕</button>
       </div>
-      ${s.notes ? `<div style="font-size:12px;color:var(--text-3);line-height:1.4">${s.notes.slice(0, 80)}${s.notes.length > 80 ? '...' : ''}</div>` : ''}
     </div>
   `).join('');
 }
@@ -4745,54 +4791,284 @@ async function selectBtSession(id) {
   renderBtSessionDetail(currentBtSession, trades || []);
 }
 
+let btEquityChart=null, btDailyChart=null, btRrChart=null, btLsChart=null, btDdChart=null;
+
 function renderBtSessionDetail(session, trades) {
   const detail = document.getElementById('bt-session-detail');
   detail.style.display = 'block';
-  const stats = calcBtStats(trades, parseFloat(session.one_r || 200));
+  const oneR = parseFloat(session.one_r || 200);
+  const stats = calcBtStats(trades, oneR);
+
+  // KPIs header — 8 métriques
   document.getElementById('bt-session-info').innerHTML = `
-    <div style="margin-bottom:12px">
-      <div style="font-size:16px;font-weight:700;color:var(--text-0);margin-bottom:4px">${session.name}</div>
-      <div style="font-size:12px;color:var(--text-3)">${session.instrument} · ${session.tf}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--text-0)">${session.name}</div>
+        <div style="font-size:12px;color:var(--text-3)">${session.instrument} · ${session.tf} · ${session.from_date || ''} → ${session.to_date || ''}</div>
+      </div>
     </div>
-    <div class="grid-4" style="gap:10px">
-      <div class="kpi-card" style="padding:12px"><div class="kpi-label">Trades</div><div class="kpi-value" style="font-size:20px">${trades.length}</div></div>
-      <div class="kpi-card" style="padding:12px"><div class="kpi-label">Win Rate</div><div class="kpi-value ${stats.wr >= 50 ? 'green' : 'red'}" style="font-size:20px">${stats.wr}%</div></div>
-      <div class="kpi-card" style="padding:12px"><div class="kpi-label">Profit Factor</div><div class="kpi-value" style="font-size:20px">${stats.pf}</div></div>
-      <div class="kpi-card" style="padding:12px"><div class="kpi-label">PnL Total</div><div class="kpi-value ${stats.pnl >= 0 ? 'green' : 'red'}" style="font-size:20px">${stats.pnl >= 0 ? '+' : ''}$${Math.round(stats.pnl)}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <div style="background:var(--bg-3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Trades</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text-0)">${trades.length}</div>
+        <div style="font-size:10px;color:var(--text-3)">${stats.wins}W · ${stats.losses}L · ${stats.bes}BE</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Win Rate</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--${parseFloat(stats.wr)>=50?'green':'red'})">${stats.wr}%</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Profit Factor</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text-0)">${stats.pf}</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Total R</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--${stats.totalR>=0?'green':'red'})">${stats.totalR>=0?'+':''}${stats.totalR.toFixed(1)}R</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">PnL</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--${stats.pnl>=0?'green':'red'})">${stats.pnl>=0?'+':''}$${Math.round(stats.pnl).toLocaleString()}</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Expectancy</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--${stats.exp>=0?'green':'red'})">${stats.exp>=0?'+':''}${stats.exp.toFixed(1)}R</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Max DD</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--red)">${stats.maxDd.toFixed(1)}R</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Jours</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text-0)">${stats.tradingDays}</div>
+      </div>
     </div>
   `;
 
+  // Trades table
   const tableWrap = document.getElementById('bt-trades-table');
   if (!trades.length) {
-    tableWrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-icon">📋</div><div class="empty-title">Aucun trade BT</div></div>';
+    tableWrap.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-title">Aucun trade BT</div></div>';
+    document.getElementById('bt-analytics').style.display = 'none';
     return;
   }
+
+  document.getElementById('bt-analytics').style.display = 'flex';
+
   tableWrap.innerHTML = `<table class="data-table">
-    <thead><tr><th>Date</th><th>Heure</th><th>Dir</th><th>Résultat</th><th>RR</th><th>PnL</th><th></th></tr></thead>
-    <tbody>${trades.map(t => {
-      const pnl = parseFloat(session.one_r || 200) * parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
-      return `<tr>
-        <td>${t.date}</td>
-        <td class="mono">${t.entry_time || '—'}</td>
-        <td><span class="pill ${t.direction === 'LONG' ? 'green' : 'red'}">${t.direction}</span></td>
-        <td><span class="pill ${t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow'}">${t.result}</span></td>
-        <td class="mono">${t.rr}R</td>
-        <td class="mono" style="color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</td>
-        <td><button class="btn-icon" style="width:26px;height:26px;font-size:12px;color:var(--red)" onclick="deleteBtTrade('${t.id}')">🗑️</button></td>
-      </tr>`;
-    }).join('')}</tbody>
+    <thead><tr><th>#</th><th>Date</th><th>Heure</th><th>Dir</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Cum R</th><th></th></tr></thead>
+    <tbody>${(() => {
+      let cumR = 0;
+      return trades.map((t, i) => {
+        const r = parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+        cumR += r;
+        const pnl = r * oneR;
+        return `<tr>
+          <td style="color:var(--text-4)">${i + 1}</td>
+          <td>${t.date}</td>
+          <td class="mono">${t.entry_time || '—'}</td>
+          <td><span class="pill ${t.direction === 'LONG' ? 'green' : 'red'}">${t.direction}</span></td>
+          <td><span class="pill ${t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow'}">${t.result}</span></td>
+          <td class="mono">${t.result === 'WIN' ? '+' : t.result === 'LOSS' ? '-' : ''}${t.rr}R</td>
+          <td class="mono" style="color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</td>
+          <td class="mono" style="font-weight:700;color:${cumR >= 0 ? 'var(--green)' : 'var(--red)'}">${cumR >= 0 ? '+' : ''}${cumR.toFixed(1)}R</td>
+          <td><button class="btn-icon" style="width:24px;height:24px;font-size:11px;color:var(--red)" onclick="deleteBtTrade('${t.id}')">✕</button></td>
+        </tr>`;
+      }).join('');
+    })()}</tbody>
   </table>`;
+
+  // Render BT charts
+  renderBtCharts(trades, oneR, stats);
+}
+
+function renderBtCharts(trades, oneR, stats) {
+  const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+  const gridColor = '#161b28';
+  const tickOpts = { color: '#4a5568', font: { family: 'JetBrains Mono', size: 10 } };
+
+  // --- EQUITY CURVE (en R) ---
+  let cumR = 0;
+  const eqLabels = [], eqData = [];
+  trades.forEach((t, i) => {
+    cumR += parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    eqLabels.push(i + 1);
+    eqData.push(parseFloat(cumR.toFixed(1)));
+  });
+  const lastR = eqData[eqData.length - 1] || 0;
+  const eqColor = lastR >= 0 ? '#00c896' : '#e8354f';
+
+  if (btEquityChart) btEquityChart.destroy();
+  btEquityChart = new Chart(document.getElementById('bt-chart-equity'), {
+    type: 'line',
+    data: { labels: eqLabels, datasets: [{ data: eqData, borderColor: eqColor, backgroundColor: eqColor + '12', fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2 }] },
+    options: { ...chartOpts, scales: { x: { display: false }, y: { grid: { color: gridColor }, ticks: { ...tickOpts, callback: v => v + 'R' } } }, plugins: { ...chartOpts.plugins, tooltip: { callbacks: { label: c => c.raw + 'R ($' + Math.round(c.raw * oneR) + ')' } } } }
+  });
+
+  // --- PNL PAR JOUR ---
+  const byDay = {};
+  trades.forEach(t => {
+    const r = parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    byDay[t.date] = (byDay[t.date] || 0) + r;
+  });
+  const dayLabels = Object.keys(byDay).sort();
+  const dayVals = dayLabels.map(d => parseFloat(byDay[d].toFixed(1)));
+
+  if (btDailyChart) btDailyChart.destroy();
+  btDailyChart = new Chart(document.getElementById('bt-chart-daily'), {
+    type: 'bar',
+    data: { labels: dayLabels, datasets: [{ data: dayVals, backgroundColor: dayVals.map(v => v >= 0 ? '#00c89625' : '#e8354f18'), borderColor: dayVals.map(v => v >= 0 ? '#00c896' : '#e8354f'), borderWidth: 1, borderRadius: 4 }] },
+    options: { ...chartOpts, scales: { x: { ticks: { ...tickOpts, maxRotation: 45 }, grid: { display: false } }, y: { grid: { color: gridColor }, ticks: { ...tickOpts, callback: v => v + 'R' } } } }
+  });
+
+  // --- DISTRIBUTION RR ---
+  const rrBuckets = {};
+  trades.forEach(t => {
+    const rr = (parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0)).toFixed(1);
+    rrBuckets[rr] = (rrBuckets[rr] || 0) + 1;
+  });
+  const rrLabels = Object.keys(rrBuckets).sort((a, b) => parseFloat(a) - parseFloat(b));
+
+  if (btRrChart) btRrChart.destroy();
+  btRrChart = new Chart(document.getElementById('bt-chart-rr'), {
+    type: 'bar',
+    data: { labels: rrLabels.map(l => l + 'R'), datasets: [{ data: rrLabels.map(l => rrBuckets[l]), backgroundColor: rrLabels.map(l => parseFloat(l) >= 0 ? '#00c89625' : '#e8354f18'), borderColor: rrLabels.map(l => parseFloat(l) >= 0 ? '#00c896' : '#e8354f'), borderWidth: 1, borderRadius: 4 }] },
+    options: { ...chartOpts, scales: { x: { ticks: tickOpts, grid: { display: false } }, y: { ticks: tickOpts, grid: { color: gridColor } } } }
+  });
+
+  // --- LONG VS SHORT ---
+  const longTrades = trades.filter(t => t.direction === 'LONG');
+  const shortTrades = trades.filter(t => t.direction === 'SHORT');
+  const longWr = longTrades.length > 0 ? Math.round(longTrades.filter(t => t.result === 'WIN').length / longTrades.length * 100) : 0;
+  const shortWr = shortTrades.length > 0 ? Math.round(shortTrades.filter(t => t.result === 'WIN').length / shortTrades.length * 100) : 0;
+  const longR = longTrades.reduce((s, t) => s + parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0), 0);
+  const shortR = shortTrades.reduce((s, t) => s + parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0), 0);
+
+  if (btLsChart) btLsChart.destroy();
+  btLsChart = new Chart(document.getElementById('bt-chart-ls'), {
+    type: 'doughnut',
+    data: { labels: [`Long (${longWr}% WR · ${longR>=0?'+':''}${longR.toFixed(1)}R)`, `Short (${shortWr}% WR · ${shortR>=0?'+':''}${shortR.toFixed(1)}R)`], datasets: [{ data: [longTrades.length, shortTrades.length], backgroundColor: ['#00c89625', '#e8354f18'], borderColor: ['#00c896', '#e8354f'], borderWidth: 2 }] },
+    options: { ...chartOpts, plugins: { legend: { display: true, position: 'bottom', labels: { color: '#7a8599', font: { size: 11 } } } } }
+  });
+
+  // --- DRAWDOWN ---
+  let peak = 0; cumR = 0;
+  const ddLabels = [], ddData = [];
+  trades.forEach((t, i) => {
+    cumR += parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    if (cumR > peak) peak = cumR;
+    ddLabels.push(i + 1);
+    ddData.push(-parseFloat(Math.max(0, peak - cumR).toFixed(1)));
+  });
+
+  if (btDdChart) btDdChart.destroy();
+  btDdChart = new Chart(document.getElementById('bt-chart-dd'), {
+    type: 'line',
+    data: { labels: ddLabels, datasets: [{ data: ddData, borderColor: '#e8354f', backgroundColor: '#e8354f10', fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }] },
+    options: { ...chartOpts, scales: { x: { display: false }, y: { ticks: { ...tickOpts, callback: v => v + 'R' }, grid: { color: gridColor } } } }
+  });
+
+  // --- STREAKS ---
+  let winStreak = 0, lossStreak = 0, maxWinStreak = 0, maxLossStreak = 0, currentStreak = 0, currentType = '';
+  trades.forEach(t => {
+    if (t.result === 'WIN') { if (currentType === 'WIN') currentStreak++; else { currentStreak = 1; currentType = 'WIN'; } maxWinStreak = Math.max(maxWinStreak, currentStreak); }
+    else if (t.result === 'LOSS') { if (currentType === 'LOSS') currentStreak++; else { currentStreak = 1; currentType = 'LOSS'; } maxLossStreak = Math.max(maxLossStreak, currentStreak); }
+    else { currentStreak = 0; currentType = ''; }
+  });
+
+  document.getElementById('bt-streaks').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Max Win Streak</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--green)">${maxWinStreak}</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Max Loss Streak</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--red)">${maxLossStreak}</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Jours verts</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--green)">${stats.greenDays}</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Jours rouges</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--red)">${stats.redDays}</div>
+      </div>
+    </div>
+  `;
+
+  // --- HEATMAP ---
+  renderBtHeatmap(trades);
+}
+
+function renderBtHeatmap(trades) {
+  const container = document.getElementById('bt-heatmap');
+  const hours = Array.from({ length: 17 }, (_, i) => i + 2); // 2h → 18h Paris
+  const days = ['Lun','Mar','Mer','Jeu','Ven'];
+  const grid = {};
+  trades.forEach(t => {
+    if (!t.entry_time) return;
+    const hour = parseInt(t.entry_time.split(':')[0]);
+    const d = new Date(t.date + 'T00:00:00');
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) return;
+    const dayIdx = dow - 1;
+    const key = dayIdx + '-' + hour;
+    if (!grid[key]) grid[key] = { r: 0, count: 0 };
+    grid[key].r += parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    grid[key].count++;
+  });
+  const allR = Object.values(grid).map(v => v.r);
+  const maxR = Math.max(...allR.map(Math.abs), 1);
+  let html = '<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:35px repeat(' + hours.length + ',1fr);gap:2px;min-width:500px">';
+  html += '<div></div>';
+  hours.forEach(h => { html += '<div style="font-size:9px;font-weight:600;color:var(--text-4);text-align:center;padding:2px 0">' + h + 'h</div>'; });
+  days.forEach((day, di) => {
+    html += '<div style="font-size:9px;font-weight:700;color:var(--text-3);display:flex;align-items:center">' + day + '</div>';
+    hours.forEach(h => {
+      const cell = grid[di + '-' + h];
+      const r = cell ? cell.r : 0;
+      const count = cell ? cell.count : 0;
+      const intensity = Math.abs(r) / maxR;
+      const bg = r > 0 ? 'rgba(0,200,150,' + (0.08 + intensity * 0.5) + ')' : r < 0 ? 'rgba(232,53,79,' + (0.08 + intensity * 0.5) + ')' : 'var(--bg-4)';
+      html += '<div style="background:' + bg + ';border-radius:2px;height:24px" title="' + (count > 0 ? count + ' trade(s) | ' + r.toFixed(1) + 'R' : '—') + '"></div>';
+    });
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
 }
 
 function calcBtStats(trades, oneR) {
   const wins = trades.filter(t => t.result === 'WIN');
   const losses = trades.filter(t => t.result === 'LOSS');
+  const bes = trades.filter(t => t.result === 'BE');
   const wr = trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0;
-  const totalWin = wins.reduce((s, t) => s + oneR * parseFloat(t.rr || 0), 0);
-  const totalLoss = losses.reduce((s, t) => s + oneR * parseFloat(t.rr || 0), 0);
-  const pf = totalLoss > 0 ? (totalWin / totalLoss).toFixed(2) : '∞';
-  const pnl = totalWin - totalLoss;
-  return { wr, pf, pnl };
+  const totalWin = wins.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
+  const totalLoss = losses.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
+  const pf = totalLoss > 0 ? (totalWin / totalLoss).toFixed(2) : wins.length > 0 ? '∞' : '0.0';
+  const totalR = totalWin - totalLoss;
+  const pnl = totalR * oneR;
+  const exp = trades.length > 0 ? totalR / trades.length : 0;
+
+  // Max drawdown in R
+  let peak = 0, cumR = 0, maxDd = 0;
+  trades.forEach(t => {
+    cumR += parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    if (cumR > peak) peak = cumR;
+    const dd = peak - cumR;
+    if (dd > maxDd) maxDd = dd;
+  });
+
+  // Days
+  const byDay = {};
+  trades.forEach(t => {
+    const r = parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    byDay[t.date] = (byDay[t.date] || 0) + r;
+  });
+  const greenDays = Object.values(byDay).filter(v => v > 0).length;
+  const redDays = Object.values(byDay).filter(v => v < 0).length;
+  const tradingDays = Object.keys(byDay).length;
+
+  return { wr, pf, pnl, totalR, exp, maxDd, wins: wins.length, losses: losses.length, bes: bes.length, greenDays, redDays, tradingDays };
 }
 
 function openAddSession() { openModal('modal-bt-session'); }
