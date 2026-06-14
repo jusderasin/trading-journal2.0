@@ -18,6 +18,9 @@
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
+<!-- SheetJS (Excel import/export) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <style>
 /* ============================================
    DESIGN SYSTEM — TRADINGZONE
@@ -1572,7 +1575,8 @@ input[type="range"]::-webkit-slider-thumb {
           <div class="section-sub" id="journal-count">0 trades</div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn-outline" onclick="openImportModal()">📥 Import CSV</button>
+          <button class="btn-outline" onclick="openImportModal('import')">📥 Import</button>
+          <button class="btn-outline" onclick="openImportModal('export')">📤 Export</button>
           <button class="btn-sm" onclick="openAddTrade()">+ Nouveau Trade</button>
         </div>
       </div>
@@ -1762,7 +1766,7 @@ input[type="range"]::-webkit-slider-thumb {
             <div id="bt-session-info"></div>
             <div style="margin-top:12px;display:flex;gap:8px">
               <button class="btn-sm" onclick="openAddBtTrade()">+ Ajouter trade BT</button>
-              <button class="btn-outline" onclick="exportBtCsv()">📥 Export CSV</button>
+              <button class="btn-outline" onclick="exportBtCsv()">📤 Export</button>
             </div>
           </div>
           <div class="card" style="overflow:hidden;padding:0">
@@ -1937,7 +1941,8 @@ input[type="range"]::-webkit-slider-thumb {
         <div class="card">
           <div class="card-header"><div class="card-title">Compte</div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn-outline" onclick="exportAllData()">📥 Exporter mes données (CSV)</button>
+            <button class="btn-outline" onclick="openImportModal('export')">📤 Exporter mes données</button>
+            <button class="btn-outline" onclick="openImportModal('import')">📥 Importer des trades</button>
             <button class="btn-outline" style="color:var(--red);border-color:var(--red)" onclick="doLogout()">🚪 Déconnexion</button>
           </div>
         </div>
@@ -2395,43 +2400,200 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 </div>
 
-<!-- Modal: Import CSV -->
+<!-- Modal: Import/Export Hub -->
 <div class="modal-overlay" id="modal-import">
-  <div class="modal">
+  <div class="modal modal-wide">
     <div class="modal-header">
-      <div class="modal-title">Importer des Trades (CSV)</div>
+      <div class="modal-title" id="import-modal-title">📥 Import / Export</div>
       <button class="modal-close" onclick="closeModal('modal-import')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group" style="margin-bottom:16px">
-        <label class="form-label">Format de la plateforme</label>
-        <select id="csv-format">
-          <option value="generic">Format générique TradingZone</option>
-          <option value="rithmic">Rithmic</option>
-          <option value="ninjatrader">NinjaTrader</option>
-          <option value="tradovate">Tradovate</option>
-        </select>
-      </div>
-      <div class="form-group" style="margin-bottom:16px">
-        <label class="form-label">Compte de destination</label>
-        <select id="csv-account"></select>
+
+      <!-- Tabs: Import vs Export -->
+      <div class="tabs" style="margin-bottom:20px">
+        <div class="tab active" onclick="setImportExportTab('import', this)">📥 Importer</div>
+        <div class="tab" onclick="setImportExportTab('export', this)">📤 Exporter</div>
       </div>
 
-      <label class="drop-zone" id="csv-drop-zone">
-        <input type="file" id="csv-file" accept=".csv" onchange="handleCsvFile(event)">
-        <div class="empty-icon">📥</div>
-        <div class="empty-title">Glisse ton fichier CSV ici</div>
-        <div class="empty-sub">ou clique pour sélectionner</div>
-        <div id="csv-file-name" style="margin-top:8px;color:var(--accent);font-size:13px;display:none"></div>
-      </label>
+      <!-- ========== IMPORT PANEL ========== -->
+      <div id="import-panel">
+        <!-- Flux -->
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label">Flux de données</label>
+          <div style="display:flex;gap:8px">
+            <div class="tab active" style="flex:1;text-align:center;cursor:pointer" id="flux-live-tab" onclick="setImportFlux('live')">📝 Trading Live</div>
+            <div class="tab" style="flex:1;text-align:center;cursor:pointer" id="flux-bt-tab" onclick="setImportFlux('bt')">🔬 Backtest</div>
+          </div>
+        </div>
 
-      <div id="csv-preview" style="display:none;margin-top:16px">
-        <div style="font-size:12px;color:var(--text-3);margin-bottom:8px" id="csv-preview-info"></div>
+        <!-- Compte destination (live) -->
+        <div id="import-account-wrap" class="form-group" style="margin-bottom:16px">
+          <label class="form-label">Compte de destination *</label>
+          <select id="csv-account"></select>
+        </div>
+
+        <!-- Session destination (bt) -->
+        <div id="import-bt-session-wrap" class="form-group" style="display:none;margin-bottom:16px">
+          <label class="form-label">Session BT de destination *</label>
+          <select id="import-bt-session"></select>
+        </div>
+
+        <!-- Sub-tabs: méthode d'import -->
+        <div class="tabs" style="margin-bottom:16px">
+          <div class="tab active" onclick="setImportMethod('csv', this)">📄 CSV</div>
+          <div class="tab" onclick="setImportMethod('xlsx', this)">📊 Excel</div>
+          <div class="tab" onclick="setImportMethod('paste', this)">📋 Copier-coller</div>
+        </div>
+
+        <!-- CSV METHOD -->
+        <div id="import-method-csv">
+          <div class="form-group" style="margin-bottom:14px">
+            <label class="form-label">Plateforme source</label>
+            <select id="csv-format">
+              <option value="generic">✅ Format TradingZone (générique)</option>
+              <option value="rithmic">Rithmic R | Trader</option>
+              <option value="ninjatrader">NinjaTrader 8</option>
+              <option value="tradovate">Tradovate</option>
+              <option value="atas">ATAS / Order Flow</option>
+              <option value="quantower">QuantTower</option>
+              <option value="apex">Apex Trader Funding</option>
+            </select>
+          </div>
+
+          <label class="drop-zone" id="csv-drop-zone">
+            <input type="file" id="csv-file" accept=".csv,.txt" onchange="handleImportFile(event, 'csv')">
+            <div class="empty-icon">📄</div>
+            <div class="empty-title">Glisse ton fichier CSV ici</div>
+            <div class="empty-sub">ou clique pour sélectionner · .csv ou .txt</div>
+            <div id="csv-file-name" style="margin-top:8px;color:var(--accent);font-size:13px;font-weight:600;display:none"></div>
+          </label>
+
+          <!-- Format guide -->
+          <div id="format-guide" style="margin-top:12px;background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px;color:var(--text-3)">
+            <div style="font-weight:700;color:var(--text-2);margin-bottom:6px">📋 Format TradingZone attendu :</div>
+            <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">date,time,direction,result,rr,one_r,setup,notes</code>
+            <div style="margin-top:4px">Ex: <code style="font-family:var(--mono);font-size:11px">2026-06-14,09:30,LONG,WIN,2.5,200,CVD Div,Top du range</code></div>
+          </div>
+        </div>
+
+        <!-- XLSX METHOD -->
+        <div id="import-method-xlsx" style="display:none">
+          <label class="drop-zone" id="xlsx-drop-zone">
+            <input type="file" id="xlsx-file" accept=".xlsx,.xls" onchange="handleImportFile(event, 'xlsx')">
+            <div class="empty-icon">📊</div>
+            <div class="empty-title">Glisse ton fichier Excel ici</div>
+            <div class="empty-sub">ou clique pour sélectionner · .xlsx ou .xls</div>
+            <div id="xlsx-file-name" style="margin-top:8px;color:var(--accent);font-size:13px;font-weight:600;display:none"></div>
+          </label>
+          <div style="margin-top:12px;background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px;color:var(--text-3)">
+            <div style="font-weight:700;color:var(--text-2);margin-bottom:4px">📋 Colonnes attendues (1ère ligne = en-têtes) :</div>
+            <div>Date · Heure · Direction · Résultat · RR · 1R · Setup · Notes</div>
+            <div style="margin-top:4px;color:var(--accent)">💡 Compatible avec l'export Excel de TradingZone</div>
+          </div>
+
+          <!-- Colonne mapping si mauvais format -->
+          <div id="xlsx-mapping" style="display:none;margin-top:14px">
+            <div style="font-weight:600;color:var(--text-0);font-size:13px;margin-bottom:10px">🔧 Mapper les colonnes :</div>
+            <div id="xlsx-mapping-grid" class="grid-2" style="gap:8px"></div>
+          </div>
+        </div>
+
+        <!-- PASTE METHOD -->
+        <div id="import-method-paste" style="display:none">
+          <div style="background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px;color:var(--text-3);margin-bottom:12px">
+            <div style="font-weight:700;color:var(--text-2);margin-bottom:4px">📋 Comment ça marche :</div>
+            <div>1. Sélectionne tes trades dans Excel, Google Sheets, ou n'importe quel tableau</div>
+            <div>2. Copie (Ctrl+C / Cmd+C)</div>
+            <div>3. Colle ici (Ctrl+V / Cmd+V)</div>
+            <div style="margin-top:6px;color:var(--accent)">Colonnes attendues : Date · Heure · Direction · Résultat · RR · 1R · Setup · Notes</div>
+          </div>
+          <textarea id="paste-area" placeholder="Colle tes données ici..." rows="8" style="width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:12px;border-radius:8px;font-family:var(--mono);font-size:12px;outline:none;resize:vertical" oninput="handlePasteInput(this.value)"></textarea>
+        </div>
+
+        <!-- PREVIEW universelle -->
+        <div id="import-preview" style="display:none;margin-top:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-0)" id="import-preview-info"></div>
+            <button class="btn-outline" style="font-size:11px" onclick="clearImportPreview()">✕ Reset</button>
+          </div>
+          <div style="background:var(--bg-3);border-radius:8px;overflow:hidden;max-height:200px;overflow-y:auto">
+            <table class="data-table" id="import-preview-table" style="font-size:11px"></table>
+          </div>
+          <div id="import-errors" style="margin-top:8px;color:var(--red);font-size:12px;display:none"></div>
+        </div>
       </div>
+
+      <!-- ========== EXPORT PANEL ========== -->
+      <div id="export-panel" style="display:none">
+        <!-- Flux export -->
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label">Flux de données</label>
+          <div style="display:flex;gap:8px">
+            <div class="tab active" style="flex:1;text-align:center;cursor:pointer" id="export-flux-live-tab" onclick="setExportFlux('live')">📝 Trading Live</div>
+            <div class="tab" style="flex:1;text-align:center;cursor:pointer" id="export-flux-bt-tab" onclick="setExportFlux('bt')">🔬 Backtest</div>
+          </div>
+        </div>
+
+        <!-- Filtres export live -->
+        <div id="export-live-filters">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Compte</label>
+              <select id="export-account">
+                <option value="">Tous les comptes</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Du</label>
+              <input type="date" id="export-from">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Au</label>
+              <input type="date" id="export-to">
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtres export BT -->
+        <div id="export-bt-filters" style="display:none">
+          <div class="form-group" style="margin-bottom:14px">
+            <label class="form-label">Session BT</label>
+            <select id="export-bt-session">
+              <option value="">Toutes les sessions</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Format export -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+          <div class="account-card selected" id="export-fmt-csv" onclick="selectExportFormat('csv')" style="text-align:center;padding:16px">
+            <div style="font-size:28px;margin-bottom:6px">📄</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-0)">CSV</div>
+            <div style="font-size:11px;color:var(--text-3)">Universel</div>
+          </div>
+          <div class="account-card" id="export-fmt-xlsx" onclick="selectExportFormat('xlsx')" style="text-align:center;padding:16px">
+            <div style="font-size:28px;margin-bottom:6px">📊</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-0)">Excel</div>
+            <div style="font-size:11px;color:var(--text-3)">.xlsx formaté</div>
+          </div>
+          <div class="account-card" id="export-fmt-json" onclick="selectExportFormat('json')" style="text-align:center;padding:16px">
+            <div style="font-size:28px;margin-bottom:6px">🔧</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-0)">JSON</div>
+            <div style="font-size:11px;color:var(--text-3)">Développeurs</div>
+          </div>
+        </div>
+
+        <!-- Stats aperçu export -->
+        <div id="export-preview-stats" style="background:var(--bg-3);border-radius:8px;padding:14px">
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:8px">Aperçu de l'export :</div>
+          <div id="export-stats-content" style="color:var(--text-2);font-size:13px">Chargement...</div>
+        </div>
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn-outline" onclick="closeModal('modal-import')">Annuler</button>
-      <button class="btn-sm" onclick="importCsv()" id="import-btn" disabled>Importer</button>
+      <button class="btn-sm" id="import-action-btn" onclick="doImportExportAction()" disabled>Importer</button>
     </div>
   </div>
 </div>
@@ -3358,113 +3520,552 @@ async function deleteTrade(id) {
 // ============================================
 // CSV IMPORT
 // ============================================
-function openImportModal() {
-  const el = document.getElementById('csv-account');
-  const all = [...allAccounts.challenges.map(a => ({ ...a, type: 'challenge' })), ...allAccounts.funded.map(a => ({ ...a, type: 'funded' }))];
-  el.innerHTML = '<option value="">Sélectionne un compte</option>';
-  all.forEach(a => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.broker + ' — ' + a.name; el.appendChild(o); });
+// ============================================
+// IMPORT / EXPORT HUB
+// ============================================
+let importExportTab = 'import'; // 'import' | 'export'
+let importFlux = 'live';        // 'live' | 'bt'
+let importMethod = 'csv';       // 'csv' | 'xlsx' | 'paste'
+let exportFlux = 'live';
+let exportFormat = 'csv';
+let xlsxHeaders = [];           // colonnes détectées dans le xlsx
+
+function openImportModal(defaultTab = 'import') {
+  // Remplir les selects comptes
+  const all = [...allAccounts.challenges.map(a => ({ ...a })), ...allAccounts.funded.map(a => ({ ...a }))];
+  ['csv-account','import-bt-session','export-account'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isAccount = id !== 'import-bt-session';
+    el.innerHTML = `<option value="">${isAccount ? 'Sélectionne un compte' : 'Sélectionne une session'}</option>`;
+    if (isAccount) {
+      all.forEach(a => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.broker + ' — ' + a.name; el.appendChild(o); });
+    }
+  });
+
+  // Remplir sessions BT
+  const btSel1 = document.getElementById('import-bt-session');
+  const btSel2 = document.getElementById('export-bt-session');
+  btSessions.forEach(s => {
+    [btSel1, btSel2].forEach(sel => {
+      if (!sel) return;
+      const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; sel.appendChild(o);
+    });
+  });
+
+  // Remplir export-account
+  const expAcc = document.getElementById('export-account');
+  all.forEach(a => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.broker + ' — ' + a.name; expAcc.appendChild(o); });
+
   csvParsedData = [];
-  document.getElementById('csv-file-name').style.display = 'none';
-  document.getElementById('import-btn').disabled = true;
+  clearImportPreview();
+  setImportExportTab(defaultTab, null);
+  loadExportPreviewStats();
   openModal('modal-import');
 }
 
-function handleCsvFile(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  document.getElementById('csv-file-name').textContent = file.name;
-  document.getElementById('csv-file-name').style.display = 'block';
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const format = document.getElementById('csv-format').value;
-    csvParsedData = parseCsv(ev.target.result, format);
-    document.getElementById('csv-preview-info').textContent = csvParsedData.length + ' trade(s) détectés';
-    document.getElementById('csv-preview').style.display = 'block';
-    document.getElementById('import-btn').disabled = csvParsedData.length === 0;
-  };
-  reader.readAsText(file);
+function setImportExportTab(tab, el) {
+  importExportTab = tab;
+  document.getElementById('import-panel').style.display = tab === 'import' ? 'block' : 'none';
+  document.getElementById('export-panel').style.display = tab === 'export' ? 'block' : 'none';
+  document.querySelectorAll('#modal-import .tabs:first-of-type .tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'import')));
+  const btn = document.getElementById('import-action-btn');
+  btn.textContent = tab === 'import' ? 'Importer' : 'Télécharger';
+  btn.disabled = tab === 'export' ? false : csvParsedData.length === 0;
 }
 
-function parseCsv(text, format) {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
-  const trades = [];
+function setImportFlux(flux) {
+  importFlux = flux;
+  document.getElementById('flux-live-tab').classList.toggle('active', flux === 'live');
+  document.getElementById('flux-bt-tab').classList.toggle('active', flux === 'bt');
+  document.getElementById('import-account-wrap').style.display = flux === 'live' ? 'block' : 'none';
+  document.getElementById('import-bt-session-wrap').style.display = flux === 'bt' ? 'block' : 'none';
+}
+
+function setExportFlux(flux) {
+  exportFlux = flux;
+  document.getElementById('export-flux-live-tab').classList.toggle('active', flux === 'live');
+  document.getElementById('export-flux-bt-tab').classList.toggle('active', flux === 'bt');
+  document.getElementById('export-live-filters').style.display = flux === 'live' ? 'block' : 'none';
+  document.getElementById('export-bt-filters').style.display = flux === 'bt' ? 'block' : 'none';
+  loadExportPreviewStats();
+}
+
+function setImportMethod(method, el) {
+  importMethod = method;
+  ['csv','xlsx','paste'].forEach(m => {
+    document.getElementById('import-method-' + m).style.display = m === method ? 'block' : 'none';
+  });
+  document.querySelectorAll('#import-panel .tabs:nth-of-type(2) .tab').forEach((t, i) => {
+    t.classList.toggle('active', ['csv','xlsx','paste'][i] === method);
+  });
+  clearImportPreview();
+}
+
+function selectExportFormat(fmt) {
+  exportFormat = fmt;
+  ['csv','xlsx','json'].forEach(f => {
+    const el = document.getElementById('export-fmt-' + f);
+    if (el) el.classList.toggle('selected', f === fmt);
+  });
+}
+
+// ---- GESTION DES FICHIERS ----
+function handleImportFile(e, type) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const nameEl = document.getElementById(type + '-file-name');
+  if (nameEl) { nameEl.textContent = '📎 ' + file.name; nameEl.style.display = 'block'; }
+
+  if (type === 'csv') {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const format = document.getElementById('csv-format').value;
+      csvParsedData = parseCsvText(ev.target.result, format);
+      showImportPreview(csvParsedData);
+    };
+    reader.readAsText(file);
+  } else if (type === 'xlsx') {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = new Uint8Array(ev.target.result);
+        const wb = XLSX.read(data, { type: 'array', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (json.length === 0) { toast('Fichier Excel vide ou mal formaté', 'error'); return; }
+        xlsxHeaders = Object.keys(json[0]);
+        csvParsedData = parseXlsxRows(json);
+        // Si mapping nécessaire
+        if (csvParsedData.filter(t => t.date).length === 0) {
+          showXlsxMapping(xlsxHeaders);
+        } else {
+          showImportPreview(csvParsedData);
+        }
+      } catch(err) {
+        toast('Erreur lecture Excel: ' + err.message, 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+// ---- COPIER-COLLER ----
+function handlePasteInput(text) {
+  if (!text.trim()) { clearImportPreview(); return; }
+  // Détecter séparateur : tab (Excel/Sheets) ou virgule
+  const sep = text.includes('\t') ? '\t' : ',';
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return;
+  const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+  const rows = [];
   for (let i = 1; i < lines.length; i++) {
-    const vals = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+    const vals = lines[i].split(sep).map(v => v.trim().replace(/"/g, ''));
     const row = {};
     headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+    rows.push(row);
+  }
+  csvParsedData = mapGenericRows(rows);
+  showImportPreview(csvParsedData);
+}
 
-    let trade = {};
-    if (format === 'generic') {
-      trade = {
-        date: row['date'] || '',
-        entry_time: row['time'] || row['entry_time'] || null,
-        direction: (row['direction'] || 'LONG').toUpperCase(),
-        result: (row['result'] || 'WIN').toUpperCase(),
-        rr: parseFloat(row['rr']) || 2,
-        one_r: parseFloat(row['one_r']) || 200,
-        scenario: row['setup'] || row['scenario'] || null,
-        notes: row['notes'] || null
-      };
-    } else if (format === 'rithmic') {
-      const pnl = parseFloat(row['pnl'] || row['profit/loss'] || 0);
-      trade = {
-        date: row['date'] || '',
-        entry_time: row['time'] || null,
-        direction: pnl >= 0 ? 'LONG' : 'SHORT',
-        result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE',
-        rr: Math.abs(pnl) / 200,
-        one_r: 200,
-        notes: 'Import Rithmic'
-      };
-    } else if (format === 'ninjatrader') {
-      const pnl = parseFloat(row['profit'] || row['pnl'] || 0);
-      trade = {
-        date: row['entry date'] || row['date'] || '',
-        entry_time: row['entry time'] || null,
-        direction: (row['market pos.'] || row['direction'] || 'LONG').includes('Long') ? 'LONG' : 'SHORT',
-        result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE',
-        rr: Math.abs(pnl) / 200,
-        one_r: 200,
-        notes: 'Import NinjaTrader'
-      };
-    } else if (format === 'tradovate') {
-      const pnl = parseFloat(row['pnl'] || row['net profit'] || 0);
-      trade = {
-        date: row['filled time']?.split(' ')[0] || row['date'] || '',
-        direction: (row['action'] || 'Buy').includes('Buy') ? 'LONG' : 'SHORT',
-        result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE',
-        rr: Math.abs(pnl) / 200,
-        one_r: 200,
-        notes: 'Import Tradovate'
-      };
-    }
-
-    if (trade.date && trade.date.length >= 8) trades.push(trade);
+// ---- PARSERS ----
+function parseCsvText(text, format) {
+  // Gestion des CSV avec point-virgule ou virgule
+  const firstLine = text.split('\n')[0];
+  const sep = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+  const trades = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = lines[i].split(sep).map(v => v.trim().replace(/^"|"$/g, ''));
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+    const trade = parseRowByFormat(row, format);
+    if (trade && trade.date) trades.push(trade);
   }
   return trades;
 }
 
-async function importCsv() {
-  const accountId = document.getElementById('csv-account').value;
-  if (!accountId) return toast('Sélectionne un compte', 'error');
-  if (!csvParsedData.length) return;
+function parseRowByFormat(row, format) {
+  if (format === 'generic') return mapGenericRows([row])[0];
 
-  const btn = document.getElementById('import-btn');
-  btn.disabled = true;
-  btn.textContent = 'Import...';
+  if (format === 'rithmic') {
+    const pnl = parseFloat(row['pnl'] || row['profit/loss'] || row['net pnl'] || 0);
+    const oneR = 200;
+    return { date: normalizeDate(row['date'] || row['trade date']), entry_time: row['time'] || row['entry time'] || null, direction: row['side'] ? (row['side'].toUpperCase().includes('BUY') ? 'LONG' : 'SHORT') : (pnl >= 0 ? 'LONG' : 'SHORT'), result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import Rithmic' };
+  }
+  if (format === 'ninjatrader') {
+    const pnl = parseFloat(row['profit'] || row['pnl'] || row['cum. net profit'] || 0);
+    const oneR = 200;
+    const dir = row['market pos.'] || row['direction'] || '';
+    return { date: normalizeDate(row['entry date'] || row['date']), entry_time: row['entry time'] || null, direction: dir.toLowerCase().includes('long') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import NinjaTrader' };
+  }
+  if (format === 'tradovate') {
+    const pnl = parseFloat(row['pnl'] || row['net profit'] || row['realized p&l'] || 0);
+    const oneR = 200;
+    const action = row['action'] || row['side'] || 'Buy';
+    return { date: normalizeDate(row['filled time']?.split(' ')[0] || row['date']), direction: action.toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import Tradovate' };
+  }
+  if (format === 'atas') {
+    const pnl = parseFloat(row['pnl'] || row['profit'] || row['net profit'] || 0);
+    const oneR = 200;
+    return { date: normalizeDate(row['date'] || row['entry date']), entry_time: row['time'] || row['entry time'] || null, direction: (row['side'] || row['type'] || 'long').toLowerCase().includes('buy') || (row['side'] || '').toLowerCase() === 'long' ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import ATAS' };
+  }
+  if (format === 'quantower') {
+    const pnl = parseFloat(row['gross p&l'] || row['net p&l'] || row['pnl'] || 0);
+    const oneR = 200;
+    return { date: normalizeDate(row['open time']?.split(' ')[0] || row['date']), direction: (row['side'] || 'buy').toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import QuantTower' };
+  }
+  if (format === 'apex') {
+    const pnl = parseFloat(row['pnl'] || row['profit/loss'] || row['net p&l'] || 0);
+    const oneR = 200;
+    return { date: normalizeDate(row['date'] || row['trade date']), entry_time: row['time'] || null, direction: (row['side'] || row['direction'] || 'long').toLowerCase().includes('long') || (row['side'] || '').toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import Apex' };
+  }
+  return null;
+}
 
-  const inserts = csvParsedData.map(t => ({ ...t, user_id: currentUser.id, challenge_name: accountId }));
-  const { error } = await sb.from('trades').insert(inserts);
-  btn.disabled = false;
-  btn.textContent = 'Importer';
+function mapGenericRows(rows) {
+  return rows.map(row => {
+    const d = row['date'] || row['Date'] || row['DATE'] || '';
+    const t = row['time'] || row['Time'] || row['heure'] || row['entry_time'] || null;
+    const dir = (row['direction'] || row['Direction'] || row['sens'] || 'LONG').toUpperCase();
+    const res = (row['result'] || row['résultat'] || row['resultat'] || row['Result'] || 'WIN').toUpperCase();
+    const rr = parseFloat(row['rr'] || row['RR'] || row['r:r'] || 2) || 2;
+    const oneR = parseFloat(row['one_r'] || row['1r'] || row['1R'] || row['oneR'] || 200) || 200;
+    const scenario = row['setup'] || row['Setup'] || row['scenario'] || row['Scenario'] || null;
+    const notes = row['notes'] || row['Notes'] || row['note'] || null;
+    return { date: normalizeDate(d), entry_time: t || null, direction: dir === 'SHORT' ? 'SHORT' : 'LONG', result: ['WIN','LOSS','BE'].includes(res) ? res : (res === 'W' ? 'WIN' : res === 'L' ? 'LOSS' : 'WIN'), rr, one_r: oneR, scenario: scenario || null, notes: notes || null };
+  }).filter(t => t.date);
+}
 
-  if (error) return toast('Erreur import: ' + error.message, 'error');
+function parseXlsxRows(rows) {
+  // Essai de mapping automatique
+  const aliases = {
+    date: ['date','Date','DATE','jour','Jour'],
+    entry_time: ['time','Time','heure','Heure','entry_time','Entry Time'],
+    direction: ['direction','Direction','sens','Sens','side','Side'],
+    result: ['result','Result','résultat','Resultat','outcome'],
+    rr: ['rr','RR','r:r','R:R','risk reward','Risk Reward'],
+    one_r: ['one_r','1R','1r','oneR','One R','risk'],
+    scenario: ['setup','Setup','scenario','Scenario','strategy','Strategy'],
+    notes: ['notes','Notes','note','Note','comment','Comment']
+  };
+  return rows.map(row => {
+    const out = {};
+    Object.entries(aliases).forEach(([field, keys]) => {
+      for (const k of keys) { if (row[k] !== undefined && row[k] !== '') { out[field] = row[k]; break; } }
+    });
+    // Date Excel (serial number)
+    if (out.date && typeof out.date === 'number') {
+      const d = new Date(Math.round((out.date - 25569) * 86400 * 1000));
+      out.date = d.toISOString().split('T')[0];
+    } else if (out.date instanceof Date) {
+      out.date = out.date.toISOString().split('T')[0];
+    } else {
+      out.date = normalizeDate(String(out.date || ''));
+    }
+    out.direction = (String(out.direction || 'LONG')).toUpperCase() === 'SHORT' ? 'SHORT' : 'LONG';
+    const res = String(out.result || 'WIN').toUpperCase();
+    out.result = ['WIN','LOSS','BE'].includes(res) ? res : 'WIN';
+    out.rr = parseFloat(out.rr) || 2;
+    out.one_r = parseFloat(out.one_r) || 200;
+    out.scenario = out.scenario ? String(out.scenario) : null;
+    out.notes = out.notes ? String(out.notes) : null;
+    return out;
+  }).filter(t => t.date && t.date.length >= 8);
+}
+
+function showXlsxMapping(headers) {
+  const grid = document.getElementById('xlsx-mapping-grid');
+  const fields = ['date','entry_time','direction','result','rr','one_r','scenario','notes'];
+  const labels = ['Date *','Heure','Direction','Résultat','RR','1R ($)','Setup','Notes'];
+  grid.innerHTML = fields.map((f, i) => `
+    <div class="form-group" style="margin:0">
+      <label class="form-label">${labels[i]}</label>
+      <select id="map-${f}" style="width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:7px 10px;border-radius:8px;font-size:12px;outline:none">
+        <option value="">— Ignorer —</option>
+        ${headers.map(h => `<option value="${h}" ${h.toLowerCase() === f ? 'selected' : ''}>${h}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+  document.getElementById('xlsx-mapping').style.display = 'block';
+  document.getElementById('import-action-btn').disabled = false;
+}
+
+function normalizeDate(d) {
+  if (!d) return '';
+  d = String(d).trim();
+  // YYYY-MM-DD déjà bon
+  if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.split('T')[0];
+  // DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(d)) { const [dd,mm,yyyy] = d.split('/'); return `${yyyy}-${mm}-${dd}`; }
+  // MM/DD/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(d)) { const p = d.split('/'); return `${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}`; }
+  // DD.MM.YYYY
+  if (/^\d{2}\.\d{2}\.\d{4}/.test(d)) { const [dd,mm,yyyy] = d.split('.'); return `${yyyy}-${mm}-${dd}`; }
+  // Essai générique
+  try { const dt = new Date(d); if (!isNaN(dt)) return dt.toISOString().split('T')[0]; } catch {}
+  return d;
+}
+
+// ---- PREVIEW ----
+function showImportPreview(data) {
+  const preview = document.getElementById('import-preview');
+  const info = document.getElementById('import-preview-info');
+  const table = document.getElementById('import-preview-table');
+  const errors = document.getElementById('import-errors');
+
+  if (!data.length) {
+    info.textContent = '⚠️ Aucun trade détecté — vérifiez le format';
+    preview.style.display = 'block';
+    document.getElementById('import-action-btn').disabled = true;
+    return;
+  }
+
+  const invalid = data.filter(t => !t.date || !t.direction || !t.result);
+  const valid = data.filter(t => t.date && t.direction && t.result);
+
+  info.textContent = `✅ ${valid.length} trade(s) prêts à importer${invalid.length > 0 ? ` · ⚠️ ${invalid.length} ignorés (date/direction manquante)` : ''}`;
+
+  const sample = valid.slice(0, 5);
+  table.innerHTML = `<thead><tr><th>Date</th><th>Heure</th><th>Dir</th><th>Résultat</th><th>RR</th><th>1R</th><th>Setup</th></tr></thead>
+  <tbody>${sample.map(t => `<tr>
+    <td>${t.date}</td>
+    <td class="mono">${t.entry_time || '—'}</td>
+    <td><span class="pill ${t.direction === 'LONG' ? 'green' : 'red'}">${t.direction}</span></td>
+    <td><span class="pill ${t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow'}">${t.result}</span></td>
+    <td class="mono">${t.rr}R</td>
+    <td class="mono">$${t.one_r}</td>
+    <td style="font-size:11px;color:var(--text-3)">${t.scenario || '—'}</td>
+  </tr>`).join('')}${valid.length > 5 ? `<tr><td colspan="7" style="text-align:center;color:var(--text-4);font-size:11px">... et ${valid.length - 5} autres</td></tr>` : ''}</tbody>`;
+
+  preview.style.display = 'block';
+  errors.style.display = 'none';
+  document.getElementById('import-action-btn').disabled = valid.length === 0;
+  csvParsedData = valid;
+}
+
+function clearImportPreview() {
+  csvParsedData = [];
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('import-action-btn').disabled = true;
+  ['csv-file-name','xlsx-file-name'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  const pa = document.getElementById('paste-area');
+  if (pa) pa.value = '';
+}
+
+// ---- EXPORT PREVIEW ----
+async function loadExportPreviewStats() {
+  const el = document.getElementById('export-stats-content');
+  if (!el) return;
+  if (exportFlux === 'live') {
+    const from = document.getElementById('export-from')?.value || '';
+    const to = document.getElementById('export-to')?.value || '';
+    const account = document.getElementById('export-account')?.value || '';
+    const trades = await loadTrades({ from, to, account });
+    const stats = calcStats(trades);
+    el.innerHTML = `<div class="grid-4" style="gap:8px">
+      <div style="background:var(--bg-4);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Trades</div><div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--text-0)">${stats.total}</div></div>
+      <div style="background:var(--bg-4);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Win Rate</div><div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--${parseFloat(stats.wr)>=50?'green':'red'})">${stats.wr}%</div></div>
+      <div style="background:var(--bg-4);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">PF</div><div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--text-0)">${stats.pf}</div></div>
+      <div style="background:var(--bg-4);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">PnL</div><div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--${parseFloat(stats.pnl)>=0?'green':'red'})">${parseFloat(stats.pnl)>=0?'+':''}$${parseInt(stats.pnl).toLocaleString()}</div></div>
+    </div>`;
+  } else {
+    const count = btSessions.length;
+    const { data: btt } = await sb.from('bt_trades').select('id').eq('user_id', currentUser.id);
+    el.innerHTML = `<div style="color:var(--text-1)">${count} session(s) BT · ${btt?.length || 0} trades backtest au total</div>`;
+  }
+}
+
+// ---- ACTION PRINCIPALE ----
+async function doImportExportAction() {
+  if (importExportTab === 'import') {
+    await doImport();
+  } else {
+    await doExport();
+  }
+}
+
+async function doImport() {
+  // Récupérer le mapping xlsx si actif
+  if (importMethod === 'xlsx' && document.getElementById('xlsx-mapping').style.display !== 'none') {
+    const fields = ['date','entry_time','direction','result','rr','one_r','scenario','notes'];
+    // Relire le fichier avec le mapping custom
+    const file = document.getElementById('xlsx-file').files[0];
+    if (!file) return toast('Recharge le fichier Excel', 'error');
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const data = new Uint8Array(ev.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const mapped = json.map(row => {
+        const out = {};
+        fields.forEach(f => { const col = document.getElementById('map-' + f)?.value; if (col) out[f] = row[col]; });
+        out.date = normalizeDate(String(out.date || ''));
+        out.direction = (String(out.direction || 'LONG')).toUpperCase() === 'SHORT' ? 'SHORT' : 'LONG';
+        const res = String(out.result || 'WIN').toUpperCase();
+        out.result = ['WIN','LOSS','BE'].includes(res) ? res : 'WIN';
+        out.rr = parseFloat(out.rr) || 2;
+        out.one_r = parseFloat(out.one_r) || 200;
+        return out;
+      }).filter(t => t.date);
+      csvParsedData = mapped;
+      await insertImportedTrades();
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+  await insertImportedTrades();
+}
+
+async function insertImportedTrades() {
+  if (!csvParsedData.length) return toast('Aucun trade à importer', 'error');
+
+  const btn = document.getElementById('import-action-btn');
+  btn.disabled = true; btn.textContent = 'Import en cours...';
+
+  if (importFlux === 'live') {
+    const accountId = document.getElementById('csv-account').value;
+    if (!accountId) { btn.disabled = false; btn.textContent = 'Importer'; return toast('Sélectionne un compte', 'error'); }
+    const inserts = csvParsedData.map(t => ({ ...t, user_id: currentUser.id, challenge_name: accountId }));
+    const { error } = await sb.from('trades').insert(inserts);
+    btn.disabled = false; btn.textContent = 'Importer';
+    if (error) return toast('Erreur: ' + error.message, 'error');
+    closeModal('modal-import');
+    toast(`${csvParsedData.length} trades live importés ✓`, 'success');
+    await loadDashboard();
+    if (currentPage === 'journal') loadJournal();
+  } else {
+    const sessionId = document.getElementById('import-bt-session').value;
+    if (!sessionId) { btn.disabled = false; btn.textContent = 'Importer'; return toast('Sélectionne une session BT', 'error'); }
+    const inserts = csvParsedData.map(t => ({ date: t.date, entry_time: t.entry_time, direction: t.direction, result: t.result, rr: t.rr, scenario: t.scenario, notes: t.notes, user_id: currentUser.id, session_id: sessionId }));
+    const { error } = await sb.from('bt_trades').insert(inserts);
+    btn.disabled = false; btn.textContent = 'Importer';
+    if (error) return toast('Erreur: ' + error.message, 'error');
+    closeModal('modal-import');
+    toast(`${csvParsedData.length} trades BT importés ✓`, 'success');
+    if (currentBtSession?.id === sessionId) await selectBtSession(sessionId);
+  }
+}
+
+// ---- EXPORT ----
+async function doExport() {
+  const btn = document.getElementById('import-action-btn');
+  btn.disabled = true; btn.textContent = 'Préparation...';
+
+  let trades = [], filename = 'tradingzone';
+
+  if (exportFlux === 'live') {
+    const from = document.getElementById('export-from')?.value || '';
+    const to = document.getElementById('export-to')?.value || '';
+    const account = document.getElementById('export-account')?.value || '';
+    trades = await loadTrades({ from, to, account });
+    filename = `tradingzone-live${from ? '-' + from : ''}`;
+  } else {
+    const sessionId = document.getElementById('export-bt-session')?.value || '';
+    let q = sb.from('bt_trades').select('*, bt_sessions(name, one_r)').eq('user_id', currentUser.id);
+    if (sessionId) q = q.eq('session_id', sessionId);
+    const { data } = await q.order('date');
+    trades = (data || []).map(t => ({ ...t, one_r: t.bt_sessions?.one_r || 200, scenario: t.scenario, is_bt: true }));
+    filename = 'tradingzone-backtest';
+  }
+
+  if (!trades.length) { btn.disabled = false; btn.textContent = 'Télécharger'; return toast('Aucun trade à exporter', 'error'); }
+
+  if (exportFormat === 'csv') exportAsCsv(trades, filename);
+  else if (exportFormat === 'xlsx') exportAsXlsx(trades, filename);
+  else if (exportFormat === 'json') exportAsJson(trades, filename);
+
+  btn.disabled = false; btn.textContent = 'Télécharger';
   closeModal('modal-import');
-  toast(csvParsedData.length + ' trades importés ✓', 'success');
-  await loadDashboard();
-  if (currentPage === 'journal') loadJournal();
+  toast(`${trades.length} trades exportés en ${exportFormat.toUpperCase()} ✓`, 'success');
+}
+
+function buildTradeRow(t) {
+  const pnl = parseFloat(t.one_r || 200) * parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+  return {
+    Date: t.date || '',
+    Heure: t.entry_time || '',
+    Direction: t.direction || '',
+    Résultat: t.result || '',
+    RR: t.rr || 0,
+    '1R ($)': t.one_r || 200,
+    'PnL ($)': Math.round(pnl),
+    Setup: t.scenario || '',
+    Notes: (t.notes || '').replace(/,/g, ';'),
+    Screenshot: t.screenshot_url || '',
+    Qualité: t.quality || '',
+    Instrument: t.instrument || ''
+  };
+}
+
+function exportAsCsv(trades, filename) {
+  const rows = trades.map(buildTradeRow);
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${String(r[h]).replace(/"/g,'""')}"`).join(','))].join('\n');
+  downloadBlob(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }), filename + '.csv');
+}
+
+function exportAsXlsx(trades, filename) {
+  const rows = trades.map(buildTradeRow);
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  // Style header
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+    if (cell) cell.s = { font: { bold: true, color: { rgb: '000000' } }, fill: { fgColor: { rgb: '00D4A0' } }, alignment: { horizontal: 'center' } };
+  }
+
+  // Largeurs colonnes
+  ws['!cols'] = [
+    { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 10 },
+    { wch: 7 }, { wch: 9 }, { wch: 10 }, { wch: 18 },
+    { wch: 30 }, { wch: 20 }, { wch: 8 }, { wch: 10 }
+  ];
+
+  // Stats summary sur sheet 2
+  const stats = calcStats(trades);
+  const summaryData = [
+    ['📊 TradingZone — Résumé Performance', ''],
+    ['', ''],
+    ['Total trades', stats.total],
+    ['Win Rate', stats.wr + '%'],
+    ['Profit Factor', stats.pf],
+    ['RR moyen', stats.avgRr],
+    ['PnL total ($)', parseFloat(stats.pnl)],
+    ['Max Drawdown ($)', parseFloat(stats.maxDd)],
+    ['Meilleur trade ($)', parseFloat(stats.best)],
+    ['Pire trade ($)', -parseFloat(Math.abs(stats.worst))],
+    ['Jours verts', stats.greenDays],
+    ['Jours rouges', stats.redDays],
+    ['Expectancy ($)', parseFloat(stats.exp)],
+    ['Sharpe Ratio', parseFloat(stats.sharpe)],
+    ['', ''],
+    ['Export généré le', new Date().toLocaleString('fr-FR')]
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+  ws2['!cols'] = [{ wch: 25 }, { wch: 15 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Trades');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Résumé');
+  XLSX.writeFile(wb, filename + '.xlsx');
+}
+
+function exportAsJson(trades, filename) {
+  const json = JSON.stringify({ export_date: new Date().toISOString(), total: trades.length, trades: trades.map(buildTradeRow) }, null, 2);
+  downloadBlob(new Blob([json], { type: 'application/json' }), filename + '.json');
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ============================================
@@ -3798,17 +4399,13 @@ async function deleteBtTrade(id) {
 
 async function exportBtCsv() {
   if (!currentBtSession) return;
-  const { data } = await sb.from('bt_trades').select('*').eq('session_id', currentBtSession.id).order('date');
-  if (!data?.length) return toast('Aucun trade à exporter', 'error');
-  const headers = 'Date,Heure,Direction,Résultat,RR,PnL,Setup,Notes';
-  const rows = data.map(t => {
-    const pnl = parseFloat(currentBtSession.one_r || 200) * parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
-    return `${t.date},${t.entry_time || ''},${t.direction},${t.result},${t.rr},${Math.round(pnl)},${t.scenario || ''},${t.notes || ''}`;
-  });
-  const csv = [headers, ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = currentBtSession.name + '.csv'; a.click();
+  openImportModal('export');
+  setExportFlux('bt');
+  setTimeout(() => {
+    const sel = document.getElementById('export-bt-session');
+    if (sel) sel.value = currentBtSession.id;
+    loadExportPreviewStats();
+  }, 100);
 }
 
 // ============================================
@@ -3980,17 +4577,7 @@ async function saveGoals() {
 }
 
 async function exportAllData() {
-  const trades = await loadTrades();
-  const headers = 'Date,Heure,Direction,Résultat,RR,PnL,Setup,Notes,Screenshot';
-  const rows = trades.map(t => {
-    const pnl = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
-    return `${t.date},${t.entry_time || ''},${t.direction},${t.result},${t.rr},${Math.round(pnl)},${t.scenario || ''},${(t.notes || '').replace(/,/g, ';')},${t.screenshot_url || ''}`;
-  });
-  const csv = [headers, ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'tradingzone-export.csv'; a.click();
-  toast('Export téléchargé ✓', 'success');
+  openImportModal('export');
 }
 
 // ============================================
@@ -4126,17 +4713,23 @@ function toast(msg, type = 'success') {
 // ============================================
 // DROP ZONE CSS
 // ============================================
-const dz = document.getElementById('csv-drop-zone');
-if (dz) {
+// Drop zones
+[{zone:'csv-drop-zone', input:'csv-file', type:'csv'}, {zone:'xlsx-drop-zone', input:'xlsx-file', type:'xlsx'}].forEach(({zone, input, type}) => {
+  const dz = document.getElementById(zone);
+  if (!dz) return;
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
   dz.addEventListener('drop', e => {
     e.preventDefault();
     dz.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    if (file) { document.getElementById('csv-file').files = e.dataTransfer.files; handleCsvFile({ target: { files: [file] } }); }
+    if (!file) return;
+    const inp = document.getElementById(input);
+    // DataTransfer assign workaround
+    const dt = new DataTransfer(); dt.items.add(file); inp.files = dt.files;
+    handleImportFile({ target: { files: [file] } }, type);
   });
-}
+});
 
 // Check notifs périodiquement
 setInterval(() => { if (currentUser) checkUnreadNotifs(); }, 60000);
