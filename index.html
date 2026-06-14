@@ -1995,27 +1995,43 @@ input[type="range"]::-webkit-slider-thumb {
 
 <!-- Modal: Ajouter un trade -->
 <div class="modal-overlay" id="modal-trade">
-  <div class="modal modal-wide">
+  <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="trade-modal-title">Nouveau Trade</div>
       <button class="modal-close" onclick="closeModal('modal-trade')">✕</button>
     </div>
     <div class="modal-body">
-      <!-- Mode rapide / Complet -->
-      <div class="tabs" style="margin-bottom:20px">
-        <div class="tab active" onclick="setTradeMode('quick', this)">⚡ Rapide</div>
-        <div class="tab" onclick="setTradeMode('full', this)">📋 Complet</div>
-      </div>
 
-      <!-- Champs rapides (toujours visibles) -->
+      <!-- ROW 1: Direction + Résultat + RR -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Compte *</label>
-          <select id="t-account"></select>
+          <label class="form-label">Direction *</label>
+          <div style="display:flex;gap:8px">
+            <div id="btn-long" onclick="selectDirection('LONG')" style="flex:1;padding:10px;background:var(--green-dim);border:2px solid var(--green);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--green);transition:all .15s">📈 LONG</div>
+            <div id="btn-short" onclick="selectDirection('SHORT')" style="flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--text-3);transition:all .15s">📉 SHORT</div>
+          </div>
+          <input type="hidden" id="t-direction" value="LONG">
         </div>
         <div class="form-group">
-          <label class="form-label">Date *</label>
-          <input type="date" id="t-date">
+          <label class="form-label">Résultat *</label>
+          <div style="display:flex;gap:6px">
+            <div id="btn-win" onclick="selectResult('WIN')" style="flex:1;padding:10px;background:var(--green-dim);border:2px solid var(--green);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:12px;color:var(--green)">✅ TP</div>
+            <div id="btn-loss" onclick="selectResult('LOSS')" style="flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:12px;color:var(--text-3)">❌ SL</div>
+            <div id="btn-be" onclick="selectResult('BE')" style="flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:12px;color:var(--text-3)">➖ BE</div>
+          </div>
+          <input type="hidden" id="t-result" value="WIN">
+        </div>
+      </div>
+
+      <!-- ROW 2: RR + 1R + Heure -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">RR Réalisé *</label>
+          <input type="number" id="t-rr" placeholder="2.5" step="0.1" min="0" style="font-family:var(--mono);font-size:15px;font-weight:700">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valeur 1R ($)</label>
+          <input type="number" id="t-one-r-manual" placeholder="200" step="1" style="font-family:var(--mono)">
         </div>
         <div class="form-group">
           <label class="form-label">Heure</label>
@@ -2023,32 +2039,23 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
       </div>
 
+      <!-- ROW 3: Date + Compte -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Direction *</label>
-          <select id="t-direction">
-            <option value="LONG">📈 Long</option>
-            <option value="SHORT">📉 Short</option>
-          </select>
+          <label class="form-label">Date *</label>
+          <input type="date" id="t-date">
         </div>
         <div class="form-group">
-          <label class="form-label">Résultat *</label>
-          <select id="t-result">
-            <option value="WIN">✅ Win</option>
-            <option value="LOSS">❌ Loss</option>
-            <option value="BE">➖ Break Even</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">PnL ($) *</label>
-          <input type="number" id="t-pnl" placeholder="250.00" step="0.01">
+          <label class="form-label">Compte</label>
+          <select id="t-account"></select>
         </div>
       </div>
 
+      <!-- ROW 4: Setup + Instrument -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">RR Réalisé</label>
-          <input type="number" id="t-rr" placeholder="2.5" step="0.1">
+          <label class="form-label">Setup</label>
+          <select id="t-scenario"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Instrument</label>
@@ -2057,81 +2064,42 @@ input[type="range"]::-webkit-slider-thumb {
             <option value="NQ">NQ</option>
             <option value="ES">ES</option>
             <option value="MES">MES</option>
+            <option value="GC">GC</option>
+            <option value="CL">CL</option>
             <option value="OTHER">Autre</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Setup</label>
-          <select id="t-scenario"></select>
+      </div>
+
+      <!-- Checklist -->
+      <div style="margin-bottom:14px">
+        <label class="form-label">Checklist respectée ?</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <div id="chk-yes" onclick="selectChecklist(true)" style="flex:1;padding:10px;background:var(--green-dim);border:2px solid var(--green);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--green)">✅ Oui</div>
+          <div id="chk-no" onclick="selectChecklist(false)" style="flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-3)">❌ Non</div>
+          <div id="chk-na" onclick="selectChecklist(null)" style="flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-3)">— N/A</div>
+        </div>
+        <input type="hidden" id="t-checklist" value="">
+      </div>
+
+      <!-- Screenshot URL -->
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Screenshot (URL image)</label>
+        <input type="text" id="t-screenshot" placeholder="https://i.imgur.com/... ou TradingView snapshot">
+        <div id="screenshot-preview" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;max-height:160px">
+          <img id="screenshot-img" style="width:100%;object-fit:cover;border-radius:8px" onerror="this.parentElement.style.display='none'">
         </div>
       </div>
 
-      <!-- Champs complets -->
-      <div id="trade-full-fields" style="display:none">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Prix d'entrée</label>
-            <input type="number" id="t-entry" placeholder="19500.25" step="0.25">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Stop Loss</label>
-            <input type="number" id="t-stop" placeholder="19490.00" step="0.25">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Take Profit</label>
-            <input type="number" id="t-target" placeholder="19525.00" step="0.25">
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:14px">
-          <label class="form-label">Qualité du setup (A+/A/B/C)</label>
-          <select id="t-quality">
-            <option value="5">A+ — Setup parfait</option>
-            <option value="4">A — Bon setup</option>
-            <option value="3">B — Setup moyen</option>
-            <option value="2">C — Setup faible</option>
-          </select>
-        </div>
-
-        <div class="form-group" style="margin-bottom:14px">
-          <label class="form-label">Émotions</label>
-          <div class="emotion-btns">
-            <div class="emotion-btn" data-val="1" onclick="selectEmotion(this)">😰</div>
-            <div class="emotion-btn" data-val="2" onclick="selectEmotion(this)">😟</div>
-            <div class="emotion-btn" data-val="3" onclick="selectEmotion(this)">😐</div>
-            <div class="emotion-btn" data-val="4" onclick="selectEmotion(this)">😊</div>
-            <div class="emotion-btn" data-val="5" onclick="selectEmotion(this)">🤩</div>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:14px">
-          <label class="form-label">Confiance pré-trade</label>
-          <div class="range-wrapper">
-            <input type="range" id="t-confidence" min="1" max="5" value="3" oninput="document.getElementById('conf-val').textContent=this.value">
-            <span class="range-val" id="conf-val">3</span>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:14px">
-          <label class="form-label">Screenshot (URL)</label>
-          <input type="text" id="t-screenshot" placeholder="https://...">
-        </div>
-
-        <div class="form-group" style="margin-bottom:14px">
-          <label class="form-label">Erreur commise</label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="t-is-error" style="width:16px;height:16px;accent-color:var(--red)">
-            <span style="font-size:13px;color:var(--text-1)">Ce trade était une erreur</span>
-          </label>
-        </div>
-
-        <div class="form-group" style="margin-bottom:0">
-          <label class="form-label">Notes</label>
-          <textarea id="t-notes" placeholder="Description du setup, ce qui s'est passé..." rows="3"></textarea>
-        </div>
+      <!-- Commentaire -->
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Commentaire</label>
+        <textarea id="t-notes" placeholder="Description du trade, ce qui s'est passé, leçon apprise..." rows="3"></textarea>
       </div>
+
     </div>
     <div class="modal-footer">
+      <div id="trade-pnl-preview" style="font-family:var(--mono);font-size:14px;font-weight:700;margin-right:auto;padding:6px 12px;border-radius:6px;background:var(--bg-3)">PnL: —</div>
       <button class="btn-outline" onclick="closeModal('modal-trade')">Annuler</button>
       <button class="btn-sm" onclick="saveTrade()" id="save-trade-btn">Enregistrer</button>
     </div>
@@ -3431,20 +3399,84 @@ function clearFilters() {
 // ============================================
 // TRADE MODAL
 // ============================================
+// Sélecteurs visuels du formulaire trade
+function selectDirection(dir) {
+  document.getElementById('t-direction').value = dir;
+  const longEl = document.getElementById('btn-long');
+  const shortEl = document.getElementById('btn-short');
+  if (dir === 'LONG') {
+    longEl.style.cssText = 'flex:1;padding:10px;background:var(--green-dim);border:2px solid var(--green);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--green)';
+    shortEl.style.cssText = 'flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--text-3)';
+  } else {
+    longEl.style.cssText = 'flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--text-3)';
+    shortEl.style.cssText = 'flex:1;padding:10px;background:var(--red-dim);border:2px solid var(--red);border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--red)';
+  }
+  updatePnlPreview();
+}
+
+function selectResult(res) {
+  document.getElementById('t-result').value = res;
+  const styles = {
+    WIN:  { bg:'var(--green-dim)', border:'var(--green)', color:'var(--green)' },
+    LOSS: { bg:'var(--red-dim)',   border:'var(--red)',   color:'var(--red)'   },
+    BE:   { bg:'#f59e0b15',        border:'var(--yellow)',color:'var(--yellow)' }
+  };
+  ['WIN','LOSS','BE'].forEach(r => {
+    const el = document.getElementById('btn-' + r.toLowerCase());
+    if (!el) return;
+    const s = r === res ? styles[r] : { bg:'var(--bg-3)', border:'var(--border)', color:'var(--text-3)' };
+    const label = r === 'WIN' ? '✅ TP' : r === 'LOSS' ? '❌ SL' : '➖ BE';
+    el.style.cssText = `flex:1;padding:10px;background:${s.bg};border:2px solid ${s.border};border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:12px;color:${s.color}`;
+    el.textContent = label;
+  });
+  updatePnlPreview();
+}
+
+function selectChecklist(val) {
+  document.getElementById('t-checklist').value = val === null ? '' : val ? 'true' : 'false';
+  const yesEl = document.getElementById('chk-yes');
+  const noEl = document.getElementById('chk-no');
+  const naEl = document.getElementById('chk-na');
+  const reset = 'flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-3)';
+  yesEl.style.cssText = reset; noEl.style.cssText = reset; naEl.style.cssText = reset;
+  if (val === true)  yesEl.style.cssText = 'flex:1;padding:10px;background:var(--green-dim);border:2px solid var(--green);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--green)';
+  if (val === false) noEl.style.cssText  = 'flex:1;padding:10px;background:var(--red-dim);border:2px solid var(--red);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--red)';
+  if (val === null)  naEl.style.cssText  = 'flex:1;padding:10px;background:var(--bg-4);border:2px solid var(--border-light);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-1)';
+}
+
+function updatePnlPreview() {
+  const rr = parseFloat(document.getElementById('t-rr')?.value || 0);
+  const oneRManual = parseFloat(document.getElementById('t-one-r-manual')?.value || 0);
+  const accountId = document.getElementById('t-account')?.value;
+  const allAcc = [...allAccounts.challenges, ...allAccounts.funded];
+  const acc = allAcc.find(a => a.id === accountId);
+  const oneR = oneRManual || (acc ? parseFloat(acc.one_r || 200) : 200);
+  const result = document.getElementById('t-result')?.value || 'WIN';
+  const pnl = rr * oneR * (result === 'WIN' ? 1 : result === 'LOSS' ? -1 : 0);
+  const el = document.getElementById('trade-pnl-preview');
+  if (!el) return;
+  if (rr > 0) {
+    el.textContent = (pnl >= 0 ? '+' : '') + '$' + Math.round(pnl).toLocaleString();
+    el.style.color = pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--yellow)';
+  } else {
+    el.textContent = 'PnL: —';
+    el.style.color = 'var(--text-3)';
+  }
+}
+
 function openAddTrade() {
   editingTradeId = null;
   document.getElementById('trade-modal-title').textContent = 'Nouveau Trade';
   document.getElementById('t-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('t-time').value = new Date().toTimeString().slice(0,5);
-  document.getElementById('t-pnl').value = '';
-  document.getElementById('t-rr').value = '2';
+  document.getElementById('t-rr').value = '';
+  document.getElementById('t-one-r-manual').value = '';
   document.getElementById('t-notes').value = '';
   document.getElementById('t-screenshot').value = '';
-  document.getElementById('t-is-error').checked = false;
-  document.getElementById('t-confidence').value = '3';
-  document.getElementById('conf-val').textContent = '3';
-  document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('selected'));
-  setTradeMode('quick', document.querySelector('#modal-trade .tab'));
+  document.getElementById('screenshot-preview').style.display = 'none';
+  selectDirection('LONG');
+  selectResult('WIN');
+  selectChecklist(null);
   openModal('modal-trade');
 }
 
@@ -3455,43 +3487,40 @@ async function editTrade(id) {
   document.getElementById('trade-modal-title').textContent = 'Modifier le Trade';
   document.getElementById('t-date').value = trade.date || '';
   document.getElementById('t-time').value = trade.entry_time || '';
-  document.getElementById('t-direction').value = trade.direction || 'LONG';
-  document.getElementById('t-result').value = trade.result || 'WIN';
-  document.getElementById('t-pnl').value = parseFloat(trade.one_r || 0) * parseFloat(trade.rr || 0) * (trade.result === 'WIN' ? 1 : -1);
-  document.getElementById('t-rr').value = trade.rr || 2;
+  document.getElementById('t-rr').value = trade.rr || '';
+  document.getElementById('t-one-r-manual').value = trade.one_r || '';
   document.getElementById('t-scenario').value = trade.scenario || '';
   document.getElementById('t-notes').value = trade.notes || '';
   document.getElementById('t-screenshot').value = trade.screenshot_url || '';
-  document.getElementById('t-is-error').checked = trade.is_error || false;
-  setTradeMode('full', document.querySelectorAll('#modal-trade .tab')[1]);
+  if (trade.screenshot_url) {
+    document.getElementById('screenshot-img').src = trade.screenshot_url;
+    document.getElementById('screenshot-preview').style.display = 'block';
+  } else {
+    document.getElementById('screenshot-preview').style.display = 'none';
+  }
+  selectDirection(trade.direction || 'LONG');
+  selectResult(trade.result || 'WIN');
+  const chk = trade.checklist_ok;
+  selectChecklist(chk === null || chk === undefined ? null : chk === true || chk === 'true');
   openModal('modal-trade');
-}
-
-function setTradeMode(mode, el) {
-  document.querySelectorAll('#modal-trade .tab').forEach(t => t.classList.remove('active'));
-  if (el) el.classList.add('active');
-  document.getElementById('trade-full-fields').style.display = mode === 'full' ? 'block' : 'none';
-}
-
-function selectEmotion(btn) {
-  document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
 }
 
 async function saveTrade() {
   const date = document.getElementById('t-date').value;
   const direction = document.getElementById('t-direction').value;
   const result = document.getElementById('t-result').value;
-  const pnlRaw = parseFloat(document.getElementById('t-pnl').value || 0);
-  const rr = parseFloat(document.getElementById('t-rr').value || 2);
+  const rr = parseFloat(document.getElementById('t-rr').value || 0);
   const accountId = document.getElementById('t-account').value;
+  const screenshotUrl = document.getElementById('t-screenshot').value.trim();
 
-  if (!date || !direction || !result) return toast('Remplis les champs obligatoires', 'error');
+  if (!date || !direction || !result || !rr) return toast('Date, direction, résultat et RR sont requis', 'error');
 
+  const oneRManual = parseFloat(document.getElementById('t-one-r-manual').value || 0);
   const allAcc = [...allAccounts.challenges, ...allAccounts.funded];
   const selectedAccount = allAcc.find(a => a.id === accountId);
-  const oneR = selectedAccount ? parseFloat(selectedAccount.one_r || 200) : 200;
-  const finalRr = rr || (oneR > 0 ? Math.abs(pnlRaw / oneR) : 2);
+  const oneR = oneRManual || (selectedAccount ? parseFloat(selectedAccount.one_r || 200) : 200);
+  const chklRaw = document.getElementById('t-checklist').value;
+  const checklistOk = chklRaw === '' ? null : chklRaw === 'true';
 
   const data = {
     user_id: currentUser.id,
@@ -3499,22 +3528,15 @@ async function saveTrade() {
     entry_time: document.getElementById('t-time').value || null,
     direction,
     result,
-    rr: finalRr,
+    rr,
     one_r: oneR,
     scenario: document.getElementById('t-scenario').value || null,
     challenge_name: accountId || null,
     notes: document.getElementById('t-notes').value || null,
-    screenshot_url: document.getElementById('t-screenshot').value || null,
-    is_error: document.getElementById('t-is-error').checked,
-    quality: parseInt(document.getElementById('t-quality').value || 5),
-    entry_price: parseFloat(document.getElementById('t-entry').value) || null,
-    stop_price: parseFloat(document.getElementById('t-stop').value) || null,
-    target_price: parseFloat(document.getElementById('t-target').value) || null,
+    screenshot_url: screenshotUrl || null,
+    checklist_ok: checklistOk,
     is_public: false
   };
-
-  const emotionBtn = document.querySelector('.emotion-btn.selected');
-  if (emotionBtn) data.emotions = [emotionBtn.dataset.val];
 
   document.getElementById('save-trade-btn').disabled = true;
   let error;
@@ -3531,7 +3553,6 @@ async function saveTrade() {
   await loadDashboard();
   if (currentPage === 'journal') loadJournal();
   await checkBadges();
-  // Sync leaderboard stats en background si profil public
   if (currentProfile?.is_public) {
     syncCommunityStats(true, currentProfile?.display_name || currentProfile?.username);
   }
@@ -4440,8 +4461,10 @@ async function exportBtCsv() {
 // COMMUNITY
 // ============================================
 async function loadCommunity() {
-  const { data } = await sb.from('posts').select('*, profiles(display_name, username, avatar_url)').eq('is_public', true).order('created_at', { ascending: false }).limit(20);
   const feed = document.getElementById('posts-feed');
+  feed.innerHTML = '<div class="page-loader"><div class="spinner"></div></div>';
+  const { data, error } = await sb.from('posts').select('*, profiles(display_name, username, avatar_url)').eq('is_public', true).order('created_at', { ascending: false }).limit(50);
+  if (error) { feed.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erreur chargement</div><div class="empty-sub">${error.message}</div></div>`; return; }
   if (!data?.length) {
     feed.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Aucune publication</div><div class="empty-sub">Sois le premier à partager !</div></div>';
     return;
@@ -4761,6 +4784,26 @@ function toast(msg, type = 'success') {
 
 // Check notifs périodiquement
 setInterval(() => { if (currentUser) checkUnreadNotifs(); }, 60000);
+
+// Screenshot preview auto
+document.getElementById('t-screenshot').addEventListener('input', function() {
+  const url = this.value.trim();
+  const prev = document.getElementById('screenshot-preview');
+  const img = document.getElementById('screenshot-img');
+  if (url && (url.startsWith('http') || url.startsWith('/'))) {
+    img.src = url;
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+});
+
+// PnL preview en live
+['t-rr','t-one-r-manual','t-account'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updatePnlPreview);
+  if (el) el.addEventListener('change', updatePnlPreview);
+});
 
 console.log('%cTradingZone 🚀', 'color:#00d4a0;font-size:20px;font-weight:800');
 console.log('%cJournal de trading ultime', 'color:#64748b;font-size:12px');
