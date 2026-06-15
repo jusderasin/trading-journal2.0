@@ -1473,6 +1473,10 @@ input[type="range"]::-webkit-slider-thumb {
         <span class="nav-icon nav-icon-svg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Backtesting
       </div>
 
+      <div class="nav-item" onclick="navigate('setups')">
+        <span class="nav-icon nav-icon-svg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg></span> Mes Setups
+      </div>
+
       <div class="nav-section">Communauté</div>
       <div class="nav-item" onclick="navigate('community')">
         <span class="nav-icon nav-icon-svg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Communauté
@@ -1879,6 +1883,58 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
     </div>
 
+    <!-- ========== PAGE: SETUPS ========== -->
+    <div class="page" id="page-setups">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Mes Setups & Plans</div>
+          <div class="section-sub">Tes stratégies avec leur checklist de trading</div>
+        </div>
+        <button class="btn-sm" onclick="openSetupEditor()">+ Nouveau Setup</button>
+      </div>
+
+      <div id="setups-grid" class="gap-16"></div>
+
+      <!-- Setup Editor (inline) -->
+      <div id="setup-editor" style="display:none" class="card" style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="card-title" id="setup-editor-title">Nouveau Setup</div>
+          <button class="modal-close" onclick="closeSetupEditor()">✕</button>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nom du setup *</label>
+            <input type="text" id="se-name" placeholder="Ex: CVD Divergence">
+          </div>
+          <div class="form-group" style="max-width:60px">
+            <label class="form-label">Couleur</label>
+            <input type="color" id="se-color" value="#00c896" style="width:42px;height:38px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg-3);padding:2px">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description / Règles</label>
+          <textarea id="se-description" rows="3" placeholder="Décris ta stratégie, les conditions d'entrée, les règles à suivre..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Checklist pré-trade</label>
+          <div id="se-checklist-items" style="margin-bottom:10px"></div>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="se-new-item" placeholder="Nouvel item de checklist..." style="flex:1;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:9px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none" onkeydown="if(event.key==='Enter')addChecklistItem()">
+            <button class="btn-sm" onclick="addChecklistItem()">+ Ajouter</button>
+          </div>
+        </div>
+
+        <input type="hidden" id="se-editing-id" value="">
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+          <button class="btn-outline" onclick="closeSetupEditor()">Annuler</button>
+          <button class="btn-sm" onclick="saveSetupFull()">Sauvegarder</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ========== PAGE: COMMUNITY ========== -->
     <div class="page" id="page-community">
       <div class="section-head">
@@ -2150,9 +2206,10 @@ input[type="range"]::-webkit-slider-thumb {
         <div class="form-group">
           <label class="form-label">Setup</label>
           <div style="display:flex;gap:6px">
-            <select id="t-scenario" style="flex:1"></select>
+            <select id="t-scenario" style="flex:1" onchange="onSetupSelected()"></select>
             <button type="button" class="btn-icon" style="width:38px;height:38px;flex-shrink:0;font-size:16px" onclick="quickAddSetup()" title="Ajouter un setup">+</button>
           </div>
+          <div id="setup-checklist-preview" style="display:none;margin-top:8px;background:var(--bg-3);border-radius:8px;padding:10px"></div>
         </div>
         <div class="form-group">
           <label class="form-label">Instrument</label>
@@ -2921,7 +2978,7 @@ function navigate(page) {
   const el = document.getElementById('page-' + page);
   if (el) el.classList.add('active');
 
-  const navMap = { dashboard: 0, journal: 1, analytics: 2, accounts: 3, backtest: 4, community: 5, leaderboard: 6, profile: 7, settings: 8 };
+  const navMap = { dashboard: 0, journal: 1, analytics: 2, accounts: 3, backtest: 4, setups: 5, community: 6, leaderboard: 7, profile: 8, settings: 9 };
   const navItems = document.querySelectorAll('.nav-item');
   if (navMap[page] !== undefined && navItems[navMap[page]]) navItems[navMap[page]].classList.add('active');
 
@@ -2932,7 +2989,7 @@ function navigate(page) {
     if (el && p === page) el.classList.add('active');
   });
 
-  const titles = { dashboard: 'Dashboard', journal: 'Journal Live', analytics: 'Analytics', accounts: 'Comptes Prop Firm', backtest: 'Backtesting', community: 'Communauté', leaderboard: 'Leaderboard', profile: 'Mon Profil', settings: 'Paramètres', notifications: 'Notifications' };
+  const titles = { dashboard: 'Dashboard', journal: 'Journal Live', analytics: 'Analytics', accounts: 'Comptes Prop Firm', backtest: 'Backtesting', setups: 'Mes Setups', community: 'Communauté', leaderboard: 'Leaderboard', profile: 'Mon Profil', settings: 'Paramètres', notifications: 'Notifications' };
   document.getElementById('page-title').textContent = titles[page] || page;
 
   closeSidebar();
@@ -2945,6 +3002,7 @@ function navigate(page) {
   if (page === 'leaderboard') loadLeaderboard();
   if (page === 'profile') loadProfilePage();
   if (page === 'settings') loadSettings();
+  if (page === 'setups') loadSetupsPage();
   if (page === 'notifications') loadNotifications();
 }
 
@@ -5513,6 +5571,166 @@ document.getElementById('t-screenshot').addEventListener('input', function() {
   if (el) el.addEventListener('input', updatePnlPreview);
   if (el) el.addEventListener('change', updatePnlPreview);
 });
+
+// ============================================
+// SETUPS PAGE
+// ============================================
+let setupEditorChecklist = [];
+
+function loadSetupsPage() {
+  const grid = document.getElementById('setups-grid');
+  if (!allScenarios.filter(s => !s.is_builtin).length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon" style="font-size:40px">📋</div><div class="empty-title">Aucun setup créé</div><div class="empty-sub">Crée ton premier setup avec sa checklist pré-trade</div></div>';
+    return;
+  }
+
+  grid.innerHTML = allScenarios.filter(s => !s.is_builtin).map(s => {
+    const checklist = s.checklist || [];
+    const desc = s.description || '';
+    return `<div class="card" style="border-left:3px solid ${s.color || 'var(--accent)'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <div style="width:12px;height:12px;border-radius:50%;background:${s.color || 'var(--accent)'}"></div>
+            <div style="font-size:16px;font-weight:800;color:var(--text-0)">${s.name}</div>
+          </div>
+          ${desc ? `<div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-top:4px">${desc.length > 200 ? desc.slice(0,200) + '...' : desc}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn-icon" style="width:28px;height:28px;font-size:12px" onclick="editSetupFull('${s.id}')">✏️</button>
+          <button class="btn-icon" style="width:28px;height:28px;font-size:12px;color:var(--red)" onclick="deleteSetupFull('${s.id}')">✕</button>
+        </div>
+      </div>
+
+      ${checklist.length > 0 ? `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:8px">Checklist (${checklist.length} items)</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${checklist.map(item => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-3);border-radius:6px;font-size:13px;color:var(--text-1)">
+            <div style="width:16px;height:16px;border:2px solid var(--border-light);border-radius:4px;flex-shrink:0"></div>
+            ${item}
+          </div>
+        `).join('')}
+      </div>
+      ` : '<div style="font-size:12px;color:var(--text-4);font-style:italic">Aucune checklist définie</div>'}
+    </div>`;
+  }).join('');
+}
+
+function openSetupEditor(id) {
+  document.getElementById('setup-editor').style.display = 'block';
+  document.getElementById('se-editing-id').value = '';
+  document.getElementById('se-name').value = '';
+  document.getElementById('se-color').value = '#00c896';
+  document.getElementById('se-description').value = '';
+  document.getElementById('setup-editor-title').textContent = 'Nouveau Setup';
+  setupEditorChecklist = [];
+  renderEditorChecklist();
+  document.getElementById('se-name').focus();
+  document.getElementById('setup-editor').scrollIntoView({ behavior: 'smooth' });
+}
+
+function editSetupFull(id) {
+  const s = allScenarios.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('setup-editor').style.display = 'block';
+  document.getElementById('se-editing-id').value = id;
+  document.getElementById('se-name').value = s.name || '';
+  document.getElementById('se-color').value = s.color || '#00c896';
+  document.getElementById('se-description').value = s.description || '';
+  document.getElementById('setup-editor-title').textContent = 'Modifier : ' + s.name;
+  setupEditorChecklist = [...(s.checklist || [])];
+  renderEditorChecklist();
+  document.getElementById('setup-editor').scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeSetupEditor() {
+  document.getElementById('setup-editor').style.display = 'none';
+}
+
+function addChecklistItem() {
+  const input = document.getElementById('se-new-item');
+  const val = input.value.trim();
+  if (!val) return;
+  setupEditorChecklist.push(val);
+  input.value = '';
+  renderEditorChecklist();
+  input.focus();
+}
+
+function removeChecklistItem(idx) {
+  setupEditorChecklist.splice(idx, 1);
+  renderEditorChecklist();
+}
+
+function renderEditorChecklist() {
+  const el = document.getElementById('se-checklist-items');
+  if (!setupEditorChecklist.length) {
+    el.innerHTML = '<div style="color:var(--text-4);font-size:12px;margin-bottom:6px">Aucun item — ajoute des points à vérifier avant chaque trade</div>';
+    return;
+  }
+  el.innerHTML = setupEditorChecklist.map((item, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;margin-bottom:4px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-4);width:18px;text-align:center">${i + 1}</div>
+      <div style="flex:1;font-size:13px;color:var(--text-1)">${item}</div>
+      <button onclick="removeChecklistItem(${i})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px;padding:0;line-height:1">✕</button>
+    </div>
+  `).join('');
+}
+
+async function saveSetupFull() {
+  const name = document.getElementById('se-name').value.trim();
+  if (!name) return toast('Nom du setup requis', 'error');
+  const editId = document.getElementById('se-editing-id').value;
+
+  const data = {
+    name,
+    color: document.getElementById('se-color').value,
+    description: document.getElementById('se-description').value.trim(),
+    checklist: setupEditorChecklist,
+    category: 'CUSTOM'
+  };
+
+  let error;
+  if (editId) {
+    ({ error } = await sb.from('custom_scenarios').update(data).eq('id', editId));
+  } else {
+    data.user_id = currentUser.id;
+    ({ error } = await sb.from('custom_scenarios').insert(data));
+  }
+  if (error) return toast('Erreur: ' + error.message, 'error');
+
+  await loadScenarios();
+  closeSetupEditor();
+  loadSetupsPage();
+  toast(editId ? 'Setup modifié ✓' : 'Setup créé ✓', 'success');
+}
+
+async function deleteSetupFull(id) {
+  if (!confirm('Supprimer ce setup ?')) return;
+  await sb.from('custom_scenarios').delete().eq('id', id);
+  await loadScenarios();
+  loadSetupsPage();
+  toast('Setup supprimé', 'success');
+}
+
+// Quand on sélectionne un setup dans le formulaire trade, afficher sa checklist
+function onSetupSelected() {
+  const name = document.getElementById('t-scenario').value;
+  const s = allScenarios.find(x => x.name === name);
+  const container = document.getElementById('setup-checklist-preview');
+  if (!container) return;
+  if (!s || !s.checklist || !s.checklist.length) { container.style.display = 'none'; return; }
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:6px">Checklist — ${s.name}</div>
+    ${s.checklist.map((item, i) => `
+      <label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:var(--text-1)">
+        <input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)"> ${item}
+      </label>
+    `).join('')}
+  `;
+}
 
 console.log('%cTradingZone 🚀', 'color:#00d4a0;font-size:20px;font-weight:800');
 console.log('%cJournal de trading ultime', 'color:#64748b;font-size:12px');
