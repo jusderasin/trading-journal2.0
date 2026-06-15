@@ -2007,6 +2007,16 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
 
         <div class="card">
+          <div class="card-header"><div class="card-title">Mes Setups</div></div>
+          <div id="custom-tags-list" style="margin-bottom:12px"></div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="text" id="new-tag-name" placeholder="Nom du setup (ex: CVD Divergence)" style="flex:1;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:9px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+            <input type="color" id="new-tag-color" value="#00c896" style="width:38px;height:38px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg-3);padding:2px">
+            <button class="btn-sm" onclick="addCustomTag()">Ajouter</button>
+          </div>
+        </div>
+
+        <div class="card">
           <div class="card-header"><div class="card-title">Données</div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn-outline" onclick="openImportModal('import')">📥 Importer des trades</button>
@@ -2139,7 +2149,10 @@ input[type="range"]::-webkit-slider-thumb {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Setup</label>
-          <select id="t-scenario"></select>
+          <div style="display:flex;gap:6px">
+            <select id="t-scenario" style="flex:1"></select>
+            <button type="button" class="btn-icon" style="width:38px;height:38px;flex-shrink:0;font-size:16px" onclick="quickAddSetup()" title="Ajouter un setup">+</button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Instrument</label>
@@ -5254,18 +5267,7 @@ async function loadLeaderboard() {
 // SETTINGS
 // ============================================
 async function loadSettings() {
-  // Goals
-  const { data: goals } = await sb.from('user_goals').select('*').eq('user_id', currentUser.id);
-  if (goals) {
-    goals.forEach(g => {
-      if (g.goal_type === 'monthly_pnl') document.getElementById('goal-pnl').value = g.target_value;
-      if (g.goal_type === 'win_rate') document.getElementById('goal-wr').value = g.target_value;
-      if (g.goal_type === 'max_trades_day') document.getElementById('goal-max-trades').value = g.target_value;
-      if (g.goal_type === 'max_loss_day') document.getElementById('goal-max-loss').value = g.target_value;
-    });
-  }
-
-  // Custom tags
+  // Custom tags/setups
   renderCustomTags();
 
   // Theme
@@ -5475,6 +5477,22 @@ function toast(msg, type = 'success') {
 
 // Check notifs périodiquement
 setInterval(() => { if (currentUser) checkUnreadNotifs(); }, 60000);
+
+// Quick add setup depuis le formulaire trade
+function quickAddSetup() {
+  const name = prompt('Nom du nouveau setup :');
+  if (!name || !name.trim()) return;
+  sb.from('custom_scenarios').insert({ user_id: currentUser.id, name: name.trim(), color: '#00c896', category: 'CUSTOM' })
+    .then(({ error }) => {
+      if (error) { toast('Erreur: ' + error.message, 'error'); return; }
+      loadScenarios().then(() => {
+        // Sélectionner le nouveau setup dans le dropdown
+        const sel = document.getElementById('t-scenario');
+        if (sel) sel.value = name.trim();
+        toast('Setup "' + name.trim() + '" ajouté ✓', 'success');
+      });
+    });
+}
 
 // Screenshot preview auto
 document.getElementById('t-screenshot').addEventListener('input', function() {
