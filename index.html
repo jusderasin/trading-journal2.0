@@ -1920,11 +1920,7 @@ input[type="range"]::-webkit-slider-thumb {
 
         <div class="form-group">
           <label class="form-label">Checklist pré-trade</label>
-          <div id="se-checklist-items" style="margin-bottom:10px"></div>
-          <div style="display:flex;gap:6px">
-            <input type="text" id="se-new-item" placeholder="Nouvel item de checklist..." style="flex:1;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:9px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none" onkeydown="if(event.key==='Enter')addChecklistItem()">
-            <button class="btn-sm" onclick="addChecklistItem()">+ Ajouter</button>
-          </div>
+          <div id="se-checklist-items"></div>
         </div>
 
         <input type="hidden" id="se-editing-id" value="">
@@ -5575,7 +5571,7 @@ document.getElementById('t-screenshot').addEventListener('input', function() {
 // ============================================
 // SETUPS PAGE
 // ============================================
-let setupEditorChecklist = [];
+let setupEditorChecklist = []; // format: [{ title, optional, items }]
 
 function loadSetupsPage() {
   const grid = document.getElementById('setups-grid');
@@ -5602,17 +5598,13 @@ function loadSetupsPage() {
         </div>
       </div>
 
-      ${checklist.length > 0 ? `
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:8px">Checklist (${checklist.length} items)</div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        ${checklist.map(item => `
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-3);border-radius:6px;font-size:13px;color:var(--text-1)">
-            <div style="width:16px;height:16px;border:2px solid var(--border-light);border-radius:4px;flex-shrink:0"></div>
-            ${item}
-          </div>
-        `).join('')}
-      </div>
-      ` : '<div style="font-size:12px;color:var(--text-4);font-style:italic">Aucune checklist définie</div>'}
+      ${(() => {
+        if (!checklist.length) return '<div style="font-size:12px;color:var(--text-4);font-style:italic">Aucune checklist définie</div>';
+        const isSec = typeof checklist[0] === 'object';
+        if (!isSec) return `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:8px">Checklist (${checklist.length} items)</div><div style="display:flex;flex-direction:column;gap:4px">${checklist.map(item=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-3);border-radius:6px;font-size:13px;color:var(--text-1)"><div style="width:16px;height:16px;border:2px solid var(--border-light);border-radius:4px;flex-shrink:0"></div>${item}</div>`).join('')}</div>`;
+        const tot = checklist.reduce((s2,sec)=>s2+(sec.items?sec.items.length:0),0);
+        return `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:10px">Checklist — ${tot} items · ${checklist.length} sections</div>${checklist.map(section=>`<div style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-size:10px;font-weight:800;letter-spacing:1px;color:var(--accent)">${section.title}</span>${section.optional?'<span style="font-size:10px;font-weight:600;color:var(--text-4);background:var(--bg-4);border-radius:4px;padding:1px 6px">optionnel</span>':''}</div><div style="display:flex;flex-direction:column;gap:3px">${(section.items||[]).map(item=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg-3);border-radius:6px;font-size:12px;color:var(--text-1)"><div style="width:14px;height:14px;border:2px solid var(--border-light);border-radius:3px;flex-shrink:0"></div>${item}</div>`).join('')}</div></div>`).join('')}`;
+      })()}
     </div>`;
   }).join('');
 }
@@ -5624,7 +5616,8 @@ function openSetupEditor(id) {
   document.getElementById('se-color').value = '#00c896';
   document.getElementById('se-description').value = '';
   document.getElementById('setup-editor-title').textContent = 'Nouveau Setup';
-  setupEditorChecklist = [];
+  // Nouveau format sections: [{ title, optional, items }]
+  setupEditorChecklist = [{ title: 'SETUP', optional: false, items: [] }];
   renderEditorChecklist();
   document.getElementById('se-name').focus();
   document.getElementById('setup-editor').scrollIntoView({ behavior: 'smooth' });
@@ -5639,7 +5632,15 @@ function editSetupFull(id) {
   document.getElementById('se-color').value = s.color || '#00c896';
   document.getElementById('se-description').value = s.description || '';
   document.getElementById('setup-editor-title').textContent = 'Modifier : ' + s.name;
-  setupEditorChecklist = [...(s.checklist || [])];
+  // Migration flat → sections
+  const raw = s.checklist || [];
+  if (raw.length === 0) {
+    setupEditorChecklist = [{ title: 'SETUP', optional: false, items: [] }];
+  } else if (typeof raw[0] === 'string') {
+    setupEditorChecklist = [{ title: 'SETUP', optional: false, items: [...raw] }];
+  } else {
+    setupEditorChecklist = JSON.parse(JSON.stringify(raw));
+  }
   renderEditorChecklist();
   document.getElementById('setup-editor').scrollIntoView({ behavior: 'smooth' });
 }
@@ -5648,34 +5649,72 @@ function closeSetupEditor() {
   document.getElementById('setup-editor').style.display = 'none';
 }
 
-function addChecklistItem() {
-  const input = document.getElementById('se-new-item');
-  const val = input.value.trim();
+// ── Checklist par sections ──────────────────────────────────
+function addSection() {
+  setupEditorChecklist.push({ title: 'NOUVELLE SECTION', optional: false, items: [] });
+  renderEditorChecklist();
+}
+function removeSection(si) {
+  if (setupEditorChecklist.length <= 1) { toast('Il faut au moins une section', 'error'); return; }
+  setupEditorChecklist.splice(si, 1);
+  renderEditorChecklist();
+}
+function toggleSectionOptional(si) {
+  setupEditorChecklist[si].optional = !setupEditorChecklist[si].optional;
+}
+function updateSectionTitle(si, val) {
+  setupEditorChecklist[si].title = val.toUpperCase();
+}
+function addItemToSection(si) {
+  const inp = document.getElementById('se-item-input-' + si);
+  const val = inp ? inp.value.trim() : '';
   if (!val) return;
-  setupEditorChecklist.push(val);
-  input.value = '';
+  setupEditorChecklist[si].items.push(val);
+  inp.value = '';
   renderEditorChecklist();
-  input.focus();
+  setTimeout(() => { const el2 = document.getElementById('se-item-input-' + si); if (el2) el2.focus(); }, 20);
 }
-
-function removeChecklistItem(idx) {
-  setupEditorChecklist.splice(idx, 1);
+function removeItemFromSection(si, ii) {
+  setupEditorChecklist[si].items.splice(ii, 1);
   renderEditorChecklist();
 }
+// Compat legacy
+function addChecklistItem() { if (setupEditorChecklist.length > 0) addItemToSection(0); }
+function removeChecklistItem(idx) { if (setupEditorChecklist.length > 0) removeItemFromSection(0, idx); }
 
 function renderEditorChecklist() {
   const el = document.getElementById('se-checklist-items');
   if (!setupEditorChecklist.length) {
-    el.innerHTML = '<div style="color:var(--text-4);font-size:12px;margin-bottom:6px">Aucun item — ajoute des points à vérifier avant chaque trade</div>';
+    el.innerHTML = `<div style="color:var(--text-4);font-size:12px;margin-bottom:8px">Aucune section définie</div><button class="btn-outline" style="font-size:12px" onclick="addSection()">+ Ajouter une section</button>`;
     return;
   }
-  el.innerHTML = setupEditorChecklist.map((item, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;margin-bottom:4px">
-      <div style="font-size:12px;font-weight:700;color:var(--text-4);width:18px;text-align:center">${i + 1}</div>
-      <div style="flex:1;font-size:13px;color:var(--text-1)">${item}</div>
-      <button onclick="removeChecklistItem(${i})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px;padding:0;line-height:1">✕</button>
+  el.innerHTML = setupEditorChecklist.map((section, si) => `
+    <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <input type="text" value="${section.title}" oninput="updateSectionTitle(${si},this.value)"
+          style="flex:1;background:var(--bg-4);border:1px solid var(--border-light);color:var(--accent);padding:6px 10px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;outline:none;font-family:var(--font)"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-light)'">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text-3);white-space:nowrap;flex-shrink:0">
+          <input type="checkbox" ${section.optional ? 'checked' : ''} onchange="toggleSectionOptional(${si})" style="accent-color:var(--purple)">
+          Optionnel
+        </label>
+        <button onclick="removeSection(${si})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:0;line-height:1;flex-shrink:0" title="Supprimer section">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">
+        ${section.items.length === 0
+          ? '<div style="font-size:12px;color:var(--text-4);font-style:italic;padding:4px 0">Aucun item — ajoute un élément ci-dessous</div>'
+          : section.items.map((item, ii) => `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px"><div style="width:6px;height:6px;border-radius:50%;background:var(--border-light);flex-shrink:0"></div><div style="flex:1;font-size:13px;color:var(--text-1)">${item}</div><button onclick="removeItemFromSection(${si},${ii})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px;padding:0;line-height:1">✕</button></div>`).join('')
+        }
+      </div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="se-item-input-${si}" placeholder="Nouvel item..."
+          style="flex:1;background:var(--bg-2);border:1px solid var(--border);color:var(--text-0);padding:7px 10px;border-radius:6px;font-size:12px;font-family:var(--font);outline:none"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addItemToSection(${si});}"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <button class="btn-sm" style="font-size:11px;padding:7px 12px;flex-shrink:0" onclick="addItemToSection(${si})">+ Ajouter</button>
+      </div>
     </div>
-  `).join('');
+  `).join('') + `<button class="btn-outline" style="font-size:12px;width:100%;margin-top:4px" onclick="addSection()">+ Ajouter une section</button>`;
 }
 
 async function saveSetupFull() {
@@ -5714,7 +5753,7 @@ async function deleteSetupFull(id) {
   toast('Setup supprimé', 'success');
 }
 
-// Quand on sélectionne un setup dans le formulaire trade, afficher sa checklist
+// Quand on sélectionne un setup dans le formulaire trade, afficher sa checklist par sections
 function onSetupSelected() {
   const name = document.getElementById('t-scenario').value;
   const s = allScenarios.find(x => x.name === name);
@@ -5722,14 +5761,27 @@ function onSetupSelected() {
   if (!container) return;
   if (!s || !s.checklist || !s.checklist.length) { container.style.display = 'none'; return; }
   container.style.display = 'block';
-  container.innerHTML = `
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:6px">Checklist — ${s.name}</div>
-    ${s.checklist.map((item, i) => `
-      <label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:var(--text-1)">
-        <input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)"> ${item}
-      </label>
-    `).join('')}
-  `;
+
+  const checklist = s.checklist;
+  const isSections = checklist.length > 0 && typeof checklist[0] === 'object';
+
+  if (!isSections) {
+    container.innerHTML = `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:6px">Checklist — ${s.name}</div>
+      ${checklist.map(item => `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:var(--text-1)"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)"> ${item}</label>`).join('')}
+    `;
+    return;
+  }
+
+  container.innerHTML = checklist.map(section => `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--border)">
+        <span style="font-size:10px;font-weight:800;letter-spacing:1px;color:var(--accent)">${section.title}</span>
+        ${section.optional ? '<span style="font-size:10px;font-weight:600;color:var(--text-4);background:var(--bg-4);border-radius:4px;padding:1px 6px">Section optionnelle</span>' : ''}
+      </div>
+      ${(section.items||[]).map(item => `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:var(--text-1)"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)"> ${item}</label>`).join('')}
+    </div>
+  `).join('');
 }
 
 console.log('%cTradingZone 🚀', 'color:#00d4a0;font-size:20px;font-weight:800');
