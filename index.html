@@ -2059,6 +2059,17 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
 
         <div class="card">
+          <div class="card-header"><div class="card-title">Saisie des Trades</div></div>
+          <div class="toggle-row">
+            <div>
+              <span style="font-size:13px;color:var(--text-1)">Mode rapide RR</span>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px">TP = +2R, BE/SL = -1R automatiquement (reste modifiable trade par trade)</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="s-quick-rr" onchange="toggleQuickRrMode()"><div class="toggle-slider"></div></label>
+          </div>
+        </div>
+
+        <div class="card">
           <div class="card-header"><div class="card-title">Mes Setups</div></div>
           <div id="custom-tags-list" style="margin-bottom:12px"></div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -2230,6 +2241,27 @@ input[type="range"]::-webkit-slider-thumb {
           <div id="chk-na" onclick="selectChecklist(null)" style="flex:1;padding:10px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-3)">— N/A</div>
         </div>
         <input type="hidden" id="t-checklist" value="">
+      </div>
+
+      <!-- Qualité d'exécution -->
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Qualité d'exécution — <span id="t-quality-val" style="color:var(--accent);font-family:var(--mono)">5</span>/10</label>
+        <div class="range-wrapper">
+          <input type="range" id="t-quality" min="1" max="10" value="5" oninput="document.getElementById('t-quality-val').textContent=this.value">
+        </div>
+      </div>
+
+      <!-- Émotions -->
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Émotions ressenties</label>
+        <div id="t-emotions-tags" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+        <input type="hidden" id="t-emotions" value="">
+      </div>
+
+      <!-- Erreur de trading -->
+      <div class="form-group" style="margin-bottom:14px">
+        <div id="t-error-toggle" onclick="toggleTradeError()" style="padding:10px;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;background:var(--bg-3);border:2px solid var(--border);color:var(--text-3);transition:all .15s">⚠️ Marquer comme erreur de trading</div>
+        <input type="hidden" id="t-is-error" value="false">
       </div>
 
       <!-- Screenshot URL -->
@@ -3958,6 +3990,15 @@ function selectResult(res) {
     el.style.cssText = `flex:1;padding:10px;background:${s.bg};border:2px solid ${s.border};border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:12px;color:${s.color}`;
     el.textContent = label;
   });
+  // Mode rapide : pré-remplit le RR selon le résultat (reste modifiable)
+  if (isQuickRrMode()) {
+    const rrInput = document.getElementById('t-rr');
+    if (rrInput) {
+      if (res === 'WIN') rrInput.value = '2';
+      else if (res === 'LOSS') rrInput.value = '1';
+      else rrInput.value = '0';
+    }
+  }
   updatePnlPreview();
 }
 
@@ -3971,6 +4012,57 @@ function selectChecklist(val) {
   if (val === true)  yesEl.style.cssText = 'flex:1;padding:10px;background:var(--green-dim);border:2px solid var(--green);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--green)';
   if (val === false) noEl.style.cssText  = 'flex:1;padding:10px;background:var(--red-dim);border:2px solid var(--red);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--red)';
   if (val === null)  naEl.style.cssText  = 'flex:1;padding:10px;background:var(--bg-4);border:2px solid var(--border-light);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-1)';
+}
+
+// ============================================
+// ÉMOTIONS + QUALITÉ + ERREUR DE TRADING
+// ============================================
+const EMOTION_TAGS = ['Confiant', 'Patient', 'Discipliné', 'Neutre', 'FOMO', 'Impatient', 'Stressé', 'Revanche'];
+let selectedEmotions = [];
+
+function renderEmotionTags() {
+  const el = document.getElementById('t-emotions-tags');
+  if (!el) return;
+  el.innerHTML = EMOTION_TAGS.map(tag => {
+    const isNeg = ['FOMO', 'Impatient', 'Stressé', 'Revanche'].includes(tag);
+    const active = selectedEmotions.includes(tag);
+    const activeColor = isNeg ? 'var(--red)' : 'var(--green)';
+    const activeBg = isNeg ? 'var(--red-dim)' : 'var(--green-dim)';
+    return `<div onclick="toggleEmotion('${tag}')" style="padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;background:${active ? activeBg : 'var(--bg-3)'};border:1.5px solid ${active ? activeColor : 'var(--border)'};color:${active ? activeColor : 'var(--text-2)'}">${tag}</div>`;
+  }).join('');
+}
+
+function toggleEmotion(tag) {
+  const idx = selectedEmotions.indexOf(tag);
+  if (idx >= 0) selectedEmotions.splice(idx, 1);
+  else selectedEmotions.push(tag);
+  document.getElementById('t-emotions').value = JSON.stringify(selectedEmotions);
+  renderEmotionTags();
+}
+
+function setEmotions(arr) {
+  selectedEmotions = Array.isArray(arr) ? [...arr] : [];
+  document.getElementById('t-emotions').value = JSON.stringify(selectedEmotions);
+  renderEmotionTags();
+}
+
+function toggleTradeError() {
+  const input = document.getElementById('t-is-error');
+  const newVal = input.value !== 'true';
+  input.value = newVal ? 'true' : 'false';
+  const btn = document.getElementById('t-error-toggle');
+  btn.style.cssText = newVal
+    ? 'padding:10px;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;background:var(--red-dim);border:2px solid var(--red);color:var(--red);transition:all .15s'
+    : 'padding:10px;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;background:var(--bg-3);border:2px solid var(--border);color:var(--text-3);transition:all .15s';
+}
+
+function setTradeError(val) {
+  document.getElementById('t-is-error').value = val ? 'true' : 'false';
+  const btn = document.getElementById('t-error-toggle');
+  if (!btn) return;
+  btn.style.cssText = val
+    ? 'padding:10px;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;background:var(--red-dim);border:2px solid var(--red);color:var(--red);transition:all .15s'
+    : 'padding:10px;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;background:var(--bg-3);border:2px solid var(--border);color:var(--text-3);transition:all .15s';
 }
 
 function updatePnlPreview() {
@@ -4003,6 +4095,10 @@ function openAddTrade() {
   document.getElementById('t-notes').value = '';
   document.getElementById('t-screenshot').value = '';
   document.getElementById('screenshot-preview').style.display = 'none';
+  document.getElementById('t-quality').value = '5';
+  document.getElementById('t-quality-val').textContent = '5';
+  setEmotions([]);
+  setTradeError(false);
   selectDirection('LONG');
   selectResult('WIN');
   selectChecklist(null);
@@ -4021,6 +4117,12 @@ async function editTrade(id) {
   document.getElementById('t-scenario').value = trade.scenario || '';
   document.getElementById('t-notes').value = trade.notes || '';
   document.getElementById('t-screenshot').value = trade.screenshot_url || '';
+  document.getElementById('t-quality').value = trade.quality || 5;
+  document.getElementById('t-quality-val').textContent = trade.quality || 5;
+  let emotionsArr = [];
+  try { emotionsArr = trade.emotions ? (Array.isArray(trade.emotions) ? trade.emotions : JSON.parse(trade.emotions)) : []; } catch { emotionsArr = []; }
+  setEmotions(emotionsArr);
+  setTradeError(trade.is_error === true || trade.is_error === 'true');
   if (trade.screenshot_url) {
     document.getElementById('screenshot-img').src = trade.screenshot_url;
     document.getElementById('screenshot-preview').style.display = 'block';
@@ -4064,6 +4166,9 @@ async function saveTrade() {
     notes: document.getElementById('t-notes').value || null,
     screenshot_url: screenshotUrl || null,
     checklist_ok: checklistOk,
+    quality: parseInt(document.getElementById('t-quality').value) || 5,
+    emotions: selectedEmotions,
+    is_error: document.getElementById('t-is-error').value === 'true',
     is_public: false
   };
 
@@ -5326,6 +5431,19 @@ async function loadSettings() {
 
   // Theme
   document.getElementById('s-light-mode').checked = document.body.classList.contains('light');
+
+  // Quick RR mode
+  document.getElementById('s-quick-rr').checked = storage.getItem('tz-quick-rr') === 'true';
+}
+
+function toggleQuickRrMode() {
+  const enabled = document.getElementById('s-quick-rr').checked;
+  storage.setItem('tz-quick-rr', enabled ? 'true' : 'false');
+  toast(enabled ? 'Mode rapide RR activé ✓' : 'Mode rapide RR désactivé', 'success');
+}
+
+function isQuickRrMode() {
+  return storage.getItem('tz-quick-rr') === 'true';
 }
 
 function renderCustomTags() {
