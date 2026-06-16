@@ -2264,10 +2264,13 @@ input[type="range"]::-webkit-slider-thumb {
         <input type="hidden" id="t-is-error" value="false">
       </div>
 
-      <!-- Screenshot URL -->
+      <!-- Screenshot -->
       <div class="form-group" style="margin-bottom:14px">
-        <label class="form-label">Screenshot (URL image)</label>
-        <input type="text" id="t-screenshot" placeholder="https://i.imgur.com/... ou TradingView snapshot">
+        <label class="form-label">Screenshot</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="t-screenshot" placeholder="https://i.imgur.com/... ou TradingView snapshot" style="flex:1">
+          <button type="button" class="btn-icon" style="width:38px;height:38px;flex-shrink:0;font-size:15px" onclick="uploadImageToField('t-screenshot', refreshScreenshotPreview)" title="Choisir un fichier">📁</button>
+        </div>
         <div id="screenshot-preview" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;max-height:160px">
           <img id="screenshot-img" style="width:100%;object-fit:cover;border-radius:8px" onerror="this.parentElement.style.display='none'">
         </div>
@@ -2630,8 +2633,14 @@ input[type="range"]::-webkit-slider-thumb {
         <textarea id="post-content" rows="5" placeholder="Partage ton analyse, ton trade, tes insights..."></textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">Image (URL)</label>
-        <input type="text" id="post-image" placeholder="https://...">
+        <label class="form-label">Image</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="post-image" placeholder="https://..." style="flex:1">
+          <button type="button" class="btn-icon" style="width:38px;height:38px;flex-shrink:0;font-size:15px" onclick="uploadImageToField('post-image', refreshPostImagePreview)" title="Choisir un fichier">📁</button>
+        </div>
+        <div id="post-image-preview" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;max-height:160px">
+          <img id="post-image-img" style="width:100%;object-fit:cover;border-radius:8px" onerror="this.parentElement.style.display='none'">
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -3168,6 +3177,48 @@ function uploadAvatar() {
     reader.readAsDataURL(file);
   };
   input.click();
+}
+
+// ============================================
+// UPLOAD IMAGE GÉNÉRIQUE (trade screenshot, post communauté)
+// ============================================
+// Remplit un champ texte/hidden avec le base64 de l'image choisie sur l'appareil.
+// targetInputId: id de l'input à remplir | onDone: callback appelé après remplissage (pour rafraîchir une preview)
+function uploadImageToField(targetInputId, onDone) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target.result;
+      const target = document.getElementById(targetInputId);
+      if (target) target.value = base64;
+      if (typeof onDone === 'function') onDone();
+      toast('Image chargée ✓', 'success');
+    };
+    reader.onerror = () => toast('Erreur de lecture du fichier', 'error');
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function refreshScreenshotPreview() {
+  const url = document.getElementById('t-screenshot').value.trim();
+  const prev = document.getElementById('screenshot-preview');
+  const img = document.getElementById('screenshot-img');
+  if (url) { img.src = url; prev.style.display = 'block'; }
+  else { prev.style.display = 'none'; }
+}
+
+function refreshPostImagePreview() {
+  const url = document.getElementById('post-image').value.trim();
+  const prev = document.getElementById('post-image-preview');
+  const img = document.getElementById('post-image-img');
+  if (url) { img.src = url; prev.style.display = 'block'; }
+  else { prev.style.display = 'none'; }
 }
 
 // ============================================
@@ -5379,7 +5430,12 @@ async function toggleLike(postId, el) {
   await loadCommunity();
 }
 
-function openNewPost() { openModal('modal-post'); }
+function openNewPost() {
+  document.getElementById('post-content').value = '';
+  document.getElementById('post-image').value = '';
+  document.getElementById('post-image-preview').style.display = 'none';
+  openModal('modal-post');
+}
 
 async function publishPost() {
   const content = document.getElementById('post-content').value.trim();
@@ -5393,6 +5449,7 @@ async function publishPost() {
   if (error) return toast('Erreur: ' + error.message, 'error');
   document.getElementById('post-content').value = '';
   document.getElementById('post-image').value = '';
+  document.getElementById('post-image-preview').style.display = 'none';
   closeModal('modal-post');
   toast('Publié ✓', 'success');
   await loadCommunity();
@@ -5674,7 +5731,20 @@ document.getElementById('t-screenshot').addEventListener('input', function() {
   const url = this.value.trim();
   const prev = document.getElementById('screenshot-preview');
   const img = document.getElementById('screenshot-img');
-  if (url && (url.startsWith('http') || url.startsWith('/'))) {
+  if (url && (url.startsWith('http') || url.startsWith('/') || url.startsWith('data:image'))) {
+    img.src = url;
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+});
+
+// Post image preview auto
+document.getElementById('post-image').addEventListener('input', function() {
+  const url = this.value.trim();
+  const prev = document.getElementById('post-image-preview');
+  const img = document.getElementById('post-image-img');
+  if (url && (url.startsWith('http') || url.startsWith('/') || url.startsWith('data:image'))) {
     img.src = url;
     prev.style.display = 'block';
   } else {
