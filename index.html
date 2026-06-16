@@ -4066,7 +4066,9 @@ function setTradeError(val) {
 }
 
 function updatePnlPreview() {
-  const rr = parseFloat(document.getElementById('t-rr')?.value || 0);
+  const rrInput = document.getElementById('t-rr');
+  const rrRaw = rrInput?.value ?? '';
+  const rr = parseFloat(rrRaw || 0);
   const oneRManual = parseFloat(document.getElementById('t-one-r-manual')?.value || 0);
   const accountId = document.getElementById('t-account')?.value;
   const allAcc = [...allAccounts.challenges, ...allAccounts.funded];
@@ -4076,7 +4078,7 @@ function updatePnlPreview() {
   const pnl = rr * oneR * (result === 'WIN' ? 1 : result === 'LOSS' ? -1 : 0);
   const el = document.getElementById('trade-pnl-preview');
   if (!el) return;
-  if (rr > 0) {
+  if (rrRaw.trim() !== '' && !isNaN(rr)) {
     el.textContent = (pnl >= 0 ? '+' : '') + '$' + Math.round(pnl).toLocaleString();
     el.style.color = pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--yellow)';
   } else {
@@ -4140,11 +4142,12 @@ async function saveTrade() {
   const date = document.getElementById('t-date').value;
   const direction = document.getElementById('t-direction').value;
   const result = document.getElementById('t-result').value;
-  const rr = parseFloat(document.getElementById('t-rr').value || 0);
+  const rrRaw = document.getElementById('t-rr').value;
+  const rr = parseFloat(rrRaw || 0);
   const accountId = document.getElementById('t-account').value;
   const screenshotUrl = document.getElementById('t-screenshot').value.trim();
 
-  if (!date || !direction || !result || !rr) return toast('Date, direction, résultat et RR sont requis', 'error');
+  if (!date || !direction || !result || rrRaw.trim() === '' || isNaN(rr)) return toast('Date, direction, résultat et RR sont requis', 'error');
 
   const oneRManual = parseFloat(document.getElementById('t-one-r-manual').value || 0);
   const allAcc = [...allAccounts.challenges, ...allAccounts.funded];
