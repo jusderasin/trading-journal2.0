@@ -2240,11 +2240,11 @@ input[type="range"]::-webkit-slider-thumb {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">RR Réalisé *</label>
-          <input type="number" id="t-rr" placeholder="2.5" step="0.1" min="0" style="font-family:var(--mono);font-size:15px;font-weight:700">
+          <input type="number" id="t-rr" placeholder="2.5 ou -1" step="0.1" style="font-family:var(--mono);font-size:15px;font-weight:700">
         </div>
         <div class="form-group">
           <label class="form-label">Valeur 1R ($)</label>
-          <input type="number" id="t-one-r-manual" placeholder="200" step="1" style="font-family:var(--mono)">
+          <input type="number" id="t-one-r-manual" placeholder="200" step="1" min="0" style="font-family:var(--mono)">
         </div>
         <div class="form-group">
           <label class="form-label">Heure</label>
@@ -2778,7 +2778,9 @@ input[type="range"]::-webkit-slider-thumb {
           <div id="format-guide" style="margin-top:12px;background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px;color:var(--text-3)">
             <div style="font-weight:700;color:var(--text-2);margin-bottom:6px">📋 Format TradingZone attendu :</div>
             <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">date,time,direction,result,rr,one_r,setup,notes</code>
-            <div style="margin-top:4px">Ex: <code style="font-family:var(--mono);font-size:11px">2026-06-14,09:30,LONG,WIN,2.5,200,CVD Div,Top du range</code></div>
+            <div style="margin-top:4px">RR signé : positif pour un WIN, négatif pour un LOSS.</div>
+            <div style="margin-top:4px">Ex WIN : <code style="font-family:var(--mono);font-size:11px">2026-06-14,09:30,LONG,WIN,2.5,200,CVD Div,Top du range</code></div>
+            <div style="margin-top:2px">Ex LOSS : <code style="font-family:var(--mono);font-size:11px">2026-06-14,11:00,SHORT,LOSS,-1,200,CVD Div,Stop touché</code></div>
           </div>
         </div>
 
@@ -3571,7 +3573,7 @@ function renderAccounts() {
     const bes = accTrades.filter(t => t.result === 'BE').length;
     const totalR = accTrades.reduce((s, t) => {
       const r = parseFloat(t.rr || 0);
-      return s + (t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0);
+      return s + (r);
     }, 0);
     const totalPnl = totalR * parseFloat(a.one_r || 200);
     const wr = accTrades.length > 0 ? Math.round(wins / accTrades.length * 100) : 0;
@@ -3799,7 +3801,7 @@ function calcStats(trades) {
   const avgRr = trades.length > 0 ? (trades.reduce((s, t) => s + parseFloat(t.rr || 0), 0) / trades.length).toFixed(2) : '0.0';
   const pnl = trades.reduce((s, t) => {
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    return s + (t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0);
+    return s + (r);
   }, 0);
 
   // Drawdown
@@ -3807,7 +3809,7 @@ function calcStats(trades) {
   const sorted = [...trades].sort((a, b) => new Date(a.date + ' ' + (a.entry_time || '00:00')) - new Date(b.date + ' ' + (b.entry_time || '00:00')));
   sorted.forEach(t => {
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    cumPnl += t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    cumPnl += r;
     if (cumPnl > peak) peak = cumPnl;
     const dd = peak - cumPnl;
     if (dd > maxDd) maxDd = dd;
@@ -3823,7 +3825,7 @@ function calcStats(trades) {
     const d = t.date;
     if (!byDay[d]) byDay[d] = 0;
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    byDay[d] += t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    byDay[d] += r;
   });
   const greenDays = Object.values(byDay).filter(v => v > 0).length;
   const redDays = Object.values(byDay).filter(v => v < 0).length;
@@ -3871,12 +3873,12 @@ function renderRecentTrades() {
   el.innerHTML = `<table class="data-table">
     <thead><tr><th>Date</th><th>Dir</th><th>Résultat</th><th>RR</th><th>PnL</th></tr></thead>
     <tbody>${recent.map(t => {
-      const pnl = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+      const pnl = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
       return `<tr>
         <td>${t.date}</td>
         <td><span class="pill ${t.direction === 'LONG' ? 'green' : 'red'}">${t.direction}</span></td>
         <td><span class="pill ${t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow'}">${t.result}</span></td>
-        <td class="mono">${t.rr}R</td>
+        <td class="mono">${parseFloat(t.rr) >= 0 ? '+' : ''}${t.rr}R</td>
         <td class="mono ${pnl >= 0 ? 'green' : 'red'}" style="color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</td>
       </tr>`;
     }).join('')}</tbody>
@@ -3919,7 +3921,7 @@ function getEquityData(trades, period) {
   const byDay = {};
   filtered.forEach(t => {
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    const pnl = t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    const pnl = r;
     byDay[t.date] = (byDay[t.date] || 0) + pnl;
   });
 
@@ -3973,7 +3975,7 @@ function renderDailyChart() {
   });
   recent.forEach(t => {
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    const pnl = t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    const pnl = r;
     byDay[t.date] = (byDay[t.date] || 0) + pnl;
   });
   const dates = Object.keys(byDay).sort();
@@ -4030,7 +4032,7 @@ function renderJournalTable() {
   wrap.innerHTML = `<table class="data-table">
     <thead><tr><th>Date</th><th>Heure</th><th>Instrument</th><th>Direction</th><th>Setup</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Actions</th></tr></thead>
     <tbody>${allTrades.map(t => {
-      const pnl = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+      const pnl = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
       return `<tr>
         <td>${t.date}</td>
         <td class="mono">${t.entry_time || '—'}</td>
@@ -4038,7 +4040,7 @@ function renderJournalTable() {
         <td><span class="pill ${t.direction === 'LONG' ? 'green' : 'red'}">${t.direction}</span></td>
         <td><span style="font-size:12px;color:var(--text-2)">${t.scenario || '—'}</span></td>
         <td><span class="pill ${t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow'}">${t.result}</span></td>
-        <td class="mono">${t.rr}R</td>
+        <td class="mono">${parseFloat(t.rr) >= 0 ? '+' : ''}${t.rr}R</td>
         <td class="mono" style="color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</td>
         <td>
           <div style="display:flex;gap:4px">
@@ -4082,7 +4084,7 @@ function renderCalendar() {
     const dayTrades = byDay[dateStr] || [];
     const pnl = dayTrades.reduce((s, t) => {
       const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-      return s + (t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0);
+      return s + (r);
     }, 0);
     const bg = dayTrades.length === 0 ? 'var(--bg-3)' : pnl > 0 ? 'var(--green-dim)' : pnl < 0 ? 'var(--red-dim)' : 'var(--bg-4)';
     const border = dayTrades.length === 0 ? 'var(--border)' : pnl > 0 ? '#00d4a040' : pnl < 0 ? '#f43f5e40' : 'var(--border)';
@@ -4137,12 +4139,12 @@ function selectResult(res) {
     el.style.cssText = `flex:1;padding:10px;background:${s.bg};border:2px solid ${s.border};border-radius:8px;text-align:center;cursor:pointer;font-weight:700;font-size:12px;color:${s.color}`;
     el.textContent = label;
   });
-  // Mode rapide : pré-remplit le RR selon le résultat (reste modifiable)
+  // Mode rapide : pré-remplit le RR selon le résultat (reste modifiable, signe = sens du PnL)
   if (isQuickRrMode()) {
     const rrInput = document.getElementById('t-rr');
     if (rrInput) {
       if (res === 'WIN') rrInput.value = '2';
-      else if (res === 'LOSS') rrInput.value = '1';
+      else if (res === 'LOSS') rrInput.value = '-1';
       else rrInput.value = '0';
     }
   }
@@ -4221,8 +4223,8 @@ function updatePnlPreview() {
   const allAcc = [...allAccounts.challenges, ...allAccounts.funded];
   const acc = allAcc.find(a => a.id === accountId);
   const oneR = oneRManual || (acc ? parseFloat(acc.one_r || 200) : 200);
-  const result = document.getElementById('t-result')?.value || 'WIN';
-  const pnl = rr * oneR * (result === 'WIN' ? 1 : result === 'LOSS' ? -1 : 0);
+  // PnL = RR (signé : positif=gain, négatif=perte) × valeur du risque (toujours positive)
+  const pnl = rr * oneR;
   const el = document.getElementById('trade-pnl-preview');
   if (!el) return;
   if (rrRaw.trim() !== '' && !isNaN(rr)) {
@@ -4261,7 +4263,6 @@ async function editTrade(id) {
   document.getElementById('trade-modal-title').textContent = 'Modifier le Trade';
   document.getElementById('t-date').value = trade.date || '';
   document.getElementById('t-time').value = trade.entry_time || '';
-  document.getElementById('t-rr').value = trade.rr || '';
   document.getElementById('t-one-r-manual').value = trade.one_r || '';
   document.getElementById('t-scenario').value = trade.scenario || '';
   document.getElementById('t-notes').value = trade.notes || '';
@@ -4280,6 +4281,10 @@ async function editTrade(id) {
   }
   selectDirection(trade.direction || 'LONG');
   selectResult(trade.result || 'WIN');
+  // Le RR réel est fixé APRÈS selectResult, qui sinon écraserait cette valeur
+  // par son préremplissage par défaut en mode rapide (ex: -1 générique pour LOSS)
+  document.getElementById('t-rr').value = trade.rr ?? '';
+  updatePnlPreview();
   const chk = trade.checklist_ok;
   selectChecklist(chk === null || chk === undefined ? null : chk === true || chk === 'true');
   openModal('modal-trade');
@@ -4528,34 +4533,34 @@ function parseRowByFormat(row, format) {
   if (format === 'rithmic') {
     const pnl = parseFloat(row['pnl'] || row['profit/loss'] || row['net pnl'] || 0);
     const oneR = 200;
-    return { date: normalizeDate(row['date'] || row['trade date']), entry_time: row['time'] || row['entry time'] || null, direction: row['side'] ? (row['side'].toUpperCase().includes('BUY') ? 'LONG' : 'SHORT') : (pnl >= 0 ? 'LONG' : 'SHORT'), result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import Rithmic' };
+    return { date: normalizeDate(row['date'] || row['trade date']), entry_time: row['time'] || row['entry time'] || null, direction: row['side'] ? (row['side'].toUpperCase().includes('BUY') ? 'LONG' : 'SHORT') : (pnl >= 0 ? 'LONG' : 'SHORT'), result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((pnl / oneR).toFixed(2)), one_r: oneR, notes: 'Import Rithmic' };
   }
   if (format === 'ninjatrader') {
     const pnl = parseFloat(row['profit'] || row['pnl'] || row['cum. net profit'] || 0);
     const oneR = 200;
     const dir = row['market pos.'] || row['direction'] || '';
-    return { date: normalizeDate(row['entry date'] || row['date']), entry_time: row['entry time'] || null, direction: dir.toLowerCase().includes('long') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import NinjaTrader' };
+    return { date: normalizeDate(row['entry date'] || row['date']), entry_time: row['entry time'] || null, direction: dir.toLowerCase().includes('long') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((pnl / oneR).toFixed(2)), one_r: oneR, notes: 'Import NinjaTrader' };
   }
   if (format === 'tradovate') {
     const pnl = parseFloat(row['pnl'] || row['net profit'] || row['realized p&l'] || 0);
     const oneR = 200;
     const action = row['action'] || row['side'] || 'Buy';
-    return { date: normalizeDate(row['filled time']?.split(' ')[0] || row['date']), direction: action.toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import Tradovate' };
+    return { date: normalizeDate(row['filled time']?.split(' ')[0] || row['date']), direction: action.toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((pnl / oneR).toFixed(2)), one_r: oneR, notes: 'Import Tradovate' };
   }
   if (format === 'atas') {
     const pnl = parseFloat(row['pnl'] || row['profit'] || row['net profit'] || 0);
     const oneR = 200;
-    return { date: normalizeDate(row['date'] || row['entry date']), entry_time: row['time'] || row['entry time'] || null, direction: (row['side'] || row['type'] || 'long').toLowerCase().includes('buy') || (row['side'] || '').toLowerCase() === 'long' ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import ATAS' };
+    return { date: normalizeDate(row['date'] || row['entry date']), entry_time: row['time'] || row['entry time'] || null, direction: (row['side'] || row['type'] || 'long').toLowerCase().includes('buy') || (row['side'] || '').toLowerCase() === 'long' ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((pnl / oneR).toFixed(2)), one_r: oneR, notes: 'Import ATAS' };
   }
   if (format === 'quantower') {
     const pnl = parseFloat(row['gross p&l'] || row['net p&l'] || row['pnl'] || 0);
     const oneR = 200;
-    return { date: normalizeDate(row['open time']?.split(' ')[0] || row['date']), direction: (row['side'] || 'buy').toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import QuantTower' };
+    return { date: normalizeDate(row['open time']?.split(' ')[0] || row['date']), direction: (row['side'] || 'buy').toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((pnl / oneR).toFixed(2)), one_r: oneR, notes: 'Import QuantTower' };
   }
   if (format === 'apex') {
     const pnl = parseFloat(row['pnl'] || row['profit/loss'] || row['net p&l'] || 0);
     const oneR = 200;
-    return { date: normalizeDate(row['date'] || row['trade date']), entry_time: row['time'] || null, direction: (row['side'] || row['direction'] || 'long').toLowerCase().includes('long') || (row['side'] || '').toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((Math.abs(pnl) / oneR).toFixed(2)), one_r: oneR, notes: 'Import Apex' };
+    return { date: normalizeDate(row['date'] || row['trade date']), entry_time: row['time'] || null, direction: (row['side'] || row['direction'] || 'long').toLowerCase().includes('long') || (row['side'] || '').toLowerCase().includes('buy') ? 'LONG' : 'SHORT', result: pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BE', rr: parseFloat((pnl / oneR).toFixed(2)), one_r: oneR, notes: 'Import Apex' };
   }
   return null;
 }
@@ -4566,11 +4571,17 @@ function mapGenericRows(rows) {
     const t = row['time'] || row['Time'] || row['heure'] || row['entry_time'] || null;
     const dir = (row['direction'] || row['Direction'] || row['sens'] || 'LONG').toUpperCase();
     const res = (row['result'] || row['résultat'] || row['resultat'] || row['Result'] || 'WIN').toUpperCase();
-    const rr = parseFloat(row['rr'] || row['RR'] || row['r:r'] || 2) || 2;
+    const resultNormalized = ['WIN','LOSS','BE'].includes(res) ? res : (res === 'W' ? 'WIN' : res === 'L' ? 'LOSS' : 'WIN');
+    let rr = parseFloat(row['rr'] || row['RR'] || row['r:r'] || 2) || 2;
+    // Rétrocompatibilité : si le fichier vient d'un ancien export avec RR toujours positif,
+    // on force le signe cohérent avec le résultat (LOSS → négatif, WIN → positif, BE → 0)
+    if (resultNormalized === 'LOSS' && rr > 0) rr = -rr;
+    if (resultNormalized === 'WIN' && rr < 0) rr = Math.abs(rr);
+    if (resultNormalized === 'BE') rr = 0;
     const oneR = parseFloat(row['one_r'] || row['1r'] || row['1R'] || row['oneR'] || 200) || 200;
     const scenario = row['setup'] || row['Setup'] || row['scenario'] || row['Scenario'] || null;
     const notes = row['notes'] || row['Notes'] || row['note'] || null;
-    return { date: normalizeDate(d), entry_time: t || null, direction: dir === 'SHORT' ? 'SHORT' : 'LONG', result: ['WIN','LOSS','BE'].includes(res) ? res : (res === 'W' ? 'WIN' : res === 'L' ? 'LOSS' : 'WIN'), rr, one_r: oneR, scenario: scenario || null, notes: notes || null };
+    return { date: normalizeDate(d), entry_time: t || null, direction: dir === 'SHORT' ? 'SHORT' : 'LONG', result: resultNormalized, rr, one_r: oneR, scenario: scenario || null, notes: notes || null };
   }).filter(t => t.date);
 }
 
@@ -4604,6 +4615,10 @@ function parseXlsxRows(rows) {
     const res = String(out.result || 'WIN').toUpperCase();
     out.result = ['WIN','LOSS','BE'].includes(res) ? res : 'WIN';
     out.rr = parseFloat(out.rr) || 2;
+    // Rétrocompatibilité : corrige le signe si le fichier vient d'un ancien export RR-toujours-positif
+    if (out.result === 'LOSS' && out.rr > 0) out.rr = -out.rr;
+    if (out.result === 'WIN' && out.rr < 0) out.rr = Math.abs(out.rr);
+    if (out.result === 'BE') out.rr = 0;
     out.one_r = parseFloat(out.one_r) || 200;
     out.scenario = out.scenario ? String(out.scenario) : null;
     out.notes = out.notes ? String(out.notes) : null;
@@ -4670,7 +4685,7 @@ function showImportPreview(data) {
     <td class="mono">${t.entry_time || '—'}</td>
     <td><span class="pill ${t.direction === 'LONG' ? 'green' : 'red'}">${t.direction}</span></td>
     <td><span class="pill ${t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow'}">${t.result}</span></td>
-    <td class="mono">${t.rr}R</td>
+    <td class="mono">${parseFloat(t.rr) >= 0 ? '+' : ''}${t.rr}R</td>
     <td class="mono">$${t.one_r}</td>
     <td style="font-size:11px;color:var(--text-3)">${t.scenario || '—'}</td>
   </tr>`).join('')}${valid.length > 5 ? `<tr><td colspan="7" style="text-align:center;color:var(--text-4);font-size:11px">... et ${valid.length - 5} autres</td></tr>` : ''}</tbody>`;
@@ -4819,7 +4834,7 @@ async function doExport() {
 }
 
 function buildTradeRow(t) {
-  const pnl = parseFloat(t.one_r || 200) * parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+  const pnl = parseFloat(t.one_r || 200) * parseFloat(t.rr || 0);
   return {
     Date: t.date || '',
     Heure: t.entry_time || '',
@@ -4951,7 +4966,7 @@ function renderAnEquityChart(trades) {
   const labels = [], data = [];
   sorted.forEach(t => {
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    cum += t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    cum += r;
     labels.push(t.date);
     data.push(parseFloat(cum.toFixed(2)));
   });
@@ -4976,7 +4991,7 @@ function renderAnDailyChart(trades) {
   const byDay = {};
   trades.forEach(t => {
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    const pnl = t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    const pnl = r;
     byDay[t.date] = (byDay[t.date] || 0) + pnl;
   });
   const dates = Object.keys(byDay).sort();
@@ -5099,7 +5114,7 @@ function renderHeatmap(trades) {
     const key = `${dayIdx}-${hour}`;
     if (!grid[key]) grid[key] = { pnl: 0, count: 0 };
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    grid[key].pnl += t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    grid[key].pnl += r;
     grid[key].count++;
   });
 
@@ -5132,7 +5147,7 @@ function renderDdChart(trades) {
   const labels = [], data = [];
   sorted.forEach(t => {
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    cumPnl += t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    cumPnl += r;
     if (cumPnl > peak) peak = cumPnl;
     labels.push(t.date);
     data.push(-Math.max(0, peak - cumPnl));
@@ -5159,8 +5174,8 @@ function renderLsChart(trades) {
   const short = trades.filter(t => t.direction === 'SHORT');
   const longWr = long.length > 0 ? Math.round(long.filter(t => t.result === 'WIN').length / long.length * 100) : 0;
   const shortWr = short.length > 0 ? Math.round(short.filter(t => t.result === 'WIN').length / short.length * 100) : 0;
-  const longPnl = long.reduce((s, t) => { const r = parseFloat(t.one_r||0) * parseFloat(t.rr||0); return s + (t.result==='WIN'?r:t.result==='LOSS'?-r:0); }, 0);
-  const shortPnl = short.reduce((s, t) => { const r = parseFloat(t.one_r||0) * parseFloat(t.rr||0); return s + (t.result==='WIN'?r:t.result==='LOSS'?-r:0); }, 0);
+  const longPnl = long.reduce((s, t) => { const r = parseFloat(t.one_r||0) * parseFloat(t.rr||0); return s + (r); }, 0);
+  const shortPnl = short.reduce((s, t) => { const r = parseFloat(t.one_r||0) * parseFloat(t.rr||0); return s + (r); }, 0);
   if (lsChart) lsChart.destroy();
   lsChart = new Chart(ctx, {
     type: 'doughnut',
@@ -5279,7 +5294,7 @@ function renderBtSessionDetail(session, trades) {
     <tbody>${(() => {
       let cumR = 0;
       return trades.map((t, i) => {
-        const r = parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+        const r = parseFloat(t.rr || 0);
         cumR += r;
         const pnl = r * oneR;
         return `<tr>
@@ -5288,7 +5303,7 @@ function renderBtSessionDetail(session, trades) {
           <td class="mono">${t.entry_time || '—'}</td>
           <td><span class="pill ${t.direction === 'LONG' ? 'green' : 'red'}">${t.direction}</span></td>
           <td><span class="pill ${t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow'}">${t.result}</span></td>
-          <td class="mono">${t.result === 'WIN' ? '+' : t.result === 'LOSS' ? '-' : ''}${t.rr}R</td>
+          <td class="mono">${parseFloat(t.rr) >= 0 ? '+' : ''}${t.rr}R</td>
           <td class="mono" style="color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</td>
           <td class="mono" style="font-weight:700;color:${cumR >= 0 ? 'var(--green)' : 'var(--red)'}">${cumR >= 0 ? '+' : ''}${cumR.toFixed(1)}R</td>
           <td><button class="btn-icon" style="width:24px;height:24px;font-size:11px;color:var(--red)" onclick="deleteBtTrade('${t.id}')">✕</button></td>
@@ -5310,7 +5325,7 @@ function renderBtCharts(trades, oneR, stats) {
   let cumR = 0;
   const eqLabels = [], eqData = [];
   trades.forEach((t, i) => {
-    cumR += parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    cumR += parseFloat(t.rr || 0);
     eqLabels.push(i + 1);
     eqData.push(parseFloat(cumR.toFixed(1)));
   });
@@ -5327,7 +5342,7 @@ function renderBtCharts(trades, oneR, stats) {
   // --- PNL PAR JOUR ---
   const byDay = {};
   trades.forEach(t => {
-    const r = parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    const r = parseFloat(t.rr || 0);
     byDay[t.date] = (byDay[t.date] || 0) + r;
   });
   const dayLabels = Object.keys(byDay).sort();
@@ -5343,7 +5358,7 @@ function renderBtCharts(trades, oneR, stats) {
   // --- DISTRIBUTION RR ---
   const rrBuckets = {};
   trades.forEach(t => {
-    const rr = (parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0)).toFixed(1);
+    const rr = (parseFloat(t.rr || 0) * 1).toFixed(1);
     rrBuckets[rr] = (rrBuckets[rr] || 0) + 1;
   });
   const rrLabels = Object.keys(rrBuckets).sort((a, b) => parseFloat(a) - parseFloat(b));
@@ -5360,8 +5375,8 @@ function renderBtCharts(trades, oneR, stats) {
   const shortTrades = trades.filter(t => t.direction === 'SHORT');
   const longWr = longTrades.length > 0 ? Math.round(longTrades.filter(t => t.result === 'WIN').length / longTrades.length * 100) : 0;
   const shortWr = shortTrades.length > 0 ? Math.round(shortTrades.filter(t => t.result === 'WIN').length / shortTrades.length * 100) : 0;
-  const longR = longTrades.reduce((s, t) => s + parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0), 0);
-  const shortR = shortTrades.reduce((s, t) => s + parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0), 0);
+  const longR = longTrades.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
+  const shortR = shortTrades.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
 
   if (btLsChart) btLsChart.destroy();
   btLsChart = new Chart(document.getElementById('bt-chart-ls'), {
@@ -5374,7 +5389,7 @@ function renderBtCharts(trades, oneR, stats) {
   let peak = 0; cumR = 0;
   const ddLabels = [], ddData = [];
   trades.forEach((t, i) => {
-    cumR += parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    cumR += parseFloat(t.rr || 0);
     if (cumR > peak) peak = cumR;
     ddLabels.push(i + 1);
     ddData.push(-parseFloat(Math.max(0, peak - cumR).toFixed(1)));
@@ -5434,7 +5449,7 @@ function renderBtHeatmap(trades) {
     const dayIdx = dow - 1;
     const key = dayIdx + '-' + hour;
     if (!grid[key]) grid[key] = { r: 0, count: 0 };
-    grid[key].r += parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    grid[key].r += parseFloat(t.rr || 0);
     grid[key].count++;
   });
   const allR = Object.values(grid).map(v => v.r);
@@ -5463,16 +5478,18 @@ function calcBtStats(trades, oneR) {
   const bes = trades.filter(t => t.result === 'BE');
   const wr = trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0;
   const totalWin = wins.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
-  const totalLoss = losses.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
+  // totalLoss en valeur absolue (les rr de LOSS sont négatifs) pour un Profit Factor positif classique
+  const totalLoss = Math.abs(losses.reduce((s, t) => s + parseFloat(t.rr || 0), 0));
   const pf = totalLoss > 0 ? (totalWin / totalLoss).toFixed(2) : wins.length > 0 ? '∞' : '0.0';
-  const totalR = totalWin - totalLoss;
+  // totalR = somme directe de tous les RR signés (gains positifs + pertes déjà négatives)
+  const totalR = trades.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
   const pnl = totalR * oneR;
   const exp = trades.length > 0 ? totalR / trades.length : 0;
 
   // Max drawdown in R
   let peak = 0, cumR = 0, maxDd = 0;
   trades.forEach(t => {
-    cumR += parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    cumR += parseFloat(t.rr || 0);
     if (cumR > peak) peak = cumR;
     const dd = peak - cumR;
     if (dd > maxDd) maxDd = dd;
@@ -5481,7 +5498,7 @@ function calcBtStats(trades, oneR) {
   // Days
   const byDay = {};
   trades.forEach(t => {
-    const r = parseFloat(t.rr || 0) * (t.result === 'WIN' ? 1 : t.result === 'LOSS' ? -1 : 0);
+    const r = parseFloat(t.rr || 0);
     byDay[t.date] = (byDay[t.date] || 0) + r;
   });
   const greenDays = Object.values(byDay).filter(v => v > 0).length;
@@ -6093,7 +6110,7 @@ function getGreenStreak() {
   const byDay = {};
   allTrades.forEach(t => {
     const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
-    byDay[t.date] = (byDay[t.date] || 0) + (t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0);
+    byDay[t.date] = (byDay[t.date] || 0) + (r);
   });
   const dates = Object.keys(byDay).sort();
   let streak = 0, maxStreak = 0;
