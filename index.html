@@ -1112,6 +1112,8 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--text-3);
   cursor: pointer;
   transition: color 0.15s;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .post-action:hover { color: var(--accent); }
@@ -5589,11 +5591,14 @@ async function loadCommunity() {
         <div class="post-avatar">${p.profiles?.avatar_url ? `<img src="${p.profiles.avatar_url}" alt="${initials}">` : initials}</div>
         <div style="flex:1">
           <div class="post-user">${name}</div>
-          <div class="post-time">${ago}</div>
+          <div class="post-time">${ago}${p.edited ? ' · modifié' : ''}</div>
         </div>
-        ${isOwnPost ? `<button class="btn-icon" style="width:30px;height:30px;font-size:13px;color:var(--red);flex-shrink:0" onclick="deletePost('${p.id}')" title="Supprimer la publication">🗑️</button>` : ''}
+        ${isOwnPost ? `<div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-icon" style="width:30px;height:30px;font-size:13px" onclick="startEditPost('${p.id}')" title="Modifier la publication">✏️</button>
+          <button class="btn-icon" style="width:30px;height:30px;font-size:13px;color:var(--red)" onclick="deletePost('${p.id}')" title="Supprimer la publication">🗑️</button>
+        </div>` : ''}
       </div>
-      <div class="post-content">${p.content}</div>
+      <div class="post-content" id="post-content-${p.id}" data-raw="${p.content.replace(/"/g, '&quot;')}">${p.content}</div>
       ${p.image_url ? `<img src="${p.image_url}" class="post-img" onclick="openLightbox('${p.image_url.replace(/'/g, "\\'")}')" onerror="this.style.display='none'">` : ''}
       <div class="post-actions">
         <div class="post-action" onclick="toggleLike('${p.id}', this)">❤️ ${p.likes_count || 0}</div>
@@ -5609,6 +5614,35 @@ async function deletePost(postId) {
   const { error } = await sb.from('posts').delete().eq('id', postId).eq('user_id', currentUser.id);
   if (error) return toast('Erreur: ' + error.message, 'error');
   toast('Publication supprimée', 'success');
+  await loadCommunity();
+}
+
+// ============================================
+// ÉDITION DE POST
+// ============================================
+function startEditPost(postId) {
+  const el = document.getElementById('post-content-' + postId);
+  if (!el) return;
+  const raw = el.dataset.raw || '';
+  el.innerHTML = `
+    <textarea id="post-edit-input-${postId}" rows="3" style="width:100%;background:var(--bg-3);border:1px solid var(--accent);color:var(--text-0);padding:10px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none;resize:vertical">${raw}</textarea>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn-sm" style="font-size:12px;padding:6px 12px" onclick="saveEditPost('${postId}')">Enregistrer</button>
+      <button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="loadCommunity()">Annuler</button>
+    </div>
+  `;
+  const ta = document.getElementById('post-edit-input-' + postId);
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+}
+
+async function saveEditPost(postId) {
+  const ta = document.getElementById('post-edit-input-' + postId);
+  const content = ta ? ta.value.trim() : '';
+  if (!content) return toast('Le post ne peut pas être vide', 'error');
+
+  const { error } = await sb.from('posts').update({ content, edited: true }).eq('id', postId).eq('user_id', currentUser.id);
+  if (error) return toast('Erreur: ' + error.message, 'error');
+  toast('Publication modifiée ✓', 'success');
   await loadCommunity();
 }
 
@@ -5639,15 +5673,18 @@ async function loadComments(postId) {
         const name = c.profiles?.display_name || c.profiles?.username || 'Trader';
         const initials = name[0].toUpperCase();
         const isOwn = c.user_id === currentUser.id;
-        return `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        return `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)" id="comment-row-${c.id}">
           <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">${c.profiles?.avatar_url ? `<img src="${c.profiles.avatar_url}" style="width:100%;height:100%;object-fit:cover">` : initials}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:6px">
               <span style="font-size:12px;font-weight:600;color:var(--text-0)">${name}</span>
-              <span style="font-size:10px;color:var(--text-4)">${getTimeAgo(new Date(c.created_at))}</span>
-              ${isOwn ? `<button onclick="deleteComment('${c.id}','${postId}')" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0;line-height:1" title="Supprimer">✕</button>` : ''}
+              <span style="font-size:10px;color:var(--text-4)">${getTimeAgo(new Date(c.created_at))}${c.edited ? ' · modifié' : ''}</span>
+              ${isOwn ? `<div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
+                <button onclick="startEditComment('${c.id}','${postId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0;line-height:1" title="Modifier">✏️</button>
+                <button onclick="deleteComment('${c.id}','${postId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0;line-height:1" title="Supprimer">✕</button>
+              </div>` : ''}
             </div>
-            <div style="font-size:13px;color:var(--text-1);margin-top:2px;word-break:break-word">${c.content}</div>
+            <div style="font-size:13px;color:var(--text-1);margin-top:2px;word-break:break-word" id="comment-content-${c.id}" data-raw="${c.content.replace(/"/g, '&quot;')}">${c.content}</div>
           </div>
         </div>`;
       }).join('');
@@ -5693,6 +5730,34 @@ async function deleteComment(commentId, postId) {
   const countEl = document.getElementById('comments-count-' + postId);
   if (countEl) countEl.textContent = newCount;
 
+  await loadComments(postId);
+}
+
+// ============================================
+// ÉDITION DE COMMENTAIRE
+// ============================================
+function startEditComment(commentId, postId) {
+  const el = document.getElementById('comment-content-' + commentId);
+  if (!el) return;
+  const raw = el.dataset.raw || '';
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;margin-top:4px">
+      <input type="text" id="comment-edit-input-${commentId}" value="${raw}" style="flex:1;background:var(--bg-3);border:1px solid var(--accent);color:var(--text-0);padding:6px 10px;border-radius:6px;font-size:12px;font-family:var(--font);outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();saveEditComment('${commentId}','${postId}');}">
+      <button class="btn-sm" style="font-size:11px;padding:5px 10px;flex-shrink:0" onclick="saveEditComment('${commentId}','${postId}')">OK</button>
+      <button class="btn-outline" style="font-size:11px;padding:5px 10px;flex-shrink:0" onclick="loadComments('${postId}')">✕</button>
+    </div>
+  `;
+  const inp = document.getElementById('comment-edit-input-' + commentId);
+  if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+}
+
+async function saveEditComment(commentId, postId) {
+  const inp = document.getElementById('comment-edit-input-' + commentId);
+  const content = inp ? inp.value.trim() : '';
+  if (!content) return toast('Le commentaire ne peut pas être vide', 'error');
+
+  const { error } = await sb.from('comments').update({ content, edited: true }).eq('id', commentId).eq('user_id', currentUser.id);
+  if (error) return toast('Erreur: ' + error.message, 'error');
   await loadComments(postId);
 }
 
