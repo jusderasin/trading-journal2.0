@@ -1095,8 +1095,11 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
   border-radius: 8px;
   margin-bottom: 12px;
-  max-height: 300px;
-  object-fit: cover;
+  max-height: 480px;
+  object-fit: contain;
+  background: var(--bg-3);
+  display: block;
+  cursor: zoom-in;
 }
 
 .post-actions { display: flex; gap: 16px; }
@@ -3268,8 +3271,6 @@ async function removeAvatar() {
   if (removeBtn) removeBtn.style.display = 'none';
 
   toast('Photo de profil supprimée', 'success');
-}
-  input.click();
 }
 
 // ============================================
@@ -5582,22 +5583,32 @@ async function loadCommunity() {
     const initials = name[0].toUpperCase();
     const dt = new Date(p.created_at);
     const ago = getTimeAgo(dt);
+    const isOwnPost = p.user_id === currentUser.id;
     return `<div class="post-card">
       <div class="post-header">
         <div class="post-avatar">${p.profiles?.avatar_url ? `<img src="${p.profiles.avatar_url}" alt="${initials}">` : initials}</div>
-        <div>
+        <div style="flex:1">
           <div class="post-user">${name}</div>
           <div class="post-time">${ago}</div>
         </div>
+        ${isOwnPost ? `<button class="btn-icon" style="width:30px;height:30px;font-size:13px;color:var(--red);flex-shrink:0" onclick="deletePost('${p.id}')" title="Supprimer la publication">🗑️</button>` : ''}
       </div>
       <div class="post-content">${p.content}</div>
-      ${p.image_url ? `<img src="${p.image_url}" class="post-img" onerror="this.style.display='none'">` : ''}
+      ${p.image_url ? `<img src="${p.image_url}" class="post-img" onclick="openLightbox('${p.image_url.replace(/'/g, "\\'")}')" onerror="this.style.display='none'">` : ''}
       <div class="post-actions">
         <div class="post-action" onclick="toggleLike('${p.id}', this)">❤️ ${p.likes_count || 0}</div>
         <div class="post-action">💬 ${p.comments_count || 0}</div>
       </div>
     </div>`;
   }).join('');
+}
+
+async function deletePost(postId) {
+  if (!confirm('Supprimer cette publication ? Cette action est définitive.')) return;
+  const { error } = await sb.from('posts').delete().eq('id', postId).eq('user_id', currentUser.id);
+  if (error) return toast('Erreur: ' + error.message, 'error');
+  toast('Publication supprimée', 'success');
+  await loadCommunity();
 }
 
 function getTimeAgo(date) {
