@@ -2026,7 +2026,8 @@ input[type="range"]::-webkit-slider-thumb {
           <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
             <div>
               <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--accent));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin-bottom:12px" id="profile-avatar-big">?</div>
-              <button class="btn-outline" style="font-size:11px" onclick="uploadAvatar()">Changer photo</button>
+              <button class="btn-outline" style="font-size:11px;width:100%;margin-bottom:6px" onclick="uploadAvatar()">Changer photo</button>
+              <button class="btn-outline" id="btn-remove-avatar" style="font-size:11px;width:100%;color:var(--red);border-color:var(--red);display:none" onclick="removeAvatar()">Supprimer</button>
             </div>
             <div style="flex:1;min-width:200px">
               <div class="form-group">
@@ -3147,8 +3148,14 @@ async function loadProfilePage() {
   document.getElementById('p-share-trades').checked = p.share_trades || false;
 
   const big = document.getElementById('profile-avatar-big');
-  if (p.avatar_url) { big.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
-  else { big.textContent = (p.display_name || p.username || '?')[0].toUpperCase(); }
+  const removeBtn = document.getElementById('btn-remove-avatar');
+  if (p.avatar_url) {
+    big.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    if (removeBtn) removeBtn.style.display = 'block';
+  } else {
+    big.textContent = (p.display_name || p.username || '?')[0].toUpperCase();
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
 
   // Badges
   const { data: ub } = await sb.from('user_badges').select('*, badges(*)').eq('user_id', currentUser.id);
@@ -3237,10 +3244,31 @@ function uploadAvatar() {
         if (el.id === 'profile-avatar-big') el.innerHTML = `<img src="${base64}" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`;
         else el.innerHTML = `<img src="${base64}" alt="avatar">`;
       });
+      const removeBtn = document.getElementById('btn-remove-avatar');
+      if (removeBtn) removeBtn.style.display = 'block';
       toast('Photo de profil mise à jour ✓', 'success');
     };
     reader.readAsDataURL(file);
   };
+  input.click();
+}
+
+async function removeAvatar() {
+  if (!confirm('Supprimer ta photo de profil ?')) return;
+  const { error } = await sb.from('profiles').update({ avatar_url: null }).eq('id', currentUser.id);
+  if (error) return toast('Erreur: ' + error.message, 'error');
+  currentProfile.avatar_url = null;
+
+  const initial = (currentProfile?.display_name || currentProfile?.username || currentUser.email?.split('@')[0] || '?')[0].toUpperCase();
+  const big = document.getElementById('profile-avatar-big');
+  if (big) big.textContent = initial;
+  const sidebarAv = document.getElementById('sidebar-avatar');
+  if (sidebarAv) sidebarAv.textContent = initial;
+  const removeBtn = document.getElementById('btn-remove-avatar');
+  if (removeBtn) removeBtn.style.display = 'none';
+
+  toast('Photo de profil supprimée', 'success');
+}
   input.click();
 }
 
