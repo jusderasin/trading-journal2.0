@@ -1727,8 +1727,13 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
 
       <div class="gap-16">
-        <!-- KPIs analytiques -->
+        <!-- KPIs analytiques — 8 métriques comme Backtesting -->
         <div class="grid-4">
+          <div class="kpi-card">
+            <div class="kpi-label">Trades</div>
+            <div class="kpi-value" id="an-trades">0</div>
+            <div class="kpi-sub" id="an-trades-sub">0W · 0L · 0BE</div>
+          </div>
           <div class="kpi-card">
             <div class="kpi-label">Win Rate</div>
             <div class="kpi-value" id="an-wr">0%</div>
@@ -1738,12 +1743,40 @@ input[type="range"]::-webkit-slider-thumb {
             <div class="kpi-value" id="an-pf">0.0</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">Sharpe Ratio</div>
-            <div class="kpi-value" id="an-sharpe">0.0</div>
+            <div class="kpi-label">PnL Total</div>
+            <div class="kpi-value" id="an-pnl">$0</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Expectancy</div>
             <div class="kpi-value" id="an-exp">$0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Sharpe Ratio</div>
+            <div class="kpi-value" id="an-sharpe">0.0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Max Drawdown</div>
+            <div class="kpi-value red" id="an-dd">$0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Jours</div>
+            <div class="kpi-value" id="an-days">0</div>
+          </div>
+        </div>
+
+        <!-- Equity Curve + PnL par jour -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Equity Curve</div></div>
+            <div class="chart-wrap" style="height:200px">
+              <canvas id="chart-an-equity"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">PnL par Jour</div></div>
+            <div class="chart-wrap" style="height:200px">
+              <canvas id="chart-an-daily"></canvas>
+            </div>
           </div>
         </div>
 
@@ -1778,10 +1811,16 @@ input[type="range"]::-webkit-slider-thumb {
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><div class="card-title">Long vs Short</div></div>
-            <div class="chart-wrap" style="height:180px">
-              <canvas id="chart-ls"></canvas>
-            </div>
+            <div class="card-header"><div class="card-title">Streaks</div></div>
+            <div id="an-streaks"></div>
+          </div>
+        </div>
+
+        <!-- Long vs Short -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Long vs Short</div></div>
+          <div class="chart-wrap" style="height:200px">
+            <canvas id="chart-ls"></canvas>
           </div>
         </div>
       </div>
@@ -1971,6 +2010,10 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
       </div>
 
+      <!-- Podium top 3 -->
+      <div id="lb-podium" style="margin-bottom:20px"></div>
+
+      <!-- Classement complet -->
       <div class="card">
         <div id="leaderboard-list"></div>
       </div>
@@ -2042,6 +2085,13 @@ input[type="range"]::-webkit-slider-thumb {
           <div class="toggle-row">
             <span style="font-size:13px;color:var(--text-1)">Partager PnL en $</span>
             <label class="toggle"><input type="checkbox" id="p-share-pnl"><div class="toggle-slider"></div></label>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <span style="font-size:13px;color:var(--text-1)">Partager mes trades</span>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px">Affiche un calendrier d'activité (win/loss/screenshot) sur ton profil leaderboard</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="p-share-trades"><div class="toggle-slider"></div></label>
           </div>
         </div>
       </div>
@@ -2848,6 +2898,14 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 </div>
 
+<!-- Modal: Lightbox image (screenshots trades) -->
+<div class="modal-overlay" id="modal-lightbox" onclick="if(event.target===this)closeModal('modal-lightbox')" style="background:rgba(0,0,0,0.88)">
+  <div style="position:relative;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;align-items:center">
+    <button class="modal-close" onclick="closeModal('modal-lightbox')" style="position:absolute;top:-44px;right:0;background:var(--bg-2);width:34px;height:34px;font-size:18px">✕</button>
+    <img id="lightbox-img" style="max-width:95vw;max-height:88vh;object-fit:contain;border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
@@ -3086,6 +3144,7 @@ async function loadProfilePage() {
   document.getElementById('p-share-pf').checked = p.share_pf || false;
   document.getElementById('p-share-equity').checked = p.share_equity || false;
   document.getElementById('p-share-pnl').checked = p.share_pnl || false;
+  document.getElementById('p-share-trades').checked = p.share_trades || false;
 
   const big = document.getElementById('profile-avatar-big');
   if (p.avatar_url) { big.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
@@ -3111,6 +3170,7 @@ async function loadProfilePage() {
 
 async function saveProfile() {
   const isPublic = document.getElementById('p-is-public').checked;
+  const shareTrades = document.getElementById('p-share-trades').checked;
   const displayName = document.getElementById('p-display-name').value.trim();
   const updates = {
     display_name: displayName,
@@ -3121,11 +3181,16 @@ async function saveProfile() {
     share_winrate: document.getElementById('p-share-wr').checked,
     share_pf: document.getElementById('p-share-pf').checked,
     share_equity: document.getElementById('p-share-equity').checked,
-    share_pnl: document.getElementById('p-share-pnl').checked
+    share_pnl: document.getElementById('p-share-pnl').checked,
+    share_trades: shareTrades
   };
   const { error } = await sb.from('profiles').update(updates).eq('id', currentUser.id);
   if (error) return toast('Erreur: ' + error.message, 'error');
   currentProfile = { ...currentProfile, ...updates };
+
+  // Synchronise is_public sur TOUS les trades existants de l'utilisateur
+  // pour que le calendrier d'activité du leaderboard reflète le toggle "Partager mes trades"
+  await sb.from('trades').update({ is_public: shareTrades }).eq('user_id', currentUser.id);
 
   // Sync community_stats : opt_in suit is_public + on met à jour les stats
   await syncCommunityStats(isPublic, displayName);
@@ -3738,7 +3803,7 @@ function calcStats(trades) {
   const variance = pnls.length > 0 ? pnls.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / pnls.length : 1;
   const sharpe = variance > 0 ? (mean / Math.sqrt(variance)).toFixed(2) : '0.0';
 
-  return { wr, pf, avgRr, pnl: pnl.toFixed(0), maxDd: maxDd.toFixed(0), best: best.toFixed(0), worst: worst.toFixed(0), exp, greenDays, redDays, sharpe, wins: wins.length, losses: losses.length, total: trades.length };
+  return { wr, pf, avgRr, pnl: pnl.toFixed(0), maxDd: maxDd.toFixed(0), best: best.toFixed(0), worst: worst.toFixed(0), exp, greenDays, redDays, sharpe, wins: wins.length, losses: losses.length, bes: trades.length - wins.length - losses.length, total: trades.length, tradingDays: Object.keys(byDay).length };
 }
 
 // ============================================
@@ -3948,7 +4013,7 @@ function renderJournalTable() {
           <div style="display:flex;gap:4px">
             <button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="editTrade('${t.id}')">✏️</button>
             <button class="btn-icon" style="width:28px;height:28px;font-size:13px;color:var(--red)" onclick="deleteTrade('${t.id}')">🗑️</button>
-            ${t.screenshot_url ? `<a href="${t.screenshot_url}" target="_blank" class="btn-icon" style="width:28px;height:28px;font-size:13px;text-decoration:none">📸</a>` : ''}
+            ${t.screenshot_url ? `<button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
           </div>
         </td>
       </tr>`;
@@ -4223,7 +4288,7 @@ async function saveTrade() {
     quality: parseInt(document.getElementById('t-quality').value) || 5,
     emotions: selectedEmotions,
     is_error: document.getElementById('t-is-error').value === 'true',
-    is_public: false
+    is_public: currentProfile?.share_trades || false
   };
 
   document.getElementById('save-trade-btn').disabled = true;
@@ -4822,16 +4887,112 @@ async function loadAnalytics() {
   const trades = await loadTrades({ account: accountFilter, from: fromDate });
   const stats = calcStats(trades);
 
+  // 8 KPIs — alignés sur le niveau Backtesting
+  document.getElementById('an-trades').textContent = stats.total;
+  document.getElementById('an-trades-sub').textContent = `${stats.wins}W · ${stats.losses}L · ${stats.bes}BE`;
   document.getElementById('an-wr').textContent = stats.wr + '%';
   document.getElementById('an-pf').textContent = stats.pf;
-  document.getElementById('an-sharpe').textContent = stats.sharpe;
+  const pnlVal = parseFloat(stats.pnl);
+  document.getElementById('an-pnl').textContent = (pnlVal >= 0 ? '+' : '') + '$' + Math.round(pnlVal).toLocaleString();
+  document.getElementById('an-pnl').className = 'kpi-value ' + (pnlVal >= 0 ? 'green' : 'red');
   document.getElementById('an-exp').textContent = '$' + stats.exp;
+  document.getElementById('an-sharpe').textContent = stats.sharpe;
+  document.getElementById('an-dd').textContent = '-$' + stats.maxDd;
+  document.getElementById('an-days').textContent = stats.tradingDays;
 
+  renderAnEquityChart(trades);
+  renderAnDailyChart(trades);
   renderRrDistChart(trades);
   renderWrSetupChart(trades);
   renderHeatmap(trades);
   renderDdChart(trades);
   renderLsChart(trades);
+  renderAnStreaks(trades, stats);
+}
+
+let anEquityChart = null, anDailyChart = null;
+
+function renderAnEquityChart(trades) {
+  const ctx = document.getElementById('chart-an-equity');
+  if (!ctx) return;
+  const sorted = [...trades].sort((a, b) => (a.date + (a.entry_time||'')).localeCompare(b.date + (b.entry_time||'')));
+  let cum = 0;
+  const labels = [], data = [];
+  sorted.forEach(t => {
+    const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
+    cum += t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    labels.push(t.date);
+    data.push(parseFloat(cum.toFixed(2)));
+  });
+  const lastVal = data[data.length - 1] || 0;
+  const color = lastVal >= 0 ? '#00c896' : '#e8354f';
+
+  if (anEquityChart) anEquityChart.destroy();
+  anEquityChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color + '15', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + c.raw.toFixed(0) } } },
+      scales: { x: { display: false }, y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } } }
+    }
+  });
+}
+
+function renderAnDailyChart(trades) {
+  const ctx = document.getElementById('chart-an-daily');
+  if (!ctx) return;
+  const byDay = {};
+  trades.forEach(t => {
+    const r = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
+    const pnl = t.result === 'WIN' ? r : t.result === 'LOSS' ? -r : 0;
+    byDay[t.date] = (byDay[t.date] || 0) + pnl;
+  });
+  const dates = Object.keys(byDay).sort();
+  const vals = dates.map(d => byDay[d]);
+
+  if (anDailyChart) anDailyChart.destroy();
+  anDailyChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: dates, datasets: [{ data: vals, backgroundColor: vals.map(v => v >= 0 ? '#00c89625' : '#e8354f18'), borderColor: vals.map(v => v >= 0 ? '#00c896' : '#e8354f'), borderWidth: 1, borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { color: '#4a5568', font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } } }
+    }
+  });
+}
+
+function renderAnStreaks(trades, stats) {
+  const el = document.getElementById('an-streaks');
+  if (!el) return;
+  const sorted = [...trades].sort((a, b) => (a.date + (a.entry_time||'')).localeCompare(b.date + (b.entry_time||'')));
+  let maxWinStreak = 0, maxLossStreak = 0, currentStreak = 0, currentType = '';
+  sorted.forEach(t => {
+    if (t.result === 'WIN') { if (currentType === 'WIN') currentStreak++; else { currentStreak = 1; currentType = 'WIN'; } maxWinStreak = Math.max(maxWinStreak, currentStreak); }
+    else if (t.result === 'LOSS') { if (currentType === 'LOSS') currentStreak++; else { currentStreak = 1; currentType = 'LOSS'; } maxLossStreak = Math.max(maxLossStreak, currentStreak); }
+    else { currentStreak = 0; currentType = ''; }
+  });
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Max Win Streak</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--green)">${maxWinStreak}</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Max Loss Streak</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--red)">${maxLossStreak}</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Jours verts</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--green)">${stats.greenDays}</div>
+      </div>
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Jours rouges</div>
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--red)">${stats.redDays}</div>
+      </div>
+    </div>
+  `;
 }
 
 function renderRrDistChart(trades) {
@@ -4967,16 +5128,18 @@ function renderLsChart(trades) {
   const short = trades.filter(t => t.direction === 'SHORT');
   const longWr = long.length > 0 ? Math.round(long.filter(t => t.result === 'WIN').length / long.length * 100) : 0;
   const shortWr = short.length > 0 ? Math.round(short.filter(t => t.result === 'WIN').length / short.length * 100) : 0;
+  const longPnl = long.reduce((s, t) => { const r = parseFloat(t.one_r||0) * parseFloat(t.rr||0); return s + (t.result==='WIN'?r:t.result==='LOSS'?-r:0); }, 0);
+  const shortPnl = short.reduce((s, t) => { const r = parseFloat(t.one_r||0) * parseFloat(t.rr||0); return s + (t.result==='WIN'?r:t.result==='LOSS'?-r:0); }, 0);
   if (lsChart) lsChart.destroy();
   lsChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Long', 'Short'],
+      labels: [`Long (${longWr}% WR · ${longPnl>=0?'+':''}$${Math.round(longPnl)})`, `Short (${shortWr}% WR · ${shortPnl>=0?'+':''}$${Math.round(shortPnl)})`],
       datasets: [{ data: [long.length, short.length], backgroundColor: ['#00d4a030', '#f43f5e20'], borderColor: ['#00d4a0', '#f43f5e'], borderWidth: 2 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 } } }, tooltip: { callbacks: { label: c => c.label + ': ' + c.raw + ' trades (' + (c.label === 'Long' ? longWr : shortWr) + '% WR)' } } }
+      plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 } } }, tooltip: { callbacks: { label: c => c.label + ' — ' + c.raw + ' trades' } } }
     }
   });
 }
@@ -5460,26 +5623,145 @@ async function publishPost() {
 // ============================================
 async function loadLeaderboard() {
   const metric = document.getElementById('lb-metric')?.value || 'win_rate';
-  const { data } = await sb.from('community_stats').select('*, profiles(display_name, username, avatar_url)').eq('opt_in', true).order(metric, { ascending: false }).limit(50);
+  const { data } = await sb.from('community_stats').select('*, profiles(id, display_name, username, avatar_url, share_trades)').eq('opt_in', true).order(metric, { ascending: false }).limit(50);
+
+  const podiumEl = document.getElementById('lb-podium');
   const el = document.getElementById('leaderboard-list');
+
   if (!data?.length) {
+    podiumEl.innerHTML = '';
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">Aucun trader dans le classement</div><div class="empty-sub">Active le mode public dans ton profil pour apparaître</div></div>';
     return;
   }
+
+  const fmtVal = t => metric === 'win_rate' ? (t.win_rate || 0).toFixed(1) + '%' : metric === 'profit_factor' ? (t.profit_factor || 0).toFixed(2) : (t.total_r || 0).toFixed(1) + 'R';
+  const getName = t => t.profiles?.display_name || t.profiles?.username || t.pseudo || 'Trader';
+  const getAvatarHtml = (t, size) => t.profiles?.avatar_url ? `<img src="${t.profiles.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : getName(t)[0].toUpperCase();
+
+  // ── PODIUM TOP 3 ──────────────────────────────────────
+  if (data.length >= 1) {
+    const top3 = data.slice(0, 3);
+    // Ordre visuel: 2e - 1er - 3e (le 1er au centre, plus haut)
+    const order = top3.length === 3 ? [1, 0, 2] : top3.length === 2 ? [1, 0] : [0];
+    const heights = ['148px', '188px', '120px']; // pour rank visuel 2,1,3
+    const medalEmoji = ['🥈', '🥇', '🥉'];
+    const podiumColors = ['#94a3b8', '#f59e0b', '#cd7c3c'];
+
+    podiumEl.innerHTML = `
+      <div style="display:flex;align-items:flex-end;justify-content:center;gap:12px;padding:24px 12px 0">
+        ${order.map((origIdx, visualIdx) => {
+          const t = top3[origIdx];
+          if (!t) return '';
+          const rank = origIdx + 1;
+          const name = getName(t);
+          const isFirst = rank === 1;
+          const avatarSize = isFirst ? 64 : 52;
+          return `
+          <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;flex:1;max-width:160px" onclick="toggleTraderActivity('${t.user_id}')">
+            <div style="font-size:${isFirst ? '28px' : '22px'};margin-bottom:6px">${medalEmoji[rank-1]}</div>
+            <div style="width:${avatarSize}px;height:${avatarSize}px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${isFirst?18:15}px;color:#fff;overflow:hidden;border:3px solid ${podiumColors[rank-1]};margin-bottom:8px;box-shadow:0 0 20px ${podiumColors[rank-1]}40">${getAvatarHtml(t)}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-0);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${name}</div>
+            <div style="font-family:var(--mono);font-size:14px;font-weight:800;color:${podiumColors[rank-1]};margin-bottom:10px">${fmtVal(t)}</div>
+            <div style="width:100%;height:${heights[visualIdx]};background:linear-gradient(180deg, ${podiumColors[rank-1]}25, ${podiumColors[rank-1]}08);border:1px solid ${podiumColors[rank-1]}40;border-radius:10px 10px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:10px">
+              <span style="font-family:var(--mono);font-size:26px;font-weight:800;color:${podiumColors[rank-1]};opacity:0.5">${rank}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // ── LISTE COMPLÈTE ────────────────────────────────────
   el.innerHTML = data.map((t, i) => {
     const rank = i + 1;
-    const name = t.profiles?.display_name || t.profiles?.username || t.pseudo || 'Trader';
-    const initials = name[0].toUpperCase();
-    const val = metric === 'win_rate' ? (t.win_rate || 0).toFixed(1) + '%' : metric === 'profit_factor' ? (t.profit_factor || 0).toFixed(2) : (t.total_r || 0).toFixed(1) + 'R';
+    const name = getName(t);
     const rankClass = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
-    return `<div class="lb-row">
-      <div class="lb-rank ${rankClass}">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}</div>
-      <div class="lb-avatar">${t.profiles?.avatar_url ? `<img src="${t.profiles.avatar_url}">` : initials}</div>
-      <div class="lb-name">${name}</div>
-      <div style="font-size:11px;color:var(--text-3);margin-right:8px">${t.trade_count || 0} trades</div>
-      <div class="lb-stat" style="color:var(--accent)">${val}</div>
+    const userId = t.user_id;
+    const canShowActivity = t.profiles?.share_trades;
+    return `<div>
+      <div class="lb-row" style="cursor:${canShowActivity ? 'pointer' : 'default'}" ${canShowActivity ? `onclick="toggleTraderActivity('${userId}')"` : ''}>
+        <div class="lb-rank ${rankClass}">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}</div>
+        <div class="lb-avatar">${getAvatarHtml(t)}</div>
+        <div class="lb-name">${name}</div>
+        ${canShowActivity ? `<span style="font-size:10px;color:var(--accent);background:var(--accent-dim);border-radius:4px;padding:2px 6px;margin-right:8px">📅 activité</span>` : ''}
+        <div style="font-size:11px;color:var(--text-3);margin-right:8px">${t.trade_count || 0} trades</div>
+        <div class="lb-stat" style="color:var(--accent)">${fmtVal(t)}</div>
+      </div>
+      <div id="trader-activity-${userId}" style="display:none;padding:14px 12px 18px;border-bottom:1px solid var(--border)"></div>
     </div>`;
   }).join('');
+}
+
+// Affiche/masque le mini-calendrier d'activité d'un trader (35 derniers jours, façon contributions GitHub)
+const _traderActivityCache = {};
+async function toggleTraderActivity(userId) {
+  const container = document.getElementById('trader-activity-' + userId);
+  if (!container) return;
+  const isOpen = container.style.display === 'block';
+  // Fermer tous les autres calendriers ouverts
+  document.querySelectorAll('[id^="trader-activity-"]').forEach(el => el.style.display = 'none');
+  if (isOpen) return;
+  container.style.display = 'block';
+  container.innerHTML = '<div class="page-loader" style="height:80px"><div class="spinner"></div></div>';
+
+  let trades = _traderActivityCache[userId];
+  if (!trades) {
+    const since = new Date(); since.setDate(since.getDate() - 35);
+    const { data, error } = await sb.from('trades').select('date, result, screenshot_url, rr, one_r')
+      .eq('user_id', userId).eq('is_public', true).gte('date', since.toISOString().split('T')[0]).order('date');
+    if (error) { container.innerHTML = `<div style="font-size:12px;color:var(--text-3)">Activité non disponible</div>`; return; }
+    trades = data || [];
+    _traderActivityCache[userId] = trades;
+  }
+
+  if (!trades.length) {
+    container.innerHTML = `<div style="font-size:12px;color:var(--text-3);text-align:center;padding:10px">Aucun trade public sur les 35 derniers jours</div>`;
+    return;
+  }
+
+  // Grouper par jour
+  const byDay = {};
+  trades.forEach(t => {
+    if (!byDay[t.date]) byDay[t.date] = { wins: 0, losses: 0, bes: 0, count: 0, screenshot: null };
+    byDay[t.date].count++;
+    if (t.result === 'WIN') byDay[t.date].wins++;
+    else if (t.result === 'LOSS') byDay[t.date].losses++;
+    else byDay[t.date].bes++;
+    if (!byDay[t.date].screenshot && t.screenshot_url) byDay[t.date].screenshot = t.screenshot_url;
+  });
+
+  // Générer les 35 derniers jours (5 semaines), aligné Lundi→Dimanche
+  const days = [];
+  const today = new Date();
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Activité — 35 derniers jours</span>
+      <div style="display:flex;gap:10px;font-size:10px;color:var(--text-3)">
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--green);margin-right:3px"></span>Win</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--red);margin-right:3px"></span>Loss</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--bg-4);margin-right:3px"></span>Aucun trade</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(35,1fr);gap:3px;max-width:560px">
+      ${days.map(date => {
+        const d = byDay[date];
+        let bg = 'var(--bg-4)';
+        let tip = date + ' — aucun trade';
+        if (d) {
+          const netWin = d.wins - d.losses;
+          bg = netWin > 0 ? 'var(--green)' : netWin < 0 ? 'var(--red)' : 'var(--yellow)';
+          tip = `${date} — ${d.count} trade(s) (${d.wins}W/${d.losses}L/${d.bes}BE)${d.screenshot ? ' · clic = screenshot' : ''}`;
+        }
+        const clickable = d && d.screenshot;
+        return `<div data-tip="${tip}" class="heatmap-cell" style="background:${bg};height:18px;${clickable ? 'cursor:pointer' : ''}" ${clickable ? `onclick="event.stopPropagation();openLightbox('${d.screenshot.replace(/'/g, "\\'")}')"` : ''}></div>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 // ============================================
@@ -5661,6 +5943,13 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   document.body.style.overflow = '';
+}
+
+// Affiche un screenshot (URL ou base64) en grand dans une lightbox
+function openLightbox(url) {
+  if (!url) return;
+  document.getElementById('lightbox-img').src = url;
+  openModal('modal-lightbox');
 }
 
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
