@@ -1828,6 +1828,12 @@ input[type="range"]::-webkit-slider-thumb {
             <canvas id="chart-ls"></canvas>
           </div>
         </div>
+
+        <!-- Émotions -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Émotions ressenties</div></div>
+          <div id="an-emotions"></div>
+        </div>
       </div>
     </div>
 
@@ -2669,6 +2675,16 @@ input[type="range"]::-webkit-slider-thumb {
         <label class="form-label">Notes</label>
         <textarea id="btt-notes" rows="2" placeholder="Observations..."></textarea>
       </div>
+      <div class="form-group">
+        <label class="form-label">Screenshot</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="btt-screenshot" placeholder="https://i.imgur.com/... ou TradingView snapshot" style="flex:1">
+          <button type="button" class="btn-icon" style="width:38px;height:38px;flex-shrink:0;font-size:15px" onclick="uploadImageToField('btt-screenshot', refreshBttScreenshotPreview)" title="Choisir un fichier">📁</button>
+        </div>
+        <div id="btt-screenshot-preview" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;max-height:160px">
+          <img id="btt-screenshot-img" style="width:100%;object-fit:cover;border-radius:8px" onerror="this.parentElement.style.display='none'">
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-outline" onclick="closeModal('modal-bt-trade')">Annuler</button>
@@ -3315,6 +3331,14 @@ function refreshPostImagePreview() {
   const url = document.getElementById('post-image').value.trim();
   const prev = document.getElementById('post-image-preview');
   const img = document.getElementById('post-image-img');
+  if (url) { img.src = url; prev.style.display = 'block'; }
+  else { prev.style.display = 'none'; }
+}
+
+function refreshBttScreenshotPreview() {
+  const url = document.getElementById('btt-screenshot').value.trim();
+  const prev = document.getElementById('btt-screenshot-preview');
+  const img = document.getElementById('btt-screenshot-img');
   if (url) { img.src = url; prev.style.display = 'block'; }
   else { prev.style.display = 'none'; }
 }
@@ -4954,6 +4978,7 @@ async function loadAnalytics() {
   renderDdChart(trades);
   renderLsChart(trades);
   renderAnStreaks(trades, stats);
+  renderAnEmotions(trades);
 }
 
 let anEquityChart = null, anDailyChart = null;
@@ -5037,6 +5062,56 @@ function renderAnStreaks(trades, stats) {
         <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Jours rouges</div>
         <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--red)">${stats.redDays}</div>
       </div>
+    </div>
+  `;
+}
+
+function renderAnEmotions(trades) {
+  const el = document.getElementById('an-emotions');
+  if (!el) return;
+
+  // Compter l'occurrence de chaque émotion sur tous les trades qui en ont au moins une
+  const counts = {};
+  let tradesWithEmotions = 0;
+  trades.forEach(t => {
+    let arr = [];
+    try { arr = t.emotions ? (Array.isArray(t.emotions) ? t.emotions : JSON.parse(t.emotions)) : []; } catch { arr = []; }
+    if (arr.length > 0) tradesWithEmotions++;
+    arr.forEach(tag => { counts[tag] = (counts[tag] || 0) + 1; });
+  });
+
+  const tags = Object.keys(counts);
+  if (!tags.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-4);font-style:italic;text-align:center;padding:20px 0">Aucune émotion enregistrée sur cette période</div>';
+    return;
+  }
+
+  const negativeTags = ['FOMO', 'Impatient', 'Stressé', 'Revanche'];
+  const maxCount = Math.max(...Object.values(counts));
+
+  // Trier par fréquence décroissante
+  const sortedTags = tags.sort((a, b) => counts[b] - counts[a]);
+
+  el.innerHTML = `
+    <div style="font-size:11px;color:var(--text-3);margin-bottom:12px">Basé sur ${tradesWithEmotions} trade(s) avec émotion renseignée</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${sortedTags.map(tag => {
+        const count = counts[tag];
+        const pct = tradesWithEmotions > 0 ? Math.round(count / tradesWithEmotions * 100) : 0;
+        const widthPct = Math.round(count / maxCount * 100);
+        const isNeg = negativeTags.includes(tag);
+        const color = isNeg ? 'var(--red)' : 'var(--green)';
+        return `
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:var(--text-1);font-weight:600">${tag}</span>
+            <span style="font-family:var(--mono);color:${color};font-weight:700">${pct}% <span style="color:var(--text-4);font-weight:500">(${count})</span></span>
+          </div>
+          <div style="height:8px;background:var(--bg-4);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${widthPct}%;background:${color};border-radius:4px;transition:width .5s"></div>
+          </div>
+        </div>`;
+      }).join('')}
     </div>
   `;
 }
@@ -5306,7 +5381,12 @@ function renderBtSessionDetail(session, trades) {
           <td class="mono">${parseFloat(t.rr) >= 0 ? '+' : ''}${t.rr}R</td>
           <td class="mono" style="color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</td>
           <td class="mono" style="font-weight:700;color:${cumR >= 0 ? 'var(--green)' : 'var(--red)'}">${cumR >= 0 ? '+' : ''}${cumR.toFixed(1)}R</td>
-          <td><button class="btn-icon" style="width:24px;height:24px;font-size:11px;color:var(--red)" onclick="deleteBtTrade('${t.id}')">✕</button></td>
+          <td>
+            <div style="display:flex;gap:4px">
+              ${t.screenshot_url ? `<button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
+              <button class="btn-icon" style="width:24px;height:24px;font-size:11px;color:var(--red)" onclick="deleteBtTrade('${t.id}')">✕</button>
+            </div>
+          </td>
         </tr>`;
       }).join('');
     })()}</tbody>
@@ -5545,6 +5625,8 @@ function openAddBtTrade() {
   document.getElementById('btt-time').value = '';
   document.getElementById('btt-rr').value = '2';
   document.getElementById('btt-notes').value = '';
+  document.getElementById('btt-screenshot').value = '';
+  document.getElementById('btt-screenshot-preview').style.display = 'none';
   openModal('modal-bt-trade');
 }
 
@@ -5559,7 +5641,8 @@ async function saveBtTrade() {
     result: document.getElementById('btt-result').value,
     rr: parseFloat(document.getElementById('btt-rr').value || 2),
     scenario: document.getElementById('btt-scenario').value || null,
-    notes: document.getElementById('btt-notes').value || null
+    notes: document.getElementById('btt-notes').value || null,
+    screenshot_url: document.getElementById('btt-screenshot').value.trim() || null
   };
   const { error } = await sb.from('bt_trades').insert(data);
   if (error) return toast('Erreur: ' + error.message, 'error');
@@ -5913,7 +5996,7 @@ async function toggleTraderActivity(userId) {
   let trades = _traderActivityCache[userId];
   if (!trades) {
     const since = new Date(); since.setDate(since.getDate() - 35);
-    const { data, error } = await sb.from('trades').select('date, result, screenshot_url, rr, one_r')
+    const { data, error } = await sb.from('trades').select('id, date, entry_time, direction, result, rr, one_r, scenario, notes, screenshot_url, quality')
       .eq('user_id', userId).eq('is_public', true).gte('date', since.toISOString().split('T')[0]).order('date');
     if (error) { container.innerHTML = `<div style="font-size:12px;color:var(--text-3)">Activité non disponible</div>`; return; }
     trades = data || [];
@@ -5928,15 +6011,16 @@ async function toggleTraderActivity(userId) {
   // Grouper par jour
   const byDay = {};
   trades.forEach(t => {
-    if (!byDay[t.date]) byDay[t.date] = { wins: 0, losses: 0, bes: 0, count: 0, screenshot: null };
+    if (!byDay[t.date]) byDay[t.date] = { wins: 0, losses: 0, bes: 0, count: 0, trades: [] };
     byDay[t.date].count++;
     if (t.result === 'WIN') byDay[t.date].wins++;
     else if (t.result === 'LOSS') byDay[t.date].losses++;
     else byDay[t.date].bes++;
-    if (!byDay[t.date].screenshot && t.screenshot_url) byDay[t.date].screenshot = t.screenshot_url;
+    byDay[t.date].trades.push(t);
   });
+  _traderActivityByDay[userId] = byDay;
 
-  // Générer les 35 derniers jours (5 semaines), aligné Lundi→Dimanche
+  // Générer les 35 derniers jours, en lignes de 7 (semaines) pour une lecture type calendrier
   const days = [];
   const today = new Date();
   for (let i = 34; i >= 0; i--) {
@@ -5945,26 +6029,65 @@ async function toggleTraderActivity(userId) {
   }
 
   container.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Activité — 35 derniers jours</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Activité — 35 derniers jours · clique un jour pour voir le détail</span>
       <div style="display:flex;gap:10px;font-size:10px;color:var(--text-3)">
-        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--green);margin-right:3px"></span>Win</span>
-        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--red);margin-right:3px"></span>Loss</span>
-        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--bg-4);margin-right:3px"></span>Aucun trade</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--green);margin-right:3px"></span>Win net</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--red);margin-right:3px"></span>Loss net</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--bg-4);margin-right:3px"></span>Aucun trade</span>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(35,1fr);gap:3px;max-width:560px">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:100%">
       ${days.map(date => {
         const d = byDay[date];
+        const dayNum = date.split('-')[2];
         let bg = 'var(--bg-4)';
-        let tip = date + ' — aucun trade';
+        let border = 'var(--border)';
+        let textColor = 'var(--text-4)';
         if (d) {
           const netWin = d.wins - d.losses;
-          bg = netWin > 0 ? 'var(--green)' : netWin < 0 ? 'var(--red)' : 'var(--yellow)';
-          tip = `${date} — ${d.count} trade(s) (${d.wins}W/${d.losses}L/${d.bes}BE)${d.screenshot ? ' · clic = screenshot' : ''}`;
+          bg = netWin > 0 ? 'var(--green-dim)' : netWin < 0 ? 'var(--red-dim)' : '#f59e0b15';
+          border = netWin > 0 ? 'var(--green)' : netWin < 0 ? 'var(--red)' : 'var(--yellow)';
+          textColor = netWin > 0 ? 'var(--green)' : netWin < 0 ? 'var(--red)' : 'var(--yellow)';
         }
-        const clickable = d && d.screenshot;
-        return `<div data-tip="${tip}" class="heatmap-cell" style="background:${bg};height:18px;${clickable ? 'cursor:pointer' : ''}" ${clickable ? `onclick="event.stopPropagation();openLightbox('${d.screenshot.replace(/'/g, "\\'")}')"` : ''}></div>`;
+        const clickable = !!d;
+        return `<div style="background:${bg};border:1px solid ${border};border-radius:8px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;${clickable ? 'cursor:pointer' : ''}" ${clickable ? `onclick="event.stopPropagation();showDayTrades('${userId}','${date}')"` : ''} title="${d ? `${d.count} trade(s) — ${d.wins}W/${d.losses}L/${d.bes}BE` : 'Aucun trade'}">
+          <div style="font-size:11px;font-weight:700;color:${d ? textColor : 'var(--text-4)'}">${dayNum}</div>
+          ${d ? `<div style="font-size:9px;color:${textColor}">${d.count}T</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div id="day-detail-${userId}" style="margin-top:14px"></div>
+  `;
+}
+
+// Cache des trades groupés par jour, pour affichage du détail sans re-requêter Supabase
+const _traderActivityByDay = {};
+
+function showDayTrades(userId, date) {
+  const el = document.getElementById('day-detail-' + userId);
+  if (!el) return;
+  const dayData = _traderActivityByDay[userId]?.[date];
+  if (!dayData) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `
+    <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-0);margin-bottom:10px">${date} — ${dayData.count} trade(s)</div>
+      ${dayData.trades.map(t => {
+        const rrVal = parseFloat(t.rr || 0);
+        const pnl = rrVal * parseFloat(t.one_r || 0);
+        const pillColor = t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span class="pill ${t.direction === 'LONG' ? 'green' : 'red'}" style="flex-shrink:0">${t.direction}</span>
+          <span class="pill ${pillColor}" style="flex-shrink:0">${t.result}</span>
+          <span style="font-family:var(--mono);font-size:12px;color:${rrVal >= 0 ? 'var(--green)' : 'var(--red)'};flex-shrink:0">${rrVal >= 0 ? '+' : ''}${rrVal}R</span>
+          <span style="font-family:var(--mono);font-size:12px;color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'};flex-shrink:0">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</span>
+          ${t.scenario ? `<span style="font-size:11px;color:var(--text-3);flex-shrink:0">${t.scenario}</span>` : ''}
+          ${t.entry_time ? `<span style="font-size:11px;color:var(--text-4);flex-shrink:0">${t.entry_time}</span>` : ''}
+          <span style="flex:1"></span>
+          ${t.screenshot_url ? `<button class="btn-icon" style="width:26px;height:26px;font-size:12px;flex-shrink:0" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
+        </div>
+        ${t.notes ? `<div style="font-size:12px;color:var(--text-2);padding:4px 0 8px;font-style:italic">"${t.notes}"</div>` : ''}`;
       }).join('')}
     </div>
   `;
@@ -6239,6 +6362,19 @@ document.getElementById('post-image').addEventListener('input', function() {
   const url = this.value.trim();
   const prev = document.getElementById('post-image-preview');
   const img = document.getElementById('post-image-img');
+  if (url && (url.startsWith('http') || url.startsWith('/') || url.startsWith('data:image'))) {
+    img.src = url;
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+});
+
+// BT trade screenshot preview auto
+document.getElementById('btt-screenshot').addEventListener('input', function() {
+  const url = this.value.trim();
+  const prev = document.getElementById('btt-screenshot-preview');
+  const img = document.getElementById('btt-screenshot-img');
   if (url && (url.startsWith('http') || url.startsWith('/') || url.startsWith('data:image'))) {
     img.src = url;
     prev.style.display = 'block';
