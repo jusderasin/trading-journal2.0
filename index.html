@@ -1866,71 +1866,159 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn-sm" onclick="openAddSession()">+ Nouvelle session</button>
       </div>
 
-      <!-- Sessions list -->
-      <div id="bt-sessions-list" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
+      <!-- Onglets Vue Globale / Sessions -->
+      <div class="tabs">
+        <div class="tab" id="bt-tab-global" onclick="setBtTab('global')">Vue Globale</div>
+        <div class="tab active" id="bt-tab-sessions" onclick="setBtTab('sessions')">Sessions</div>
+      </div>
 
-      <!-- Session detail (full width) -->
-      <div id="bt-session-detail" style="display:none">
-          <!-- Header + KPIs -->
-          <div class="card" style="margin-bottom:16px">
-            <div id="bt-session-info"></div>
-            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn-sm" onclick="openAddBtTrade()">+ Ajouter trade BT</button>
-              <button class="btn-outline" onclick="openImportModal('import');setImportFlux('bt')">📥 Import</button>
-              <button class="btn-outline" onclick="exportBtCsv()">📤 Export</button>
+      <!-- ========== VUE GLOBALE (agrégat toutes sessions) ========== -->
+      <div id="bt-view-global" style="display:none">
+        <div class="gap-16">
+          <div class="grid-4">
+            <div class="kpi-card">
+              <div class="kpi-label">Win Rate</div>
+              <div class="kpi-value" id="btg-wr">0%</div>
+              <div class="kpi-sub" id="btg-wr-sub">0W · 0L · 0BE</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Profit Factor</div>
+              <div class="kpi-value" id="btg-pf">0.0</div>
+              <div class="kpi-sub" id="btg-pf-sub">Avg win: 0.0R</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Total R</div>
+              <div class="kpi-value" id="btg-totalr">+0.0R</div>
+              <div class="kpi-sub" id="btg-totalr-sub">0 trades · 0 sessions</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Expectancy</div>
+              <div class="kpi-value" id="btg-exp">+0.0R</div>
+              <div class="kpi-sub" id="btg-exp-sub">Max DD: 0.0R</div>
             </div>
           </div>
 
-          <!-- Analytics BT -->
-          <div id="bt-analytics" class="gap-16">
-            <!-- Equity + Daily -->
-            <div class="grid-2">
-              <div class="card">
-                <div class="card-header"><div class="card-title">Equity Curve (R)</div></div>
-                <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-equity"></canvas></div>
-              </div>
-              <div class="card">
-                <div class="card-header"><div class="card-title">PnL par Jour</div></div>
-                <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-daily"></canvas></div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" id="btg-equity-title">Equity Curve BT (R cumulés)</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn-outline" onclick="document.getElementById('bt-import-backup-input').click()">📥 Import backup BT</button>
+                <button class="btn-outline" onclick="openImportModal('import');setImportFlux('bt')">📥 Import session</button>
+                <button class="btn-outline" onclick="exportAllBt()">📤 Export BT</button>
+                <input type="file" id="bt-import-backup-input" accept=".json" style="display:none" onchange="importBtBackup(event)">
               </div>
             </div>
+            <div class="chart-wrap" style="height:220px"><canvas id="btg-chart-equity"></canvas></div>
+          </div>
 
-            <!-- RR Distribution + WR par direction -->
-            <div class="grid-2">
-              <div class="card">
-                <div class="card-header"><div class="card-title">Distribution des RR</div></div>
-                <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-rr"></canvas></div>
-              </div>
-              <div class="card">
-                <div class="card-header"><div class="card-title">Long vs Short</div></div>
-                <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-ls"></canvas></div>
-              </div>
-            </div>
-
-            <!-- Drawdown + Heatmap -->
-            <div class="grid-2">
-              <div class="card">
-                <div class="card-header"><div class="card-title">Drawdown</div></div>
-                <div class="chart-wrap" style="height:160px"><canvas id="bt-chart-dd"></canvas></div>
-              </div>
-              <div class="card">
-                <div class="card-header"><div class="card-title">Streaks</div></div>
-                <div id="bt-streaks"></div>
-              </div>
-            </div>
-
-            <!-- Heatmap heure x jour -->
+          <div class="grid-2">
             <div class="card">
-              <div class="card-header"><div class="card-title">Heatmap PnL — Heure × Jour</div></div>
-              <div id="bt-heatmap"></div>
+              <div class="card-header"><div class="card-title">Sessions</div></div>
+              <div id="btg-sessions-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Perf par Zone VP</div></div>
+              <div id="btg-zone-vp">Aucune donnée</div>
             </div>
           </div>
 
-          <!-- Trades table -->
-          <div class="card" style="overflow:hidden;padding:0;margin-top:16px">
-            <div id="bt-trades-table"></div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Perf par Scénario</div></div>
+              <div id="btg-scenario"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Biais Directionnel</div></div>
+              <div class="grid-2" id="btg-bias"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title" id="btg-cal-title">Calendrier BT</div></div>
+            <div class="card-header" style="margin-bottom:0">
+              <button class="btn-icon" onclick="btgCalPrev()">◀</button>
+              <div class="card-title" id="btg-cal-month-label" style="flex:1;text-align:center"></div>
+              <button class="btn-icon" onclick="btgCalNext()">▶</button>
+            </div>
+            <div id="btg-calendar-grid"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Heatmap Horaire — Toutes Sessions</div></div>
+            <div id="btg-heatmap"></div>
           </div>
         </div>
+      </div>
+
+      <!-- ========== VUE SESSIONS (liste + détail) ========== -->
+      <div id="bt-view-sessions">
+        <!-- Sessions list -->
+        <div id="bt-sessions-list" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+        <!-- Session detail (full width) -->
+        <div id="bt-session-detail" style="display:none">
+            <button class="btn-outline" style="margin-bottom:12px" onclick="closeBtSessionDetail()">← Retour</button>
+            <!-- Header + KPIs -->
+            <div class="card" style="margin-bottom:16px">
+              <div id="bt-session-info"></div>
+              <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn-sm" onclick="openAddBtTrade()">+ Ajouter trade BT</button>
+                <button class="btn-outline" onclick="openImportModal('import');setImportFlux('bt')">📥 Import</button>
+                <button class="btn-outline" onclick="exportBtCsv()">📤 Export</button>
+              </div>
+            </div>
+
+            <!-- Analytics BT -->
+            <div id="bt-analytics" class="gap-16">
+              <!-- Equity + Daily -->
+              <div class="grid-2">
+                <div class="card">
+                  <div class="card-header"><div class="card-title">Equity Curve (R)</div></div>
+                  <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-equity"></canvas></div>
+                </div>
+                <div class="card">
+                  <div class="card-header"><div class="card-title">PnL par Jour</div></div>
+                  <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-daily"></canvas></div>
+                </div>
+              </div>
+
+              <!-- RR Distribution + WR par direction -->
+              <div class="grid-2">
+                <div class="card">
+                  <div class="card-header"><div class="card-title">Distribution des RR</div></div>
+                  <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-rr"></canvas></div>
+                </div>
+                <div class="card">
+                  <div class="card-header"><div class="card-title">Long vs Short</div></div>
+                  <div class="chart-wrap" style="height:180px"><canvas id="bt-chart-ls"></canvas></div>
+                </div>
+              </div>
+
+              <!-- Drawdown + Heatmap -->
+              <div class="grid-2">
+                <div class="card">
+                  <div class="card-header"><div class="card-title">Drawdown</div></div>
+                  <div class="chart-wrap" style="height:160px"><canvas id="bt-chart-dd"></canvas></div>
+                </div>
+                <div class="card">
+                  <div class="card-header"><div class="card-title">Streaks</div></div>
+                  <div id="bt-streaks"></div>
+                </div>
+              </div>
+
+              <!-- Heatmap heure x jour -->
+              <div class="card">
+                <div class="card-header"><div class="card-title">Heatmap PnL — Heure × Jour</div></div>
+                <div id="bt-heatmap"></div>
+              </div>
+            </div>
+
+            <!-- Trades table -->
+            <div class="card" style="overflow:hidden;padding:0;margin-top:16px">
+              <div id="bt-trades-table"></div>
+            </div>
+          </div>
+      </div>
     </div>
 
     <!-- ========== PAGE: SETUPS ========== -->
@@ -4053,10 +4141,16 @@ function renderJournalTable() {
     wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-icon">📝</div><div class="empty-title">Aucun trade</div><div class="empty-sub">Ajoute ton premier trade</div></div>';
     return;
   }
+  const negEmotions = ['FOMO', 'Impatient', 'Stressé', 'Revanche'];
   wrap.innerHTML = `<table class="data-table">
-    <thead><tr><th>Date</th><th>Heure</th><th>Instrument</th><th>Direction</th><th>Setup</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Date</th><th>Heure</th><th>Instrument</th><th>Direction</th><th>Setup</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Émotions</th><th>Actions</th></tr></thead>
     <tbody>${allTrades.map(t => {
       const pnl = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
+      let emotionsArr = [];
+      try { emotionsArr = t.emotions ? (Array.isArray(t.emotions) ? t.emotions : JSON.parse(t.emotions)) : []; } catch { emotionsArr = []; }
+      const emotionsHtml = emotionsArr.length
+        ? emotionsArr.map(tag => `<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;margin:1px;background:${negEmotions.includes(tag) ? 'var(--red-dim)' : 'var(--green-dim)'};color:${negEmotions.includes(tag) ? 'var(--red)' : 'var(--green)'}">${tag}</span>`).join('')
+        : '<span style="color:var(--text-4);font-size:11px">—</span>';
       return `<tr>
         <td>${t.date}</td>
         <td class="mono">${t.entry_time || '—'}</td>
@@ -4066,6 +4160,7 @@ function renderJournalTable() {
         <td><span class="pill ${t.result === 'WIN' ? 'green' : t.result === 'LOSS' ? 'red' : 'yellow'}">${t.result}</span></td>
         <td class="mono">${parseFloat(t.rr) >= 0 ? '+' : ''}${t.rr}R</td>
         <td class="mono" style="color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</td>
+        <td style="max-width:160px">${emotionsHtml}</td>
         <td>
           <div style="display:flex;gap:4px">
             <button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="editTrade('${t.id}')">✏️</button>
@@ -5268,10 +5363,28 @@ function renderLsChart(trades) {
 // ============================================
 // BACKTEST
 // ============================================
+let btCurrentTab = 'sessions';
+
 async function loadBacktest() {
   const { data } = await sb.from('bt_sessions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   btSessions = data || [];
   renderBtSessions();
+  setBtTab(btCurrentTab);
+}
+
+function setBtTab(tab) {
+  btCurrentTab = tab;
+  document.getElementById('bt-tab-global').classList.toggle('active', tab === 'global');
+  document.getElementById('bt-tab-sessions').classList.toggle('active', tab === 'sessions');
+  document.getElementById('bt-view-global').style.display = tab === 'global' ? 'block' : 'none';
+  document.getElementById('bt-view-sessions').style.display = tab === 'sessions' ? 'block' : 'none';
+  if (tab === 'global') loadBtGlobalView();
+}
+
+function closeBtSessionDetail() {
+  document.getElementById('bt-session-detail').style.display = 'none';
+  document.querySelectorAll('[id^="bt-session-card-"]').forEach(el => el.style.borderColor = 'var(--border)');
+  currentBtSession = null;
 }
 
 function renderBtSessions() {
@@ -5291,6 +5404,235 @@ function renderBtSessions() {
       </div>
     </div>
   `).join('');
+}
+
+// ============================================
+// BACKTEST — VUE GLOBALE (agrégat toutes sessions)
+// ============================================
+let btgEquityChart = null;
+let btgCalYear = new Date().getFullYear();
+let btgCalMonth = new Date().getMonth();
+let _btgAllTrades = []; // cache des trades de toutes sessions, avec one_r et session_name attachés
+
+async function loadBtGlobalView() {
+  if (!btSessions.length) {
+    document.getElementById('btg-sessions-list').innerHTML = '<div class="empty-state"><div class="empty-icon">🔬</div><div class="empty-title">Aucune session BT</div></div>';
+    return;
+  }
+
+  // Récupérer tous les trades de toutes les sessions, avec le one_r et le nom de leur session
+  const sessionMap = {};
+  btSessions.forEach(s => { sessionMap[s.id] = s; });
+
+  const { data: allBtTrades } = await sb.from('bt_trades').select('*').eq('user_id', currentUser.id).order('date').order('entry_time');
+  const trades = (allBtTrades || []).map(t => ({
+    ...t,
+    one_r: sessionMap[t.session_id]?.one_r || 200,
+    session_name: sessionMap[t.session_id]?.name || '—'
+  }));
+  _btgAllTrades = trades;
+
+  const oneRAvg = btSessions.length > 0 ? btSessions.reduce((s, sess) => s + parseFloat(sess.one_r || 200), 0) / btSessions.length : 200;
+  const stats = calcBtStats(trades, oneRAvg);
+
+  // KPIs
+  document.getElementById('btg-wr').textContent = stats.wr + '%';
+  document.getElementById('btg-wr-sub').textContent = `${stats.wins}W · ${stats.losses}L · ${stats.bes}BE`;
+  document.getElementById('btg-pf').textContent = stats.pf;
+  const avgWin = stats.wins > 0 ? (trades.filter(t => t.result === 'WIN').reduce((s, t) => s + parseFloat(t.rr || 0), 0) / stats.wins).toFixed(2) : '0.00';
+  document.getElementById('btg-pf-sub').textContent = `Avg win: ${avgWin}R`;
+  document.getElementById('btg-totalr').textContent = (stats.totalR >= 0 ? '+' : '') + stats.totalR.toFixed(2) + 'R';
+  document.getElementById('btg-totalr').className = 'kpi-value ' + (stats.totalR >= 0 ? 'green' : 'red');
+  document.getElementById('btg-totalr-sub').textContent = `${trades.length} trades · ${btSessions.length} session(s)`;
+  document.getElementById('btg-exp').textContent = (stats.exp >= 0 ? '+' : '') + stats.exp.toFixed(2) + 'R';
+  document.getElementById('btg-exp').className = 'kpi-value ' + (stats.exp >= 0 ? 'green' : 'red');
+  document.getElementById('btg-exp-sub').textContent = `Max DD: -${stats.maxDd.toFixed(1)}R`;
+  document.getElementById('btg-equity-title').textContent = `Equity Curve BT (R cumulés) — ${btSessions.length} session(s)`;
+
+  renderBtgEquityChart(trades);
+  renderBtgSessionsList(trades, sessionMap);
+  renderBtgScenario(trades);
+  renderBtgBias(trades);
+  renderBtgCalendar();
+  renderBtHeatmap(trades, 'btg-heatmap');
+}
+
+function renderBtgEquityChart(trades) {
+  const ctx = document.getElementById('btg-chart-equity');
+  if (!ctx) return;
+  const sorted = [...trades].sort((a, b) => (a.date + (a.entry_time||'')).localeCompare(b.date + (b.entry_time||'')));
+  let cumR = 0;
+  const labels = [], data = [];
+  sorted.forEach((t, i) => {
+    cumR += parseFloat(t.rr || 0);
+    labels.push(i + 1);
+    data.push(parseFloat(cumR.toFixed(2)));
+  });
+  const lastR = data[data.length - 1] || 0;
+  const color = lastR >= 0 ? '#00c896' : '#e8354f';
+
+  if (btgEquityChart) btgEquityChart.destroy();
+  btgEquityChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color + '15', fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + 'R' } } },
+      scales: { x: { display: false }, y: { grid: { color: '#161b28' }, ticks: { color: '#4a5568', font: { family: 'JetBrains Mono', size: 11 }, callback: v => v + 'R' } } }
+    }
+  });
+}
+
+function renderBtgSessionsList(trades, sessionMap) {
+  const el = document.getElementById('btg-sessions-list');
+  if (!el) return;
+  const bySession = {};
+  trades.forEach(t => {
+    if (!bySession[t.session_id]) bySession[t.session_id] = { totalR: 0, count: 0 };
+    bySession[t.session_id].totalR += parseFloat(t.rr || 0);
+    bySession[t.session_id].count++;
+  });
+  const sorted = Object.entries(bySession).sort((a, b) => b[1].totalR - a[1].totalR);
+  if (!sorted.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-4)">Aucun trade</div>'; return; }
+  el.innerHTML = sorted.map(([sid, d], i) => {
+    const session = sessionMap[sid];
+    if (!session) return '';
+    const medal = i === 0 ? '🏆 ' : '';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="setBtTab('sessions');setTimeout(()=>selectBtSession('${sid}'),50)">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-0)">${medal}${session.name}</div>
+        <div style="font-size:11px;color:var(--text-3)">${session.instrument} · ${d.count} trades</div>
+      </div>
+      <div style="font-family:var(--mono);font-weight:700;color:${d.totalR >= 0 ? 'var(--green)' : 'var(--red)'}">${d.totalR >= 0 ? '+' : ''}${d.totalR.toFixed(1)}R</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBtgScenario(trades) {
+  const el = document.getElementById('btg-scenario');
+  if (!el) return;
+  const byScenario = {};
+  trades.forEach(t => {
+    const s = t.scenario || 'Aucun';
+    if (!byScenario[s]) byScenario[s] = { wins: 0, total: 0, totalR: 0 };
+    byScenario[s].total++;
+    byScenario[s].totalR += parseFloat(t.rr || 0);
+    if (t.result === 'WIN') byScenario[s].wins++;
+  });
+  const entries = Object.entries(byScenario).sort((a, b) => b[1].totalR - a[1].totalR);
+  if (!entries.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-4)">Aucune donnée</div>'; return; }
+  el.innerHTML = entries.map(([name, d]) => {
+    const wr = d.total > 0 ? Math.round(d.wins / d.total * 100) : 0;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:var(--accent);font-weight:700">${name}</span>
+        <span style="font-family:var(--mono);color:var(--text-2)">${d.total}t <span style="color:${wr>=50?'var(--green)':'var(--red)'}">${wr}%</span> <span style="color:${d.totalR>=0?'var(--green)':'var(--red)'}">${d.totalR>=0?'+':''}${d.totalR.toFixed(1)}R</span></span>
+      </div>
+      <div style="height:6px;background:var(--bg-4);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${wr}%;background:${wr>=50?'var(--green)':'var(--red)'};border-radius:3px"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderBtgBias(trades) {
+  const el = document.getElementById('btg-bias');
+  if (!el) return;
+  const long = trades.filter(t => t.direction === 'LONG');
+  const short = trades.filter(t => t.direction === 'SHORT');
+  const longR = long.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
+  const shortR = short.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
+  const longWr = long.length > 0 ? Math.round(long.filter(t => t.result === 'WIN').length / long.length * 100) : 0;
+  const shortWr = short.length > 0 ? Math.round(short.filter(t => t.result === 'WIN').length / short.length * 100) : 0;
+  el.innerHTML = `
+    <div style="background:var(--bg-3);border-radius:8px;padding:16px;text-align:center">
+      <div style="font-family:var(--mono);font-size:28px;font-weight:800;color:var(--green)">${long.length}</div>
+      <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Longs ▲</div>
+      <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:${longR>=0?'var(--green)':'var(--red)'};margin-top:4px">${longR>=0?'+':''}${longR.toFixed(1)}R</div>
+      <div style="font-size:11px;color:var(--text-3)">${longWr}% WR</div>
+    </div>
+    <div style="background:var(--bg-3);border-radius:8px;padding:16px;text-align:center">
+      <div style="font-family:var(--mono);font-size:28px;font-weight:800;color:var(--purple)">${short.length}</div>
+      <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Shorts ▼</div>
+      <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:${shortR>=0?'var(--green)':'var(--red)'};margin-top:4px">${shortR>=0?'+':''}${shortR.toFixed(1)}R</div>
+      <div style="font-size:11px;color:var(--text-3)">${shortWr}% WR</div>
+    </div>
+  `;
+}
+
+function renderBtgCalendar() {
+  const label = document.getElementById('btg-cal-month-label');
+  const grid = document.getElementById('btg-calendar-grid');
+  if (!label || !grid) return;
+  const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  label.textContent = months[btgCalMonth] + ' ' + btgCalYear;
+
+  const byDay = {};
+  _btgAllTrades.forEach(t => { byDay[t.date] = (byDay[t.date] || []).concat(t); });
+
+  const first = new Date(btgCalYear, btgCalMonth, 1).getDay();
+  const days = new Date(btgCalYear, btgCalMonth + 1, 0).getDate();
+  const startOffset = (first + 6) % 7;
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center">';
+  ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].forEach(d => { html += `<div style="font-size:11px;font-weight:700;color:var(--text-4);padding:6px 0">${d}</div>`; });
+  for (let i = 0; i < startOffset; i++) html += '<div></div>';
+  for (let d = 1; d <= days; d++) {
+    const dateStr = `${btgCalYear}-${String(btgCalMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayTrades = byDay[dateStr] || [];
+    const totalR = dayTrades.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
+    const bg = dayTrades.length === 0 ? 'var(--bg-3)' : totalR > 0 ? 'var(--green-dim)' : totalR < 0 ? 'var(--red-dim)' : 'var(--bg-4)';
+    const border = dayTrades.length === 0 ? 'var(--border)' : totalR > 0 ? '#00d4a040' : totalR < 0 ? '#f43f5e40' : 'var(--border)';
+    const textColor = totalR > 0 ? 'var(--green)' : totalR < 0 ? 'var(--red)' : 'var(--text-3)';
+    html += `<div style="background:${bg};border:1px solid ${border};border-radius:6px;padding:6px 4px;min-height:52px">
+      <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:2px">${d}</div>
+      ${dayTrades.length > 0 ? `<div style="font-size:10px;font-weight:700;color:${textColor}">${totalR >= 0 ? '+' : ''}${totalR.toFixed(1)}R</div><div style="font-size:10px;color:var(--text-4)">${dayTrades.length}t</div>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+  grid.innerHTML = html;
+}
+
+function btgCalPrev() { btgCalMonth--; if (btgCalMonth < 0) { btgCalMonth = 11; btgCalYear--; } renderBtgCalendar(); }
+function btgCalNext() { btgCalMonth++; if (btgCalMonth > 11) { btgCalMonth = 0; btgCalYear++; } renderBtgCalendar(); }
+
+async function exportAllBt() {
+  const { data } = await sb.from('bt_trades').select('*').eq('user_id', currentUser.id);
+  const json = JSON.stringify({ export_date: new Date().toISOString(), sessions: btSessions, trades: data || [] }, null, 2);
+  downloadBlob(new Blob([json], { type: 'application/json' }), 'tradingzone-bt-backup.json');
+  toast('Export BT (toutes sessions) ✓', 'success');
+}
+
+function importBtBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!parsed.sessions || !parsed.trades) return toast('Format de backup invalide', 'error');
+      if (!confirm(`Importer ${parsed.sessions.length} session(s) et ${parsed.trades.length} trade(s) ? Les sessions seront recréées.`)) return;
+
+      const idMap = {};
+      for (const s of parsed.sessions) {
+        const { id, ...sessionData } = s;
+        const { data: inserted, error } = await sb.from('bt_sessions').insert({ ...sessionData, user_id: currentUser.id }).select().single();
+        if (error) { toast('Erreur session: ' + error.message, 'error'); continue; }
+        idMap[id] = inserted.id;
+      }
+      const tradesInsert = parsed.trades.map(t => {
+        const { id, session_id, ...tradeData } = t;
+        return { ...tradeData, session_id: idMap[session_id], user_id: currentUser.id };
+      }).filter(t => t.session_id);
+      if (tradesInsert.length) await sb.from('bt_trades').insert(tradesInsert);
+
+      toast('Backup BT importé ✓', 'success');
+      await loadBacktest();
+    } catch (err) {
+      toast('Erreur lecture backup: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
 }
 
 async function selectBtSession(id) {
@@ -5515,8 +5857,9 @@ function renderBtCharts(trades, oneR, stats) {
   renderBtHeatmap(trades);
 }
 
-function renderBtHeatmap(trades) {
-  const container = document.getElementById('bt-heatmap');
+function renderBtHeatmap(trades, containerId = 'bt-heatmap') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
   const hours = Array.from({ length: 17 }, (_, i) => i + 2); // 2h → 18h Paris
   const days = ['Lun','Mar','Mer','Jeu','Ven'];
   const grid = {};
