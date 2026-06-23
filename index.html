@@ -1963,6 +1963,7 @@ input[type="range"]::-webkit-slider-thumb {
               <div id="bt-session-info"></div>
               <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
                 <button class="btn-sm" onclick="openAddBtTrade()">+ Ajouter trade BT</button>
+                <button class="btn-outline" onclick="openBtDateFixer()">📅 Corriger dates</button>
                 <button class="btn-outline" onclick="openImportModal('import');setImportFlux('bt')">📥 Import</button>
                 <button class="btn-outline" onclick="exportBtCsv()">📤 Export</button>
               </div>
@@ -2712,6 +2713,39 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="modal-footer">
       <button class="btn-outline" onclick="closeModal('modal-bt-session')">Annuler</button>
       <button class="btn-sm" onclick="saveBtSession()">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Correcteur de dates BT -->
+<div class="modal-overlay" id="modal-bt-date-fixer">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📅 Corriger les dates — Backtest</div>
+      <button class="modal-close" onclick="closeModal('modal-bt-date-fixer')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg-3);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--text-2);line-height:1.6">
+        Sélectionne une date existante dans tes trades BT, entre la vraie date, et applique la correction à tous les trades concernés de cette session.
+      </div>
+
+      <!-- Dates détectées dans la session -->
+      <div class="form-group">
+        <label class="form-label">Date à corriger</label>
+        <select id="btdf-source-date" style="width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:9px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none"></select>
+        <div id="btdf-count" style="font-size:11px;color:var(--text-3);margin-top:4px"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nouvelle date</label>
+        <input type="date" id="btdf-target-date" style="width:100%">
+      </div>
+
+      <div id="btdf-preview" style="display:none;background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px;margin-bottom:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('modal-bt-date-fixer')">Annuler</button>
+      <button class="btn-sm" id="btdf-apply-btn" onclick="applyBtDateFix()">Appliquer</button>
     </div>
   </div>
 </div>
@@ -5970,6 +6004,84 @@ function calcBtStats(trades, oneR) {
 }
 
 function openAddSession() { openModal('modal-bt-session'); }
+
+// ============================================
+// CORRECTEUR DE DATES BT
+// ============================================
+async function openBtDateFixer() {
+  if (!currentBtSession) return toast('Sélectionne une session d\'abord', 'error');
+
+  // Récupérer les dates distinctes de la session courante
+  const { data: trades } = await sb.from('bt_trades')
+    .select('date')
+    .eq('session_id', currentBtSession.id)
+    .order('date');
+
+  if (!trades || !trades.length) return toast('Aucun trade dans cette session', 'error');
+
+  // Compter les trades par date
+  const byDate = {};
+  trades.forEach(t => { byDate[t.date] = (byDate[t.date] || 0) + 1; });
+
+  const sel = document.getElementById('btdf-source-date');
+  sel.innerHTML = Object.entries(byDate).map(([date, count]) => {
+    const d = new Date(date + 'T00:00:00');
+    const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    return `<option value="${date}">${date} — ${jours[d.getDay()]} (${count} trade(s))</option>`;
+  }).join('');
+
+  // Mettre à jour le compteur à chaque changement de sélection
+  function updateCount() {
+    const date = sel.value;
+    const count = byDate[date] || 0;
+    document.getElementById('btdf-count').textContent = `${count} trade(s) seront modifiés`;
+    const preview = document.getElementById('btdf-preview');
+    const target = document.getElementById('btdf-target-date').value;
+    if (target) {
+      const td = new Date(target + 'T00:00:00');
+      const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+      preview.style.display = 'block';
+      preview.innerHTML = `<span style="color:var(--text-3)">Les <strong style="color:var(--text-0)">${count} trade(s)</strong> du <strong style="color:var(--red)">${date}</strong> passeront au <strong style="color:var(--green)">${target}</strong> (${jours[td.getDay()]})</span>`;
+    }
+  }
+
+  sel.onchange = updateCount;
+  document.getElementById('btdf-target-date').oninput = updateCount;
+  updateCount();
+
+  document.getElementById('btdf-target-date').value = '';
+  document.getElementById('btdf-preview').style.display = 'none';
+
+  openModal('modal-bt-date-fixer');
+}
+
+async function applyBtDateFix() {
+  const sourceDate = document.getElementById('btdf-source-date').value;
+  const targetDate = document.getElementById('btdf-target-date').value;
+
+  if (!sourceDate) return toast('Sélectionne une date source', 'error');
+  if (!targetDate) return toast('Entre la nouvelle date', 'error');
+  if (sourceDate === targetDate) return toast('Les dates sont identiques', 'error');
+
+  const btn = document.getElementById('btdf-apply-btn');
+  btn.disabled = true;
+  btn.textContent = 'Application...';
+
+  const { error } = await sb.from('bt_trades')
+    .update({ date: targetDate })
+    .eq('session_id', currentBtSession.id)
+    .eq('date', sourceDate);
+
+  btn.disabled = false;
+  btn.textContent = 'Appliquer';
+
+  if (error) return toast('Erreur: ' + error.message, 'error');
+
+  closeModal('modal-bt-date-fixer');
+  toast(`Dates corrigées ✓ (${sourceDate} → ${targetDate})`, 'success');
+  // Recharger la session pour mettre à jour la heatmap et le calendrier
+  await selectBtSession(currentBtSession.id);
+}
 
 async function saveBtSession() {
   const name = document.getElementById('bt-name').value.trim();
