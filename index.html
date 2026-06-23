@@ -5271,12 +5271,14 @@ function renderWrSetupChart(trades) {
 function renderHeatmap(trades) {
   const container = document.getElementById('heatmap-container');
   if (!container) return;
-  const hours = Array.from({ length: 17 }, (_, i) => i + 7);
+  // Heures de session US (heure de Paris) : 9h → 22h (couvre 3h30-16h30 NY)
+  const hours = Array.from({ length: 14 }, (_, i) => i + 9);
   const days = ['Lun','Mar','Mer','Jeu','Ven'];
   const grid = {};
   trades.forEach(t => {
     if (!t.entry_time) return;
     const hour = parseInt(t.entry_time.split(':')[0]);
+    if (hour < 9 || hour > 22) return;
     const d = new Date(t.date + 'T00:00:00');
     const dow = d.getDay();
     if (dow === 0 || dow === 6) return;
@@ -5291,21 +5293,33 @@ function renderHeatmap(trades) {
   const allPnls = Object.values(grid).map(v => v.pnl);
   const maxPnl = Math.max(...allPnls.map(Math.abs), 1);
 
-  let html = '<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:40px repeat(' + hours.length + ',1fr);gap:3px;min-width:600px">';
-  html += '<div></div>';
-  hours.forEach(h => { html += `<div style="font-size:10px;font-weight:600;color:var(--text-4);text-align:center;padding:2px 0">${h}h</div>`; });
-  days.forEach((day, di) => {
-    html += `<div style="font-size:10px;font-weight:700;color:var(--text-3);display:flex;align-items:center">${day}</div>`;
-    hours.forEach(h => {
-      const cell = grid[`${di}-${h}`];
-      const pnl = cell ? cell.pnl : 0;
-      const count = cell ? cell.count : 0;
-      const intensity = Math.abs(pnl) / maxPnl;
-      const bg = pnl > 0 ? `rgba(0,212,160,${0.1 + intensity * 0.5})` : pnl < 0 ? `rgba(244,63,94,${0.1 + intensity * 0.5})` : 'var(--bg-4)';
-      html += `<div style="background:${bg};border-radius:3px;height:28px;cursor:${count > 0 ? 'pointer' : 'default'}" title="${count > 0 ? `${count} trade(s) | $${Math.round(pnl)}` : '—'}"></div>`;
-    });
-  });
-  html += '</div></div>';
+  let html = `<div style="overflow-x:auto">
+    <div style="display:grid;grid-template-columns:44px repeat(${hours.length},1fr);gap:4px;min-width:680px">
+      <div></div>
+      ${hours.map(h => `<div style="font-size:10px;font-weight:700;color:var(--text-3);text-align:center;padding:3px 0">${h}h</div>`).join('')}
+      ${days.map((day, di) => `
+        <div style="font-size:11px;font-weight:700;color:var(--text-2);display:flex;align-items:center;padding-right:4px">${day}</div>
+        ${hours.map(h => {
+          const cell = grid[`${di}-${h}`];
+          const pnl = cell ? cell.pnl : 0;
+          const count = cell ? cell.count : 0;
+          if (!cell) {
+            return `<div style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;height:38px"></div>`;
+          }
+          const intensity = Math.min(Math.abs(pnl) / maxPnl, 1);
+          const bg = pnl > 0
+            ? `rgba(0,200,150,${0.15 + intensity * 0.55})`
+            : `rgba(232,53,79,${0.15 + intensity * 0.55})`;
+          const textColor = pnl > 0 ? '#00c896' : '#e8354f';
+          const display = Math.abs(pnl) >= 1 ? `${pnl >= 0 ? '+' : ''}$${Math.round(pnl)}` : `${count}t`;
+          return `<div style="background:${bg};border:1px solid ${pnl > 0 ? '#00c89640' : '#e8354f40'};border-radius:6px;height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer" title="${count} trade(s) | ${pnl >= 0 ? '+' : ''}$${Math.round(pnl)}">
+            <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:${textColor}">${display}</div>
+            <div style="font-size:9px;color:${textColor};opacity:.7">${count}t</div>
+          </div>`;
+        }).join('')}
+      `).join('')}
+    </div>
+  </div>`;
   container.innerHTML = html;
 }
 
@@ -5706,6 +5720,17 @@ function renderBtSessionDetail(session, trades) {
 
   document.getElementById('bt-analytics').style.display = 'flex';
 
+  // Auto-caler le calendrier global sur le mois des trades de cette session
+  if (trades.length > 0) {
+    const firstDate = trades[0].date;
+    btgCalYear = parseInt(firstDate.split('-')[0]);
+    btgCalMonth = parseInt(firstDate.split('-')[1]) - 1;
+    // Peupler _btgAllTrades avec les trades de cette session pour le calendrier
+    _btgAllTrades = trades.map(t => ({ ...t, one_r: oneR }));
+    // Mettre à jour le calendrier de la Vue Globale si elle est déjà visible
+    if (btCurrentTab === 'global') renderBtgCalendar();
+  }
+
   tableWrap.innerHTML = `<table class="data-table">
     <thead><tr><th>#</th><th>Date</th><th>Heure</th><th>Dir</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Cum R</th><th></th></tr></thead>
     <tbody>${(() => {
@@ -5726,6 +5751,7 @@ function renderBtSessionDetail(session, trades) {
           <td>
             <div style="display:flex;gap:4px">
               ${t.screenshot_url ? `<button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
+              <button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="editBtTrade('${t.id}')">✏️</button>
               <button class="btn-icon" style="width:24px;height:24px;font-size:11px;color:var(--red)" onclick="deleteBtTrade('${t.id}')">✕</button>
             </div>
           </td>
@@ -5860,7 +5886,8 @@ function renderBtCharts(trades, oneR, stats) {
 function renderBtHeatmap(trades, containerId = 'bt-heatmap') {
   const container = document.getElementById(containerId);
   if (!container) return;
-  const hours = Array.from({ length: 17 }, (_, i) => i + 2); // 2h → 18h Paris
+  // Heures BT : 2h → 18h (couvre sessions asiatique + européenne + US)
+  const hours = Array.from({ length: 17 }, (_, i) => i + 2);
   const days = ['Lun','Mar','Mer','Jeu','Ven'];
   const grid = {};
   trades.forEach(t => {
@@ -5877,22 +5904,33 @@ function renderBtHeatmap(trades, containerId = 'bt-heatmap') {
   });
   const allR = Object.values(grid).map(v => v.r);
   const maxR = Math.max(...allR.map(Math.abs), 1);
-  let html = '<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:35px repeat(' + hours.length + ',1fr);gap:2px;min-width:500px">';
-  html += '<div></div>';
-  hours.forEach(h => { html += '<div style="font-size:9px;font-weight:600;color:var(--text-4);text-align:center;padding:2px 0">' + h + 'h</div>'; });
-  days.forEach((day, di) => {
-    html += '<div style="font-size:9px;font-weight:700;color:var(--text-3);display:flex;align-items:center">' + day + '</div>';
-    hours.forEach(h => {
-      const cell = grid[di + '-' + h];
-      const r = cell ? cell.r : 0;
-      const count = cell ? cell.count : 0;
-      const intensity = Math.abs(r) / maxR;
-      const bg = r > 0 ? 'rgba(0,200,150,' + (0.08 + intensity * 0.5) + ')' : r < 0 ? 'rgba(232,53,79,' + (0.08 + intensity * 0.5) + ')' : 'var(--bg-4)';
-      html += '<div style="background:' + bg + ';border-radius:2px;height:24px" title="' + (count > 0 ? count + ' trade(s) | ' + r.toFixed(1) + 'R' : '—') + '"></div>';
-    });
-  });
-  html += '</div></div>';
-  container.innerHTML = html;
+
+  container.innerHTML = `<div style="overflow-x:auto">
+    <div style="display:grid;grid-template-columns:44px repeat(${hours.length},1fr);gap:3px;min-width:640px">
+      <div></div>
+      ${hours.map(h => `<div style="font-size:9px;font-weight:700;color:var(--text-3);text-align:center;padding:3px 0">${h}h</div>`).join('')}
+      ${days.map((day, di) => `
+        <div style="font-size:11px;font-weight:700;color:var(--text-2);display:flex;align-items:center">${day}</div>
+        ${hours.map(h => {
+          const cell = grid[di + '-' + h];
+          const r = cell ? cell.r : 0;
+          const count = cell ? cell.count : 0;
+          if (!cell) {
+            return `<div style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;height:34px"></div>`;
+          }
+          const intensity = Math.min(Math.abs(r) / maxR, 1);
+          const bg = r > 0
+            ? 'rgba(0,200,150,' + (0.15 + intensity * 0.55) + ')'
+            : 'rgba(232,53,79,' + (0.15 + intensity * 0.55) + ')';
+          const textColor = r > 0 ? '#00c896' : '#e8354f';
+          return `<div style="background:${bg};border:1px solid ${r > 0 ? '#00c89640' : '#e8354f40'};border-radius:5px;height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center" title="${count} trade(s) | ${r >= 0 ? '+' : ''}${r.toFixed(1)}R">
+            <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:${textColor}">${r >= 0 ? '+' : ''}${r.toFixed(1)}R</div>
+            <div style="font-size:9px;color:${textColor};opacity:.7">${count}t</div>
+          </div>`;
+        }).join('')}
+      `).join('')}
+    </div>
+  </div>`;
 }
 
 function calcBtStats(trades, oneR) {
@@ -5964,6 +6002,8 @@ async function deleteBtSession(id) {
 
 function openAddBtTrade() {
   if (!currentBtSession) return;
+  editingBtTradeId = null;
+  document.querySelector('#modal-bt-trade .modal-title').textContent = 'Trade Backtest';
   document.getElementById('btt-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('btt-time').value = '';
   document.getElementById('btt-rr').value = '2';
@@ -5973,30 +6013,70 @@ function openAddBtTrade() {
   openModal('modal-bt-trade');
 }
 
+async function deleteBtTrade(id) {
+  await sb.from('bt_trades').delete().eq('id', id);
+  toast('Trade supprimé', 'success');
+  await selectBtSession(currentBtSession.id);
+}
+
+// ============================================
+// ÉDITION TRADE BT
+// ============================================
+let editingBtTradeId = null;
+
+function editBtTrade(id) {
+  // Trouver le trade dans la session courante via la table bt_trades déjà chargée
+  // On relance une requête simple pour avoir les données fraîches
+  sb.from('bt_trades').select('*').eq('id', id).single().then(({ data: t, error }) => {
+    if (error || !t) return toast('Trade introuvable', 'error');
+    editingBtTradeId = id;
+    document.getElementById('btt-date').value = t.date || '';
+    document.getElementById('btt-time').value = t.entry_time || '';
+    document.getElementById('btt-rr').value = t.rr || '';
+    document.getElementById('btt-direction').value = t.direction || 'LONG';
+    document.getElementById('btt-result').value = t.result || 'WIN';
+    document.getElementById('btt-scenario').value = t.scenario || '';
+    document.getElementById('btt-notes').value = t.notes || '';
+    document.getElementById('btt-screenshot').value = t.screenshot_url || '';
+    if (t.screenshot_url) {
+      document.getElementById('btt-screenshot-img').src = t.screenshot_url;
+      document.getElementById('btt-screenshot-preview').style.display = 'block';
+    } else {
+      document.getElementById('btt-screenshot-preview').style.display = 'none';
+    }
+    // Changer le titre du modal
+    document.querySelector('#modal-bt-trade .modal-title').textContent = 'Modifier le Trade BT';
+    openModal('modal-bt-trade');
+  });
+}
+
 async function saveBtTrade() {
-  if (!currentBtSession) return;
+  if (!currentBtSession && !editingBtTradeId) return;
   const data = {
-    user_id: currentUser.id,
-    session_id: currentBtSession.id,
     date: document.getElementById('btt-date').value,
     entry_time: document.getElementById('btt-time').value || null,
     direction: document.getElementById('btt-direction').value,
     result: document.getElementById('btt-result').value,
-    rr: parseFloat(document.getElementById('btt-rr').value || 2),
+    rr: parseFloat(document.getElementById('btt-rr').value || 0),
     scenario: document.getElementById('btt-scenario').value || null,
     notes: document.getElementById('btt-notes').value || null,
     screenshot_url: document.getElementById('btt-screenshot').value.trim() || null
   };
-  const { error } = await sb.from('bt_trades').insert(data);
+
+  let error;
+  if (editingBtTradeId) {
+    // Mode édition
+    ({ error } = await sb.from('bt_trades').update(data).eq('id', editingBtTradeId).eq('user_id', currentUser.id));
+    editingBtTradeId = null;
+    document.querySelector('#modal-bt-trade .modal-title').textContent = 'Trade Backtest';
+  } else {
+    // Mode ajout
+    ({ error } = await sb.from('bt_trades').insert({ ...data, user_id: currentUser.id, session_id: currentBtSession.id }));
+  }
+
   if (error) return toast('Erreur: ' + error.message, 'error');
   closeModal('modal-bt-trade');
-  toast('Trade BT enregistré ✓', 'success');
-  await selectBtSession(currentBtSession.id);
-}
-
-async function deleteBtTrade(id) {
-  await sb.from('bt_trades').delete().eq('id', id);
-  toast('Trade supprimé', 'success');
+  toast(editingBtTradeId === null ? (data.date ? 'Trade BT modifié ✓' : 'Trade BT enregistré ✓') : 'Trade BT enregistré ✓', 'success');
   await selectBtSession(currentBtSession.id);
 }
 
