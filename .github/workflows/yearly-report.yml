@@ -1,0 +1,31 @@
+name: 🏆 Rapport Annuel TradingZone
+
+on:
+  schedule:
+    # Le 1er janvier à 9h00 heure de Paris (UTC+1 en hiver = 8h UTC)
+    - cron: '0 8 1 1 *'
+  workflow_dispatch:
+
+jobs:
+  send-yearly-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install dependencies
+        run: npm install @supabase/supabase-js node-fetch
+
+      - name: 🏆 Générer et envoyer les rapports annuels
+        env:
+          SUPABASE_URL: https://nwmvqyykvqqhbaqiqzpr.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          PERIOD: year
+        run: node scripts/generate-report.js
