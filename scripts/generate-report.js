@@ -3,6 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import fetch from 'node-fetch';
+import WebSocket from 'ws';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -10,7 +11,10 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const PERIOD = process.env.PERIOD || 'week'; // week | month | year
 
-const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+  global: { fetch },
+  realtime: { transport: WebSocket }
+});
 
 // ============================================
 // CALCUL DE LA DATE DE DÉBUT SELON LA PÉRIODE
