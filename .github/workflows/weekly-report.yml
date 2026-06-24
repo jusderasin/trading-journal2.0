@@ -1,0 +1,31 @@
+name: 📊 Rapport Hebdomadaire TradingZone
+
+on:
+  schedule:
+    # Chaque vendredi à 17h00 heure de Paris (UTC+2 en été = 15h UTC)
+    - cron: '0 15 * * 5'
+  workflow_dispatch: # Permet de lancer manuellement depuis GitHub
+
+jobs:
+  send-weekly-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install dependencies
+        run: npm install @supabase/supabase-js node-fetch
+
+      - name: 📊 Générer et envoyer les rapports hebdomadaires
+        env:
+          SUPABASE_URL: https://nwmvqyykvqqhbaqiqzpr.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          PERIOD: week
+        run: node scripts/generate-report.js
