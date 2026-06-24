@@ -2,9 +2,8 @@ name: 📊 Rapport Hebdomadaire TradingZone
 
 on:
   schedule:
-    # Chaque vendredi à 17h00 heure de Paris (UTC+2 en été = 15h UTC)
     - cron: '0 15 * * 5'
-  workflow_dispatch: # Permet de lancer manuellement depuis GitHub
+  workflow_dispatch:
 
 jobs:
   send-weekly-report:
@@ -16,10 +15,10 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
 
       - name: 📦 Install dependencies
-        run: npm install @supabase/supabase-js node-fetch
+        run: cd scripts && npm install
 
       - name: 📊 Générer et envoyer les rapports hebdomadaires
         env:
