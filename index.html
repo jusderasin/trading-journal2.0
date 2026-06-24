@@ -2338,8 +2338,8 @@ input[type="range"]::-webkit-slider-thumb {
           <input type="number" id="t-rr" placeholder="2.5 ou -1" step="0.1" style="font-family:var(--mono);font-size:15px;font-weight:700">
         </div>
         <div class="form-group">
-          <label class="form-label">Valeur 1R ($)</label>
-          <input type="number" id="t-one-r-manual" placeholder="200" step="1" min="0" style="font-family:var(--mono)">
+          <label class="form-label">Valeur 1R ($) <span style="font-size:10px;color:var(--text-3);font-weight:400">— override global</span></label>
+          <input type="number" id="t-one-r-manual" placeholder="Auto (par compte)" step="1" min="0" style="font-family:var(--mono)">
         </div>
         <div class="form-group">
           <label class="form-label">Heure</label>
@@ -2354,8 +2354,9 @@ input[type="range"]::-webkit-slider-thumb {
           <input type="date" id="t-date">
         </div>
         <div class="form-group">
-          <label class="form-label">Compte</label>
-          <select id="t-account"></select>
+          <label class="form-label">Compte(s) <span style="font-size:10px;color:var(--text-3);font-weight:400">— sélection multiple possible</span></label>
+          <div id="t-accounts-selector" style="background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:8px;max-height:160px;overflow-y:auto"></div>
+          <input type="hidden" id="t-account" value=""><!-- conservé pour compatibilité updatePnlPreview -->
         </div>
       </div>
 
@@ -2517,12 +2518,12 @@ input[type="range"]::-webkit-slider-thumb {
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-4);margin:12px 0 10px">Règles de l'évaluation</div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Profit Target (%)</label>
-            <input type="number" id="a-target" value="6" step="0.1">
+            <label class="form-label">Profit Target ($)</label>
+            <input type="number" id="a-target" value="3000" step="1">
           </div>
           <div class="form-group">
-            <label class="form-label">Max Drawdown (%)</label>
-            <input type="number" id="a-ddmax" value="4" step="0.1">
+            <label class="form-label">Max Drawdown ($)</label>
+            <input type="number" id="a-ddmax" value="2000" step="1">
           </div>
         </div>
         <div class="form-row">
@@ -3480,7 +3481,9 @@ async function loadAccounts() {
 
 function populateAccountSelects() {
   const all = [...allAccounts.challenges.map(a => ({ ...a, type: 'challenge' })), ...allAccounts.funded.map(a => ({ ...a, type: 'funded' }))];
-  const selects = ['t-account', 'filter-account', 'analytics-account', 'csv-account'];
+
+  // Sélecteurs classiques (filtre journal, analytics, import CSV)
+  const selects = ['filter-account', 'analytics-account', 'csv-account'];
   selects.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -3493,6 +3496,64 @@ function populateAccountSelects() {
       el.appendChild(opt);
     });
     if (prev) el.value = prev;
+  });
+
+  // Sélecteur multi-comptes dans le formulaire trade
+  renderAccountsSelector(all);
+
+  // Export account (reste un select simple)
+  const expAcc = document.getElementById('export-account');
+  if (expAcc) {
+    expAcc.innerHTML = '<option value="">Tous les comptes</option>';
+    all.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.broker} — ${a.name}`;
+      expAcc.appendChild(opt);
+    });
+  }
+}
+
+function renderAccountsSelector(accounts) {
+  const container = document.getElementById('t-accounts-selector');
+  if (!container) return;
+  if (!accounts || !accounts.length) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-4);padding:4px">Aucun compte — ajoute un compte d\'abord</div>';
+    return;
+  }
+  container.innerHTML = accounts.map(a => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;border-radius:6px;transition:background .1s" onmouseenter="this.style.background='var(--bg-4)'" onmouseleave="this.style.background='transparent'">
+      <input type="checkbox" class="t-account-check" value="${a.id}" data-one-r="${a.one_r || 200}"
+        style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0"
+        onchange="onAccountCheckChange()">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:var(--text-0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.broker} — ${a.name}</div>
+        <div style="font-size:11px;color:var(--text-3)">1R = $<input type="number" class="t-account-one-r" data-id="${a.id}" value="${a.one_r || 200}" min="0" step="1"
+          style="width:70px;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--accent);font-family:var(--mono);font-size:11px;font-weight:700;outline:none;padding:1px 4px"
+          oninput="updatePnlPreview()"></div>
+      </div>
+    </label>
+  `).join('');
+}
+
+function onAccountCheckChange() {
+  // Mettre à jour t-account (hidden) avec le premier compte coché, pour compatibilité updatePnlPreview
+  const checked = document.querySelectorAll('.t-account-check:checked');
+  const first = checked[0];
+  const hiddenAccount = document.getElementById('t-account');
+  if (hiddenAccount) hiddenAccount.value = first ? first.value : '';
+  updatePnlPreview();
+}
+
+function getSelectedAccounts() {
+  // Retourne [{id, one_r}] pour tous les comptes cochés
+  const checked = document.querySelectorAll('.t-account-check:checked');
+  return Array.from(checked).map(cb => {
+    const oneRInput = document.querySelector(`.t-account-one-r[data-id="${cb.value}"]`);
+    return {
+      id: cb.value,
+      one_r: parseFloat(oneRInput?.value || cb.dataset.oneR || 200)
+    };
   });
 }
 
@@ -3545,8 +3606,8 @@ function openAddAccount() {
   document.getElementById('a-name').value = '';
   document.getElementById('a-capital').value = '50000';
   document.getElementById('a-one-r').value = '200';
-  document.getElementById('a-target').value = '6';
-  document.getElementById('a-ddmax').value = '4';
+  document.getElementById('a-target').value = '3000';
+  document.getElementById('a-ddmax').value = '2000';
   document.getElementById('a-dll').value = '0';
   document.getElementById('a-mindays').value = '0';
   document.getElementById('a-dd-amt').value = '2000';
@@ -3578,8 +3639,8 @@ async function editAccount(id, type) {
 
   if (type === 'challenge') {
     setAccountMode('challenge');
-    document.getElementById('a-target').value = a.target || 6;
-    document.getElementById('a-ddmax').value = a.ddmax || 4;
+    document.getElementById('a-target').value = a.target || 3000;
+    document.getElementById('a-ddmax').value = a.ddmax || 2000;
     document.getElementById('a-dll').value = a.dll || 0;
     document.getElementById('a-mindays').value = a.mindays || 0;
     document.getElementById('a-ddtype').value = a.ddtype || 'EOD';
@@ -3618,8 +3679,8 @@ async function saveAccount() {
       user_id: currentUser.id, broker, name,
       capital: parseFloat(document.getElementById('a-capital').value) || 50000,
       one_r: parseFloat(document.getElementById('a-one-r').value) || 200,
-      target: parseFloat(document.getElementById('a-target').value) || 6,
-      ddmax: parseFloat(document.getElementById('a-ddmax').value) || 4,
+      target: parseFloat(document.getElementById('a-target').value) || 3000,
+      ddmax: parseFloat(document.getElementById('a-ddmax').value) || 2000,
       dll: parseFloat(document.getElementById('a-dll').value) || 0,
       mindays: parseInt(document.getElementById('a-mindays').value) || 0,
       ddtype: document.getElementById('a-ddtype').value,
@@ -3726,8 +3787,8 @@ function renderAccounts() {
     const capital = parseFloat(a.capital || 50000);
 
     // Barres de progression
-    const targetAmt = isChallenge ? capital * parseFloat(a.target || 6) / 100 : parseFloat(a.payout || 0);
-    const ddMaxAmt = isChallenge ? capital * parseFloat(a.ddmax || 4) / 100 : parseFloat(a.dd_max_amt || 2000);
+    const targetAmt = isChallenge ? parseFloat(a.target || 3000) : parseFloat(a.payout || 0);
+    const ddMaxAmt = isChallenge ? parseFloat(a.ddmax || 2000) : parseFloat(a.dd_max_amt || 2000);
     const dllAmt = parseFloat(a.dll || 0);
     const payoutPct = targetAmt > 0 ? Math.min(100, totalPnl / targetAmt * 100) : 0;
     const ddPct = ddMaxAmt > 0 ? Math.min(100, Math.abs(Math.min(0, totalPnl)) / ddMaxAmt * 100) : 0;
@@ -3878,7 +3939,7 @@ async function promoteToFunded(challengeId) {
     name: challenge.name,
     capital: challenge.capital,
     one_r: challenge.one_r,
-    dd_max_amt: Math.round(parseFloat(challenge.capital || 50000) * parseFloat(challenge.ddmax || 4) / 100),
+    dd_max_amt: parseFloat(challenge.ddmax || 2000),
     dll: challenge.dll || 0,
     ddtype: challenge.ddtype || 'EOD',
     cons: challenge.cons || 'non',
@@ -4372,20 +4433,35 @@ function updatePnlPreview() {
   const rrRaw = rrInput?.value ?? '';
   const rr = parseFloat(rrRaw || 0);
   const oneRManual = parseFloat(document.getElementById('t-one-r-manual')?.value || 0);
-  const accountId = document.getElementById('t-account')?.value;
-  const allAcc = [...allAccounts.challenges, ...allAccounts.funded];
-  const acc = allAcc.find(a => a.id === accountId);
-  const oneR = oneRManual || (acc ? parseFloat(acc.one_r || 200) : 200);
-  // PnL = RR (signé : positif=gain, négatif=perte) × valeur du risque (toujours positive)
-  const pnl = rr * oneR;
+
+  // Récupérer le(s) compte(s) sélectionné(s)
+  const selectedAccs = getSelectedAccounts();
   const el = document.getElementById('trade-pnl-preview');
   if (!el) return;
-  if (rrRaw.trim() !== '' && !isNaN(rr)) {
+
+  if (rrRaw.trim() === '' || isNaN(rr)) {
+    el.textContent = 'PnL: —';
+    el.style.color = 'var(--text-3)';
+    return;
+  }
+
+  if (selectedAccs.length === 0) {
+    // Pas de compte sélectionné — utilise l'override ou 200 par défaut
+    const oneR = oneRManual || 200;
+    const pnl = rr * oneR;
+    el.textContent = (pnl >= 0 ? '+' : '') + '$' + Math.round(pnl).toLocaleString();
+    el.style.color = pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--yellow)';
+  } else if (selectedAccs.length === 1) {
+    // Un seul compte
+    const oneR = oneRManual || selectedAccs[0].one_r;
+    const pnl = rr * oneR;
     el.textContent = (pnl >= 0 ? '+' : '') + '$' + Math.round(pnl).toLocaleString();
     el.style.color = pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--yellow)';
   } else {
-    el.textContent = 'PnL: —';
-    el.style.color = 'var(--text-3)';
+    // Plusieurs comptes — affiche le total
+    const totalPnl = selectedAccs.reduce((sum, a) => sum + rr * (oneRManual || a.one_r), 0);
+    el.textContent = `${selectedAccs.length} comptes · Total ${totalPnl >= 0 ? '+' : ''}$${Math.round(totalPnl).toLocaleString()}`;
+    el.style.color = totalPnl > 0 ? 'var(--green)' : totalPnl < 0 ? 'var(--red)' : 'var(--yellow)';
   }
 }
 
@@ -4401,11 +4477,14 @@ function openAddTrade() {
   document.getElementById('screenshot-preview').style.display = 'none';
   document.getElementById('t-quality').value = '5';
   document.getElementById('t-quality-val').textContent = '5';
+  // Décocher tous les comptes
+  document.querySelectorAll('.t-account-check').forEach(cb => cb.checked = false);
   setEmotions([]);
   setTradeError(false);
   selectDirection('LONG');
   selectResult('WIN');
   selectChecklist(null);
+  updatePnlPreview();
   openModal('modal-trade');
 }
 
@@ -4432,6 +4511,11 @@ async function editTrade(id) {
   } else {
     document.getElementById('screenshot-preview').style.display = 'none';
   }
+  // Décocher tous les comptes puis cocher celui du trade
+  document.querySelectorAll('.t-account-check').forEach(cb => {
+    cb.checked = cb.value === trade.challenge_name;
+  });
+  onAccountCheckChange();
   selectDirection(trade.direction || 'LONG');
   selectResult(trade.result || 'WIN');
   // Le RR réel est fixé APRÈS selectResult, qui sinon écraserait cette valeur
@@ -4449,28 +4533,22 @@ async function saveTrade() {
   const result = document.getElementById('t-result').value;
   const rrRaw = document.getElementById('t-rr').value;
   const rr = parseFloat(rrRaw || 0);
-  const accountId = document.getElementById('t-account').value;
   const screenshotUrl = document.getElementById('t-screenshot').value.trim();
 
   if (!date || !direction || !result || rrRaw.trim() === '' || isNaN(rr)) return toast('Date, direction, résultat et RR sont requis', 'error');
 
   const oneRManual = parseFloat(document.getElementById('t-one-r-manual').value || 0);
-  const allAcc = [...allAccounts.challenges, ...allAccounts.funded];
-  const selectedAccount = allAcc.find(a => a.id === accountId);
-  const oneR = oneRManual || (selectedAccount ? parseFloat(selectedAccount.one_r || 200) : 200);
   const chklRaw = document.getElementById('t-checklist').value;
   const checklistOk = chklRaw === '' ? null : chklRaw === 'true';
 
-  const data = {
+  const baseData = {
     user_id: currentUser.id,
     date,
     entry_time: document.getElementById('t-time').value || null,
     direction,
     result,
     rr,
-    one_r: oneR,
     scenario: document.getElementById('t-scenario').value || null,
-    challenge_name: accountId || null,
     notes: document.getElementById('t-notes').value || null,
     screenshot_url: screenshotUrl || null,
     checklist_ok: checklistOk,
@@ -4482,16 +4560,43 @@ async function saveTrade() {
 
   document.getElementById('save-trade-btn').disabled = true;
   let error;
+
   if (editingTradeId) {
-    ({ error } = await sb.from('trades').update(data).eq('id', editingTradeId));
+    // Édition : met à jour uniquement ce trade, avec le premier compte coché
+    const selectedAccs = getSelectedAccounts();
+    const accountId = selectedAccs[0]?.id || null;
+    const oneR = oneRManual || selectedAccs[0]?.one_r || 200;
+    ({ error } = await sb.from('trades').update({ ...baseData, one_r: oneR, challenge_name: accountId }).eq('id', editingTradeId));
+    if (!error) toast('Trade modifié ✓', 'success');
   } else {
-    ({ error } = await sb.from('trades').insert(data));
+    // Ajout : créer un trade par compte sélectionné
+    const selectedAccs = getSelectedAccounts();
+    if (selectedAccs.length === 0) {
+      // Aucun compte sélectionné → un seul trade sans compte
+      const oneR = oneRManual || 200;
+      ({ error } = await sb.from('trades').insert({ ...baseData, one_r: oneR, challenge_name: null }));
+      if (!error) toast('Trade enregistré ✓', 'success');
+    } else if (selectedAccs.length === 1) {
+      // Un seul compte
+      const oneR = oneRManual || selectedAccs[0].one_r;
+      ({ error } = await sb.from('trades').insert({ ...baseData, one_r: oneR, challenge_name: selectedAccs[0].id }));
+      if (!error) toast('Trade enregistré ✓', 'success');
+    } else {
+      // Plusieurs comptes → N inserts
+      const inserts = selectedAccs.map(a => ({
+        ...baseData,
+        one_r: oneRManual || a.one_r,
+        challenge_name: a.id
+      }));
+      ({ error } = await sb.from('trades').insert(inserts));
+      if (!error) toast(`${selectedAccs.length} trades enregistrés (un par compte) ✓`, 'success');
+    }
   }
+
   document.getElementById('save-trade-btn').disabled = false;
 
   if (error) return toast('Erreur: ' + error.message, 'error');
   closeModal('modal-trade');
-  toast(editingTradeId ? 'Trade modifié ✓' : 'Trade enregistré ✓', 'success');
   await loadDashboard();
   if (currentPage === 'journal') loadJournal();
   await checkBadges();
