@@ -7,7 +7,7 @@ import WebSocket from 'ws';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY; // On réutilise le même secret GitHub, juste on y met la clé Groq
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const PERIOD = process.env.PERIOD || 'week'; // week | month | year
 
@@ -70,7 +70,7 @@ function calcStats(trades) {
 }
 
 // ============================================
-// GÉNÉRATION DU RAPPORT VIA GEMINI
+// GÉNÉRATION DU RAPPORT VIA GROQ (gratuit, sans carte bancaire)
 // ============================================
 async function generateReport(user, trades, period) {
   const stats = calcStats(trades);
@@ -162,20 +162,25 @@ Génère un rapport d'analyse de trading COMPLET, PROFESSIONNEL et PERSONNALISÉ
 Sois direct, honnête et utilise des chiffres précis. Tu parles directement à ${name}.`;
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    'https://api.groq.com/openai/v1/chat/completions',
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 4000, temperature: 0.7 }
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 4000,
+        temperature: 0.7
       })
     }
   );
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message || 'Erreur Gemini');
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!res.ok) throw new Error(data?.error?.message || 'Erreur Groq');
+  return data.choices?.[0]?.message?.content || '';
 }
 
 // ============================================
