@@ -2,15 +2,8 @@
   "name": "tradingzone-reports",
   "version": "1.0.0",
   "type": "module",
-  "description": "Scripts d'envoi automatique des rapports TradingZone",
-  "scripts": {
-    "report:week": "PERIOD=week node scripts/generate-report.js",
-    "report:month": "PERIOD=month node scripts/generate-report.js",
-    "report:year": "PERIOD=year node scripts/generate-report.js"
-  },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "node-fetch": "^3.3.2",
-    "ws": "^8.18.0"
+    "node-fetch": "^3.3.2"
   }
 }
