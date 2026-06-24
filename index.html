@@ -476,6 +476,7 @@ html, body {
 }
 
 .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.ai-period-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
 .page { display: none; padding: 24px; flex: 1; }
 .page.active { display: block; }
@@ -2227,6 +2228,55 @@ input[type="range"]::-webkit-slider-thumb {
             <input type="text" id="new-tag-name" placeholder="Nom du setup (ex: CVD Divergence)" style="flex:1;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:9px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
             <input type="color" id="new-tag-color" value="#00c896" style="width:38px;height:38px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg-3);padding:2px">
             <button class="btn-sm" onclick="addCustomTag()">Ajouter</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">🧠 Analyse IA de mes trades</div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:2px">Rapport personnalisé généré par intelligence artificielle</div>
+            </div>
+          </div>
+
+          <!-- Clé API Gemini -->
+          <div style="margin-bottom:16px;padding:12px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px">🔑 Clé API Gemini <span style="font-weight:400;color:var(--text-3)">(Google AI Studio — gratuite)</span></div>
+            <div style="display:flex;gap:6px">
+              <input type="password" id="gemini-api-key" placeholder="Colle ta clé API ici (AIza...)" style="flex:1;background:var(--bg-2);border:1px solid var(--border);color:var(--text-0);padding:8px 12px;border-radius:8px;font-size:13px;font-family:var(--mono);outline:none">
+              <button class="btn-sm" onclick="saveGeminiKey()" style="flex-shrink:0">Enregistrer</button>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:6px">Obtiens ta clé gratuite sur <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com</a> · 1500 rapports/jour gratuits · Ta clé reste sur ton appareil uniquement</div>
+            <div id="gemini-key-status" style="font-size:11px;margin-top:4px;display:none"></div>
+          </div>
+
+          <!-- Sélecteur de période -->
+          <div style="margin-bottom:16px">
+            <div class="form-label" style="margin-bottom:8px">Période à analyser</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn-outline ai-period-btn active" data-period="today" onclick="selectAiPeriod(this,'today')">Aujourd'hui</button>
+              <button class="btn-outline ai-period-btn" data-period="week" onclick="selectAiPeriod(this,'week')">Cette semaine</button>
+              <button class="btn-outline ai-period-btn" data-period="month" onclick="selectAiPeriod(this,'month')">Ce mois</button>
+              <button class="btn-outline ai-period-btn" data-period="3month" onclick="selectAiPeriod(this,'3month')">3 derniers mois</button>
+              <button class="btn-outline ai-period-btn" data-period="year" onclick="selectAiPeriod(this,'year')">Cette année</button>
+              <button class="btn-outline ai-period-btn" data-period="all" onclick="selectAiPeriod(this,'all')">Tout</button>
+            </div>
+          </div>
+
+          <!-- Bouton générer -->
+          <button class="btn-sm" id="ai-report-btn" onclick="generateAiReport()" style="width:100%;justify-content:center;padding:12px;font-size:14px">
+            ✨ Générer mon rapport de trading
+          </button>
+
+          <!-- Zone de résultat -->
+          <div id="ai-report-output" style="display:none;margin-top:16px">
+            <!-- Header résultat -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div style="font-size:13px;font-weight:700;color:var(--text-0)" id="ai-report-title"></div>
+              <button class="btn-outline" style="font-size:11px" onclick="downloadAiReportPdf()">📄 Télécharger PDF</button>
+            </div>
+            <!-- Contenu du rapport -->
+            <div id="ai-report-content" style="background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:20px;font-size:13px;line-height:1.7;color:var(--text-1);white-space:pre-wrap;max-height:600px;overflow-y:auto"></div>
           </div>
         </div>
 
@@ -6736,6 +6786,288 @@ function showDayTrades(userId, date) {
 // ============================================
 // SETTINGS
 // ============================================
+// ============================================
+// ANALYSE IA DE TRADING
+// ============================================
+let aiReportPeriod = 'today';
+
+function selectAiPeriod(btn, period) {
+  document.querySelectorAll('.ai-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  aiReportPeriod = period;
+  // Reset le rapport précédent si la période change
+  document.getElementById('ai-report-output').style.display = 'none';
+}
+
+async function generateAiReport() {
+  const btn = document.getElementById('ai-report-btn');
+  const output = document.getElementById('ai-report-output');
+  const content = document.getElementById('ai-report-content');
+  const title = document.getElementById('ai-report-title');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Génération en cours...';
+  output.style.display = 'none';
+
+  // Calcul des dates selon la période choisie
+  const now = new Date();
+  let fromDate = '';
+  const periodLabels = {
+    today: "Aujourd'hui",
+    week: 'Cette semaine',
+    month: 'Ce mois',
+    '3month': 'Les 3 derniers mois',
+    year: 'Cette année',
+    all: 'Tout historique'
+  };
+
+  if (aiReportPeriod === 'today') {
+    fromDate = now.toISOString().split('T')[0];
+  } else if (aiReportPeriod === 'week') {
+    const d = new Date(); d.setDate(d.getDate() - 7);
+    fromDate = d.toISOString().split('T')[0];
+  } else if (aiReportPeriod === 'month') {
+    const d = new Date(); d.setDate(d.getDate() - 30);
+    fromDate = d.toISOString().split('T')[0];
+  } else if (aiReportPeriod === '3month') {
+    const d = new Date(); d.setMonth(d.getMonth() - 3);
+    fromDate = d.toISOString().split('T')[0];
+  } else if (aiReportPeriod === 'year') {
+    const d = new Date(); d.setFullYear(d.getFullYear() - 1);
+    fromDate = d.toISOString().split('T')[0];
+  }
+
+  // Récupérer les trades
+  let q = sb.from('trades').select('*').eq('user_id', currentUser.id).order('date').order('entry_time');
+  if (fromDate) q = q.gte('date', fromDate);
+  const { data: trades, error } = await q;
+
+  if (error || !trades) {
+    btn.disabled = false;
+    btn.textContent = '✨ Générer mon rapport de trading';
+    return toast('Erreur chargement trades: ' + (error?.message || ''), 'error');
+  }
+
+  if (!trades.length) {
+    btn.disabled = false;
+    btn.textContent = '✨ Générer mon rapport de trading';
+    return toast('Aucun trade sur cette période', 'error');
+  }
+
+  // Calculer les statistiques
+  const stats = calcStats(trades);
+  const negEmotions = ['FOMO', 'Impatient', 'Stressé', 'Revanche'];
+
+  // Agrégats émotions
+  const emotionCounts = {};
+  trades.forEach(t => {
+    let arr = [];
+    try { arr = t.emotions ? (Array.isArray(t.emotions) ? t.emotions : JSON.parse(t.emotions)) : []; } catch {}
+    arr.forEach(tag => { emotionCounts[tag] = (emotionCounts[tag] || 0) + 1; });
+  });
+
+  // Agrégats par heure
+  const byHour = {};
+  trades.forEach(t => {
+    if (!t.entry_time) return;
+    const h = parseInt(t.entry_time.split(':')[0]);
+    if (!byHour[h]) byHour[h] = { wins: 0, losses: 0, r: 0 };
+    byHour[h].r += parseFloat(t.rr || 0);
+    if (t.result === 'WIN') byHour[h].wins++;
+    else if (t.result === 'LOSS') byHour[h].losses++;
+  });
+
+  // Agrégats par setup
+  const bySetup = {};
+  trades.forEach(t => {
+    const s = t.scenario || 'Sans setup';
+    if (!bySetup[s]) bySetup[s] = { wins: 0, total: 0, r: 0 };
+    bySetup[s].total++;
+    bySetup[s].r += parseFloat(t.rr || 0);
+    if (t.result === 'WIN') bySetup[s].wins++;
+  });
+
+  // Trades erreurs
+  const errorTrades = trades.filter(t => t.is_error);
+
+  // Séries de pertes consécutives
+  const sortedTrades = [...trades].sort((a, b) => (a.date + (a.entry_time||'')).localeCompare(b.date + (b.entry_time||'')));
+  let maxLossStreak = 0, currentLossStreak = 0;
+  sortedTrades.forEach(t => {
+    if (t.result === 'LOSS') { currentLossStreak++; maxLossStreak = Math.max(maxLossStreak, currentLossStreak); }
+    else currentLossStreak = 0;
+  });
+
+  // Construire le prompt pour Claude
+  const profileName = currentProfile?.display_name || currentProfile?.username || 'Trader';
+  const strategy = currentProfile?.strategy || 'Non renseignée';
+
+  const prompt = `Tu es un coach de trading professionnel expert. Voici les données complètes d'un trader sur la période "${periodLabels[aiReportPeriod]}" (${fromDate || 'depuis le début'} → ${now.toISOString().split('T')[0]}).
+
+# PROFIL TRADER
+- Nom : ${profileName}
+- Stratégie : ${strategy}
+- Instrument principal : MNQ/NQ (Futures)
+
+# STATISTIQUES CLÉS
+- Total trades : ${stats.total} (${stats.wins}W · ${stats.losses}L · ${stats.bes}BE)
+- Win Rate : ${stats.wr}%
+- Profit Factor : ${stats.pf}
+- RR Moyen : ${stats.avgRr}
+- PnL Total : $${stats.pnl}
+- Max Drawdown : $${stats.maxDd}
+- Expectancy : $${stats.exp}
+- Jours verts / rouges : ${stats.greenDays} / ${stats.redDays}
+- Sharpe Ratio : ${stats.sharpe}
+
+# PERFORMANCE PAR SETUP
+${Object.entries(bySetup).map(([s, d]) => `- ${s} : ${d.total} trades, ${d.total > 0 ? Math.round(d.wins/d.total*100) : 0}% WR, ${d.r >= 0 ? '+' : ''}${d.r.toFixed(1)}R`).join('\n')}
+
+# PERFORMANCE PAR HEURE (heure de Paris)
+${Object.entries(byHour).sort((a,b) => parseInt(a[0])-parseInt(b[0])).map(([h, d]) => `- ${h}h : ${d.wins}W/${d.losses}L, ${d.r >= 0 ? '+' : ''}${d.r.toFixed(1)}R`).join('\n')}
+
+# ÉMOTIONS RESSENTIES
+${Object.entries(emotionCounts).sort((a,b) => b[1]-a[1]).map(([tag, count]) => `- ${tag} : ${count} fois (${negEmotions.includes(tag) ? '⚠️ négatif' : '✅ positif'})`).join('\n') || '- Aucune émotion renseignée'}
+
+# ERREURS DE TRADING
+- Trades marqués comme erreur : ${errorTrades.length} / ${stats.total}
+${errorTrades.slice(0,5).map(t => `  · ${t.date} ${t.entry_time || ''} ${t.direction} ${t.result} ${t.rr}R — ${t.notes || 'pas de note'}`).join('\n')}
+
+# SÉRIE MAX PERTES CONSÉCUTIVES
+${maxLossStreak} pertes d'affilée
+
+---
+
+Génère un rapport d'analyse de trading COMPLET, PROFESSIONNEL et PERSONNALISÉ en français. Structure ton rapport avec ces sections :
+
+1. 📊 RÉSUMÉ EXÉCUTIF (3-4 phrases percutantes sur la semaine)
+2. 💪 POINTS FORTS (ce qui marche bien, avec chiffres précis)
+3. ⚠️ POINTS D'AMÉLIORATION (problèmes identifiés, avec exemples précis tirés des données)
+4. 🕐 ANALYSE TEMPORELLE (meilleures/pires heures de trading avec recommandations)
+5. 🎯 ANALYSE PAR SETUP (quel setup performer, lequel éviter)
+6. 🧠 ANALYSE PSYCHOLOGIQUE (émotions et leur impact sur la performance)
+7. 📈 RECOMMANDATIONS CONCRÈTES (3-5 actions précises à mettre en place dès la semaine prochaine)
+8. 🎯 OBJECTIF POUR LA PROCHAINE PÉRIODE
+
+Sois direct, honnête, et utilise des données chiffrées précises. Ne sois pas complaisant : si quelque chose ne va pas, dis-le clairement avec bienveillance.`;
+
+  try {
+    const geminiKey = storage.getItem('tz-gemini-key');
+    if (!geminiKey) {
+      btn.disabled = false;
+      btn.textContent = '✨ Générer mon rapport de trading';
+      return toast('Entre ta clé API Gemini dans les paramètres d\'abord', 'error');
+    }
+
+    // API Gemini Flash (gratuit : 1500 req/jour, 1M tokens/min)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 4000, temperature: 0.7 }
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errMsg = data?.error?.message || 'Erreur API Gemini';
+      btn.disabled = false;
+      btn.textContent = '✨ Générer mon rapport de trading';
+      return toast('Erreur Gemini: ' + errMsg, 'error');
+    }
+
+    const reportText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Erreur lors de la génération';
+
+    // Afficher le rapport
+    const todayStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    title.textContent = `Rapport IA — ${periodLabels[aiReportPeriod]} — ${todayStr}`;
+    content.textContent = reportText;
+    output.style.display = 'block';
+    output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Sauvegarder pour le PDF
+    window._lastAiReport = { text: reportText, title: title.textContent, trades, stats };
+
+    toast('Rapport généré ✓', 'success');
+  } catch (err) {
+    toast('Erreur réseau: ' + err.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✨ Générer mon rapport de trading';
+}
+
+async function downloadAiReportPdf() {
+  const report = window._lastAiReport;
+  if (!report) return toast('Génère d\'abord un rapport', 'error');
+
+  // Créer un HTML propre pour l'impression/PDF
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>${report.title}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Georgia', serif; font-size: 13px; line-height: 1.7; color: #1a1a2e; background: #fff; padding: 40px; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 22px; color: #00c896; margin-bottom: 6px; }
+  .meta { font-size: 11px; color: #888; margin-bottom: 30px; border-bottom: 2px solid #00c896; padding-bottom: 12px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 30px; }
+  .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 20px; font-weight: 700; font-family: monospace; color: #1a1a2e; margin-top: 4px; }
+  .stat-value.green { color: #00c896; }
+  .stat-value.red { color: #e8354f; }
+  .report-body { white-space: pre-wrap; font-size: 13px; line-height: 1.8; }
+  @media print { body { padding: 20px; } }
+</style>
+</head>
+<body>
+  <h1>🧠 Rapport IA TradingZone</h1>
+  <div class="meta">${report.title} · ${report.trades.length} trades analysés</div>
+  <div class="stats-grid">
+    <div class="stat-box"><div class="stat-label">Win Rate</div><div class="stat-value ${parseFloat(report.stats.wr)>=50?'green':'red'}">${report.stats.wr}%</div></div>
+    <div class="stat-box"><div class="stat-label">Profit Factor</div><div class="stat-value">${report.stats.pf}</div></div>
+    <div class="stat-box"><div class="stat-label">PnL Total</div><div class="stat-value ${parseFloat(report.stats.pnl)>=0?'green':'red'}">${parseFloat(report.stats.pnl)>=0?'+':''}$${parseInt(report.stats.pnl)}</div></div>
+    <div class="stat-box"><div class="stat-label">Expectancy</div><div class="stat-value ${parseFloat(report.stats.exp)>=0?'green':'red'}">${parseFloat(report.stats.exp)>=0?'+':''}$${parseFloat(report.stats.exp).toFixed(0)}</div></div>
+  </div>
+  <div class="report-body">${report.text}</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (win) {
+    win.onload = () => { win.print(); setTimeout(() => URL.revokeObjectURL(url), 2000); };
+  } else {
+    // Fallback direct download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rapport-trading-${new Date().toISOString().split('T')[0]}.html`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
+function saveGeminiKey() {
+  const key = document.getElementById('gemini-api-key').value.trim();
+  if (!key) return toast('Entre une clé API valide', 'error');
+  if (!key.startsWith('AIza')) return toast('La clé Gemini doit commencer par "AIza..."', 'error');
+  storage.setItem('tz-gemini-key', key);
+  document.getElementById('gemini-api-key').value = '';
+  const status = document.getElementById('gemini-key-status');
+  status.style.display = 'block';
+  status.style.color = 'var(--green)';
+  status.textContent = '✓ Clé API Gemini enregistrée sur cet appareil';
+  toast('Clé API Gemini enregistrée ✓', 'success');
+}
+
 async function loadSettings() {
   // Custom tags/setups
   renderCustomTags();
@@ -6745,6 +7077,15 @@ async function loadSettings() {
 
   // Quick RR mode
   document.getElementById('s-quick-rr').checked = storage.getItem('tz-quick-rr') === 'true';
+
+  // Clé Gemini : afficher le statut si déjà enregistrée
+  const existingKey = storage.getItem('tz-gemini-key');
+  const status = document.getElementById('gemini-key-status');
+  if (existingKey && status) {
+    status.style.display = 'block';
+    status.style.color = 'var(--green)';
+    status.textContent = '✓ Clé API Gemini enregistrée — prête à utiliser';
+  }
 }
 
 function toggleQuickRrMode() {
