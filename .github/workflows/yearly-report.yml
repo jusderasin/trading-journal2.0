@@ -2,7 +2,6 @@ name: 🏆 Rapport Annuel TradingZone
 
 on:
   schedule:
-    # Le 1er janvier à 9h00 heure de Paris (UTC+1 en hiver = 8h UTC)
     - cron: '0 8 1 1 *'
   workflow_dispatch:
 
@@ -16,10 +15,10 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
 
       - name: 📦 Install dependencies
-        run: npm install @supabase/supabase-js node-fetch
+        run: cd scripts && npm install
 
       - name: 🏆 Générer et envoyer les rapports annuels
         env:
