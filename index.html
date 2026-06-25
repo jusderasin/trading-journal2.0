@@ -2235,7 +2235,7 @@ input[type="range"]::-webkit-slider-thumb {
           <div class="card-header">
             <div>
               <div class="card-title">🧠 Analyse IA de mes trades</div>
-              <div style="font-size:12px;color:var(--text-3);margin-top:2px">Rapport personnalisé généré par intelligence artificielle · <span style="color:var(--accent)">Gratuit · Propulsé par Groq</span></div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:2px">Rapport personnalisé généré par intelligence artificielle</div>
             </div>
           </div>
 
@@ -2273,13 +2273,17 @@ input[type="range"]::-webkit-slider-thumb {
             ✨ Générer mon rapport de trading
           </button>
 
-          <!-- Zone de résultat -->
+          <!-- Zone de résultat — le rapport s'ouvre dans un nouvel onglet -->
           <div id="ai-report-output" style="display:none;margin-top:16px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <div style="font-size:13px;font-weight:700;color:var(--text-0)" id="ai-report-title"></div>
-              <button class="btn-outline" style="font-size:11px" onclick="downloadAiReportPdf()">📄 Télécharger PDF</button>
+            <div style="background:var(--bg-3);border:1px solid var(--accent);border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-0)">✅ Rapport généré avec succès</div>
+                <div id="ai-report-title" style="font-size:11px;color:var(--text-3);margin-top:3px"></div>
+              </div>
+              <div style="display:flex;gap:8px;flex-shrink:0">
+                <button class="btn-sm" onclick="openAiReport()">📊 Ouvrir le rapport</button>
+              </div>
             </div>
-            <div id="ai-report-content" style="background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:20px;font-size:13px;line-height:1.7;color:var(--text-1);max-height:700px;overflow-y:auto"></div>
           </div>
         </div>
 
@@ -7120,51 +7124,55 @@ Termine par une phrase de motivation personnalisée pour ${profileName}.`;
 
     // Parser le Markdown en HTML propre
     function markdownToHtml(text) {
-      return text
-        .split('\n')
-        .map(line => {
-          // Titres ### avec emoji
-          if (line.match(/^###\s+/)) {
-            const content = line.replace(/^###\s+/, '');
-            return `<div style="font-size:14px;font-weight:700;color:var(--text-0);margin:20px 0 8px;padding:10px 14px;background:var(--bg-2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0">${content}</div>`;
-          }
-          // Titres ##
-          if (line.match(/^##\s+/)) {
-            return `<div style="font-size:15px;font-weight:800;color:var(--accent);margin:16px 0 8px">${line.replace(/^##\s+/, '')}</div>`;
-          }
-          // Titres #
-          if (line.match(/^#\s+/)) {
-            return `<div style="font-size:16px;font-weight:800;color:var(--text-0);margin:16px 0 10px;border-bottom:1px solid var(--border);padding-bottom:8px">${line.replace(/^#\s+/, '')}</div>`;
-          }
-          // Listes numérotées
-          if (line.match(/^\d+\.\s+/)) {
-            const content = line.replace(/^\d+\.\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-0)">$1</strong>');
-            const num = line.match(/^(\d+)\./)?.[1];
-            return `<div style="display:flex;gap:10px;margin:5px 0;padding:6px 10px;background:var(--bg-2);border-radius:6px"><span style="font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:700;flex-shrink:0;padding-top:1px">${num}.</span><span style="color:var(--text-1)">${content}</span></div>`;
-          }
-          // Listes à puces
-          if (line.match(/^[-•*]\s+/)) {
-            const content = line.replace(/^[-•*]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-0)">$1</strong>');
-            return `<div style="display:flex;gap:8px;margin:4px 0;padding:4px 0"><span style="color:var(--accent);flex-shrink:0">▸</span><span style="color:var(--text-1)">${content}</span></div>`;
-          }
-          // Ligne vide
-          if (line.trim() === '') return '<div style="height:6px"></div>';
-          // Texte normal avec bold
-          const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-0)">$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
-          return `<div style="color:var(--text-2);line-height:1.7;margin:3px 0">${formatted}</div>`;
-        })
-        .join('');
+      return text.split('\n').map(line => {
+        if (line.match(/^###\s+/)) return `<div class="rpt-section-title">${line.replace(/^###\s+/,'')}</div>`;
+        if (line.match(/^##\s+/)) return `<div class="rpt-h2">${line.replace(/^##\s+/,'')}</div>`;
+        if (line.match(/^#\s+/)) return `<div class="rpt-h1">${line.replace(/^#\s+/,'')}</div>`;
+        if (line.match(/^\d+\.\s+/)) {
+          const n = line.match(/^(\d+)\./)?.[1];
+          const c = line.replace(/^\d+\.\s+/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+          return `<div class="rpt-numbered"><span class="rpt-num">${n}</span><span>${c}</span></div>`;
+        }
+        if (line.match(/^[-•*]\s+/)) {
+          const c = line.replace(/^[-•*]\s+/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+          return `<div class="rpt-bullet"><span>▸</span><span>${c}</span></div>`;
+        }
+        if (line.trim()==='') return '<div class="rpt-spacer"></div>';
+        const formatted = line.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>');
+        return `<div class="rpt-body">${formatted}</div>`;
+      }).join('');
     }
 
-    // Afficher le rapport
-    const todayStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    const periodLabel = aiReportPeriod === 'custom'
-      ? `Du ${fromDate} au ${toDate}`
-      : periodLabels[aiReportPeriod];
-    title.textContent = `Rapport IA — ${periodLabel} — ${todayStr}`;
-    content.innerHTML = markdownToHtml(reportText);
+    // Stocker toutes les données pour la page de rapport
+    const todayStr = now.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+    const periodLabel = aiReportPeriod==='custom' ? `Du ${fromDate} au ${toDate}` : periodLabels[aiReportPeriod];
+    const titleText = `Rapport IA — ${periodLabel} — ${todayStr}`;
+
+    window._lastAiReport = {
+      text: reportText,
+      html: markdownToHtml(reportText),
+      title: titleText,
+      period: periodLabel,
+      date: todayStr,
+      trades, stats,
+      byHour, bySetup,
+      equityCurve: sortedTrades.map(t => { let c=0; return sortedTrades.slice(0,sortedTrades.indexOf(t)+1).reduce((s,x)=>s+parseFloat(x.rr||0),0).toFixed(2); }),
+      equityLabels: sortedTrades.map((t,i) => `T${i+1}`),
+      profileName: currentProfile?.display_name || currentProfile?.username || 'Trader',
+      maxLossStreak, maxWinStreak,
+      top5wins, top5losses,
+      longs, shorts, longR, shortR, longWr, shortWr,
+      bestDay, worstDay,
+      errorTrades,
+      checklistOkWr, checklistNokWr, checklistOk, checklistNok,
+      avgQuality, highQualityTrades, lowQualityTrades, highQWr,
+      emotionCounts, negEmotions,
+      peakR, finalR
+    };
+
+    document.getElementById('ai-report-title').textContent = titleText;
     output.style.display = 'block';
-    output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    output.scrollIntoView({ behavior:'smooth', block:'start' });
 
     // Sauvegarder pour le PDF
     window._lastAiReport = { text: reportText, title: title.textContent, trades, stats };
@@ -7179,57 +7187,285 @@ Termine par une phrase de motivation personnalisée pour ${profileName}.`;
 }
 
 async function downloadAiReportPdf() {
-  const report = window._lastAiReport;
-  if (!report) return toast('Génère d\'abord un rapport', 'error');
+  openAiReport();
+}
 
-  // Créer un HTML propre pour l'impression/PDF
+function openAiReport() {
+  const r = window._lastAiReport;
+  if (!r) return toast("Génère d'abord un rapport", 'error');
+
+  const s = r.stats;
+  const pnl = parseInt(s.pnl||0);
+  const wr = parseFloat(s.wr||0);
+  const pf = parseFloat(s.pf||0);
+
+  // Equity curve
+  let cumR2 = 0;
+  const eqData = (r.trades||[]).map(t => { cumR2 += parseFloat(t.rr||0); return +cumR2.toFixed(2); });
+  const eqLabels = (r.trades||[]).map((_,i)=>'T'+(i+1));
+
+  // Setup rows
+  const setupRows = Object.entries(r.bySetup||{}).sort((a,b)=>b[1].r-a[1].r).map(([name,d])=>{
+    const wr2=d.total>0?Math.round(d.wins/d.total*100):0;
+    const rMoy=d.total>0?(d.r/d.total).toFixed(2):0;
+    const verdict=d.r>0&&wr2>=40?'🟢 GARDER':d.r<0||wr2<20?'🔴 ÉLIMINER':'🟡 AMÉLIORER';
+    return '<tr><td>'+name+'</td><td class="mono">'+d.total+'</td><td class="'+(wr2>=50?'g':'re')+'">'+wr2+'%</td><td class="mono">'+d.wins+'W/'+d.losses+'L</td><td class="mono">'+rMoy+'R</td><td class="'+(d.r>=0?'g':'re')+'">'+(d.r>=0?'+':'')+d.r.toFixed(1)+'R</td><td class="'+(parseInt(d.pnl||0)>=0?'g':'re')+'">'+(parseInt(d.pnl||0)>=0?'+':'')+' $'+Math.abs(parseInt(d.pnl||0))+'</td><td>'+verdict+'</td></tr>';
+  }).join('');
+
+  // Hour rows
+  const hourRows = Object.entries(r.byHour||{}).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).map(([h,d])=>{
+    const wr2=d.count>0?Math.round(d.wins/d.count*100):0;
+    return '<tr><td class="mono">'+h+'h00</td><td class="mono">'+d.count+'</td><td class="'+(wr2>=50?'g':'re')+'">'+wr2+'%</td><td class="mono">'+d.wins+'W/'+d.losses+'L</td><td class="'+(d.r>=0?'g':'re')+'">'+(d.r>=0?'+':'')+d.r.toFixed(1)+'R</td><td class="'+(parseInt(d.pnl||0)>=0?'g':'re')+'">'+(parseInt(d.pnl||0)>=0?'+':'')+' $'+Math.abs(parseInt(d.pnl||0))+'</td></tr>';
+  }).join('');
+
+  // Emotion bars
+  const emotionBars = Object.entries(r.emotionCounts||{}).sort((a,b)=>b[1]-a[1]).map(([tag,count])=>{
+    const isNeg=(r.negEmotions||[]).includes(tag);
+    const pct=r.trades.length>0?Math.round(count/r.trades.length*100):0;
+    const col=isNeg?'#e8354f':'#00c896';
+    return '<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:'+col+'">'+(isNeg?'⚠️':'✅')+' '+tag+'</span><span class="mono">'+pct+'% ('+count+')</span></div><div style="height:5px;background:#0a1628;border-radius:3px"><div style="height:100%;width:'+Math.min(pct*2,100)+'%;background:'+col+';border-radius:3px"></div></div></div>';
+  }).join('') || '<div style="color:#6b8cad;font-size:12px">Aucune émotion</div>';
+
+  // Top5 trades helper
+  function tradeRow(t, isWin) {
+    const rr=parseFloat(t.rr||0);
+    const pm=Math.round(rr*parseFloat(t.one_r||200));
+    const col=isWin?'#00c896':'#e8354f';
+    return '<div style="display:grid;grid-template-columns:80px 55px 55px 70px 60px 1fr;gap:6px;padding:7px 10px;border-bottom:1px solid #111d2e;font-size:11px;align-items:center"><span class="mono" style="color:#6b8cad">'+t.date+'</span><span style="background:'+(isWin?'#003d29':'#3d0010')+';color:'+col+';padding:2px 5px;border-radius:4px">'+t.direction+'</span><span class="mono" style="color:'+col+'">'+(rr>=0?'+':'')+rr+'R</span><span class="mono" style="color:'+col+'">'+(pm>=0?'+':'-')+'$'+Math.abs(pm)+'</span><span style="color:#6b8cad">'+(t.entry_time||'—')+'</span><span style="color:#6b8cad;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(t.scenario||'—')+'</span></div>';
+  }
+
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>${report.title}</title>
+<title>TradingZone — ${r.title}</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Georgia', serif; font-size: 13px; line-height: 1.7; color: #1a1a2e; background: #fff; padding: 40px; max-width: 800px; margin: 0 auto; }
-  h1 { font-size: 22px; color: #00c896; margin-bottom: 6px; }
-  .meta { font-size: 11px; color: #888; margin-bottom: 30px; border-bottom: 2px solid #00c896; padding-bottom: 12px; }
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 30px; }
-  .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
-  .stat-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-value { font-size: 20px; font-weight: 700; font-family: monospace; color: #1a1a2e; margin-top: 4px; }
-  .stat-value.green { color: #00c896; }
-  .stat-value.red { color: #e8354f; }
-  .report-body { white-space: pre-wrap; font-size: 13px; line-height: 1.8; }
-  @media print { body { padding: 20px; } }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#040d1a;color:#e8edf5;font-size:13px;line-height:1.6}
+.page{max-width:1100px;margin:0 auto;padding:32px 24px}
+.header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;background:linear-gradient(135deg,#0c1628,#0d1e3a);border-radius:14px;margin-bottom:20px;border:1px solid #1a2a4a}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#00c896,#00a070);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.logo-name{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.logo-sub{font-size:11px;color:#6b8cad}
+.print-btn{background:#00c896;color:#000;border:none;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.badge{background:#0c1628;border:1px solid #1a3050;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.trader-name{font-size:18px;font-weight:800}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:#0c1628;border:1px solid #1a2a4a;border-radius:10px;padding:16px;text-align:center}
+.kpi-l{font-size:9px;font-weight:700;color:#6b8cad;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.kpi-v{font-size:24px;font-weight:800;font-family:monospace}
+.kpi-s{font-size:10px;color:#6b8cad;margin-top:4px}
+.mini-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+.mini{background:#0c1628;border:1px solid #1a2a4a;border-radius:8px;padding:12px;text-align:center}
+.mini-l{font-size:9px;color:#6b8cad;text-transform:uppercase;letter-spacing:.5px}
+.mini-v{font-size:16px;font-weight:700;font-family:monospace;margin-top:4px}
+.card{background:#0c1628;border:1px solid #1a2a4a;border-radius:12px;padding:20px;margin-bottom:14px}
+.card-t{font-size:12px;font-weight:700;color:#00c896;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #1a2a4a}
+.chart-wrap{height:210px;position:relative}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#0a1628;color:#6b8cad;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;text-align:left;border-bottom:1px solid #1a2a4a}
+td{padding:7px 10px;border-bottom:1px solid #111d2e;color:#b8c5d4}
+tr:hover td{background:#0d1e36}
+.g{color:#00c896}.re{color:#e8354f}.ye{color:#f59e0b}.mono{font-family:monospace}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.rpt-section-title{font-size:13px;font-weight:700;color:#e8edf5;margin:18px 0 8px;padding:10px 14px;background:#0a1628;border-left:3px solid #00c896;border-radius:0 8px 8px 0}
+.rpt-numbered{display:flex;gap:10px;margin:5px 0;padding:7px 12px;background:#0a1628;border-radius:6px}
+.rpt-num{font-family:monospace;font-size:11px;color:#00c896;font-weight:700;flex-shrink:0}
+.rpt-bullet{display:flex;gap:8px;margin:4px 0;color:#b8c5d4}
+.rpt-bullet span:first-child{color:#00c896;flex-shrink:0}
+.rpt-spacer{height:7px}
+.rpt-body{color:#b8c5d4;margin:3px 0}
+.footer{text-align:center;padding:20px;color:#3d5270;font-size:11px;margin-top:16px;border-top:1px solid #1a2a4a}
+@media print{
+  body{background:#fff;color:#1a202c}
+  .page{padding:15px}
+  .print-btn{display:none}
+  .kpi,.card,.mini,.badge,.header{background:#f8fafc;border-color:#e2e8f0}
+  .kpi-l,.mini-l,.card-t,.logo-sub,.kpi-s{color:#718096}
+  .kpi-v,.mini-v,.trader-name{color:#1a202c}
+  .g{color:#00a070}.re{color:#c53030}
+  .rpt-section-title{background:#f0fff4;border-color:#00a070;color:#1a202c}
+  .rpt-body,.rpt-bullet{color:#4a5568}
+  th{background:#f8fafc}
+  td{color:#4a5568}
+  @page{margin:1cm;size:A4}
+}
 </style>
 </head>
-<body>
-  <h1>🧠 Rapport IA TradingZone</h1>
-  <div class="meta">${report.title} · ${report.trades.length} trades analysés</div>
-  <div class="stats-grid">
-    <div class="stat-box"><div class="stat-label">Win Rate</div><div class="stat-value ${parseFloat(report.stats.wr)>=50?'green':'red'}">${report.stats.wr}%</div></div>
-    <div class="stat-box"><div class="stat-label">Profit Factor</div><div class="stat-value">${report.stats.pf}</div></div>
-    <div class="stat-box"><div class="stat-label">PnL Total</div><div class="stat-value ${parseFloat(report.stats.pnl)>=0?'green':'red'}">${parseFloat(report.stats.pnl)>=0?'+':''}$${parseInt(report.stats.pnl)}</div></div>
-    <div class="stat-box"><div class="stat-label">Expectancy</div><div class="stat-value ${parseFloat(report.stats.exp)>=0?'green':'red'}">${parseFloat(report.stats.exp)>=0?'+':''}$${parseFloat(report.stats.exp).toFixed(0)}</div></div>
-  </div>
-  <div class="report-body">${report.text}</div>
-</body>
-</html>`;
+<body><div class="page">
 
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank');
-  if (win) {
-    win.onload = () => { win.print(); setTimeout(() => URL.revokeObjectURL(url), 2000); };
-  } else {
-    // Fallback direct download
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `rapport-trading-${new Date().toISOString().split('T')[0]}.html`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">📊</div>
+    <div><div class="logo-name">TradingZone</div><div class="logo-sub">Journal de Trading Professionnel</div></div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:12px;font-weight:700;color:#00c896;text-transform:uppercase">🧠 Rapport Analyse IA</div>
+    <div style="font-size:11px;color:#6b8cad;margin-top:3px">${r.title}</div>
+    <button class="print-btn" onclick="window.print()" style="margin-top:8px">📥 Télécharger PDF</button>
+  </div>
+</div>
+
+<div class="badge">
+  <div>
+    <div class="trader-name">👤 ${r.profileName}</div>
+    <div style="font-size:12px;color:#00c896;margin-top:3px">MNQ/NQ · Scalping Futures · ${r.period}</div>
+  </div>
+  <div style="font-size:12px;color:#6b8cad">${r.trades.length} trades analysés</div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-l">Win Rate</div><div class="kpi-v ${wr>=50?'g':'re'}">${s.wr}%</div><div class="kpi-s">${s.wins}W · ${s.losses}L · ${s.bes||0}BE</div></div>
+  <div class="kpi"><div class="kpi-l">Profit Factor</div><div class="kpi-v ${pf>=1?'g':'re'}">${s.pf}</div><div class="kpi-s">Objectif ≥ 1.5</div></div>
+  <div class="kpi"><div class="kpi-l">PnL Total</div><div class="kpi-v ${pnl>=0?'g':'re'}">${pnl>=0?'+':''}\$${Math.abs(pnl).toLocaleString()}</div><div class="kpi-s">${r.finalR>=0?'+':''}${r.finalR}R cumulé</div></div>
+  <div class="kpi"><div class="kpi-l">Expectancy</div><div class="kpi-v ${parseFloat(s.exp||0)>=0?'g':'re'}">${parseFloat(s.exp||0)>=0?'+':''}\$${Math.round(Math.abs(parseFloat(s.exp||0)))}</div><div class="kpi-s">${s.avgRr||'0.00'}R / trade</div></div>
+</div>
+
+<div class="mini-grid">
+  <div class="mini"><div class="mini-l">Max DD</div><div class="mini-v re">-\$${Math.abs(parseInt(s.maxDd||0))}</div></div>
+  <div class="mini"><div class="mini-l">Peak R</div><div class="mini-v g">+${r.peakR}R</div></div>
+  <div class="mini"><div class="mini-l">Série WIN max</div><div class="mini-v g">${r.maxWinStreak}</div></div>
+  <div class="mini"><div class="mini-l">Série LOSS max</div><div class="mini-v re">${r.maxLossStreak}</div></div>
+  <div class="mini"><div class="mini-l">Jours ✅</div><div class="mini-v g">${s.greenDays||0}</div></div>
+  <div class="mini"><div class="mini-l">Jours ❌</div><div class="mini-v re">${s.redDays||0}</div></div>
+</div>
+
+<div class="card">
+  <div class="card-t">📈 Equity Curve — R Cumulés (${r.trades.length} trades)</div>
+  <div class="chart-wrap"><canvas id="eq-chart"></canvas></div>
+  <div style="display:flex;gap:20px;font-size:11px;color:#6b8cad;margin-top:8px">
+    <span>Start: 0R</span><span>Peak: <span class="g">+${r.peakR}R</span></span>
+    <span>Final: <span class="${r.finalR>=0?'g':'re'}">${r.finalR>=0?'+':''}${r.finalR}R</span></span>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card" style="margin:0">
+    <div class="card-t">🟢 LONG</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+      <div><div style="font-size:9px;color:#6b8cad">Trades</div><div class="mono" style="font-size:20px;font-weight:700">${r.longs?.length||0}</div></div>
+      <div><div style="font-size:9px;color:#6b8cad">Win Rate</div><div class="mono ${(r.longWr||0)>=50?'g':'re'}" style="font-size:20px;font-weight:700">${r.longWr||0}%</div></div>
+      <div><div style="font-size:9px;color:#6b8cad">Total R</div><div class="mono ${(r.longR||0)>=0?'g':'re'}" style="font-size:20px;font-weight:700">${(r.longR||0)>=0?'+':''}${(r.longR||0).toFixed(1)}R</div></div>
+    </div>
+  </div>
+  <div class="card" style="margin:0">
+    <div class="card-t">🔴 SHORT</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+      <div><div style="font-size:9px;color:#6b8cad">Trades</div><div class="mono" style="font-size:20px;font-weight:700">${r.shorts?.length||0}</div></div>
+      <div><div style="font-size:9px;color:#6b8cad">Win Rate</div><div class="mono ${(r.shortWr||0)>=50?'g':'re'}" style="font-size:20px;font-weight:700">${r.shortWr||0}%</div></div>
+      <div><div style="font-size:9px;color:#6b8cad">Total R</div><div class="mono ${(r.shortR||0)>=0?'g':'re'}" style="font-size:20px;font-weight:700">${(r.shortR||0)>=0?'+':''}${(r.shortR||0).toFixed(1)}R</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-t">🎯 Performance par Setup</div>
+  <table><thead><tr><th>Setup</th><th>Trades</th><th>WR</th><th>W/L</th><th>RR Moy</th><th>Total R</th><th>PnL</th><th>Verdict</th></tr></thead>
+  <tbody>${setupRows||'<tr><td colspan="8" style="text-align:center;color:#6b8cad">Aucun setup</td></tr>'}</tbody></table>
+</div>
+
+<div class="card">
+  <div class="card-t">🕐 Performance par Heure (Heure de Paris)</div>
+  <table><thead><tr><th>Heure</th><th>Trades</th><th>WR</th><th>W/L/BE</th><th>Total R</th><th>PnL</th></tr></thead>
+  <tbody>${hourRows||'<tr><td colspan="6" style="text-align:center;color:#6b8cad">Aucune donnée horaire</td></tr>'}</tbody></table>
+</div>
+
+<div class="grid2">
+  <div class="card" style="margin:0">
+    <div class="card-t">🏆 Top 5 Meilleurs Trades</div>
+    ${(r.top5wins||[]).map(t=>tradeRow(t,true)).join('')||'<div style="color:#6b8cad;text-align:center;padding:12px;font-size:12px">Aucun</div>'}
+  </div>
+  <div class="card" style="margin:0">
+    <div class="card-t">💀 Top 5 Pires Trades</div>
+    ${(r.top5losses||[]).map(t=>tradeRow(t,false)).join('')||'<div style="color:#6b8cad;text-align:center;padding:12px;font-size:12px">Aucun</div>'}
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card" style="margin:0;border-color:#003d29">
+    <div class="card-t g">✅ Meilleure Journée</div>
+    ${r.bestDay?'<div class="mono g" style="font-size:22px;font-weight:800">+$'+Math.abs(parseInt(r.bestDay[1].pnl))+'</div><div style="color:#6b8cad;margin-top:6px">'+r.bestDay[0]+' · '+r.bestDay[1].wins+'W/'+r.bestDay[1].losses+'L · +'+r.bestDay[1].r.toFixed(1)+'R</div>':'<div style="color:#6b8cad">N/A</div>'}
+  </div>
+  <div class="card" style="margin:0;border-color:#3d0010">
+    <div class="card-t re">❌ Pire Journée</div>
+    ${r.worstDay?'<div class="mono re" style="font-size:22px;font-weight:800">-$'+Math.abs(parseInt(r.worstDay[1].pnl))+'</div><div style="color:#6b8cad;margin-top:6px">'+r.worstDay[0]+' · '+r.worstDay[1].wins+'W/'+r.worstDay[1].losses+'L · '+r.worstDay[1].r.toFixed(1)+'R</div>':'<div style="color:#6b8cad">N/A</div>'}
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card" style="margin:0">
+    <div class="card-t">🧠 Émotions</div>
+    ${emotionBars}
+  </div>
+  <div class="card" style="margin:0">
+    <div class="card-t">⚠️ Discipline & Erreurs</div>
+    <div style="text-align:center;padding:10px;background:#1a0a0a;border-radius:8px;margin-bottom:10px">
+      <div class="mono re" style="font-size:22px;font-weight:800">${r.errorTrades?.length||0}<span style="font-size:13px;color:#6b8cad"> / ${r.trades.length}</span></div>
+      <div style="font-size:10px;color:#6b8cad">Trades marqués erreur</div>
+    </div>
+    ${r.checklistOk?.length>0||r.checklistNok?.length>0?'<div style="font-size:11px;color:#6b8cad;margin-bottom:8px">Impact Checklist :</div><div style="display:flex;gap:8px"><div style="flex:1;background:#0a1628;border-radius:6px;padding:8px;text-align:center"><div style="font-size:9px;color:#6b8cad">Validée</div><div class="g mono" style="font-size:18px;font-weight:700">'+(r.checklistOkWr||0)+'%</div><div style="font-size:9px;color:#6b8cad">'+(r.checklistOk?.length||0)+' trades</div></div><div style="flex:1;background:#0a1628;border-radius:6px;padding:8px;text-align:center"><div style="font-size:9px;color:#6b8cad">Non validée</div><div class="re mono" style="font-size:18px;font-weight:700">'+(r.checklistNokWr||0)+'%</div><div style="font-size:9px;color:#6b8cad">'+(r.checklistNok?.length||0)+' trades</div></div></div>':'<div style="color:#6b8cad;font-size:11px">Pas assez de données checklist</div>'}
+    <div style="margin-top:10px;font-size:11px;color:#6b8cad">Qualité moy: <span class="ye" style="font-weight:700">${r.avgQuality}/10</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-t">🤖 Analyse IA Personnalisée</div>
+  ${r.html||'<div style="color:#6b8cad">Rapport non disponible</div>'}
+</div>
+
+<div class="footer">TradingZone · Rapport généré le ${r.date} · Données confidentielles</div>
+</div>
+
+<script>
+const ctx = document.getElementById('eq-chart').getContext('2d');
+const eqData = ${JSON.stringify(eqData)};
+const eqLabels = ${JSON.stringify(eqLabels)};
+const lastVal = eqData[eqData.length-1]||0;
+const baseColor = lastVal >= 0 ? '#00c896' : '#e8354f';
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: eqLabels,
+    datasets: [{
+      data: eqData,
+      borderColor: baseColor,
+      backgroundColor: baseColor + '15',
+      fill: true,
+      tension: 0.3,
+      pointRadius: eqData.length <= 30 ? 4 : 0,
+      pointHoverRadius: 6,
+      borderWidth: 2.5,
+      pointBackgroundColor: baseColor
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => (c.raw>=0?'+':'')+c.raw+'R', title: c => 'Trade '+c[0].label } }
+    },
+    scales: {
+      x: { grid: { color: '#0f1e30' }, ticks: { color: '#3d5270', font: { size: 10 }, maxTicksLimit: 20 } },
+      y: { grid: { color: '#0f1e30' }, ticks: { color: '#3d5270', font: { family: 'monospace', size: 11 }, callback: v => (v>=0?'+':'')+v+'R' }, afterDataLimits: a => { a.min-=0.5; a.max+=0.5; } }
+    }
   }
+});
+<\/script>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const win2 = window.open(url, '_blank');
+  if (!win2) {
+    const a = document.createElement('a');
+    a.href = url; a.download = 'TradingZone-Rapport-'+new Date().toISOString().split('T')[0]+'.html';
+    a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
+
 
 function saveGeminiKey() {
   const key = document.getElementById('gemini-api-key').value.trim();
