@@ -6798,8 +6798,8 @@ async function toggleTraderActivity(userId) {
   // Grouper par jour
   const byDay = {};
   trades.forEach(t => {
-    if (!byDay[t.date]) byDay[t.date] = { wins: 0, losses: 0, bes: 0, count: 0, trades: [] };
-    byDay[t.date].count++;
+    if (!byDay[t.date]) byDay[t.date] = { wins: 0, losses: 0, bes: 0, count: 0, r: 0, trades: [] };
+    byDay[t.date].r += parseFloat(t.rr || 0);
     if (t.result === 'WIN') byDay[t.date].wins++;
     else if (t.result === 'LOSS') byDay[t.date].losses++;
     else byDay[t.date].bes++;
@@ -6841,6 +6841,7 @@ async function toggleTraderActivity(userId) {
         return `<div style="background:${bg};border:1px solid ${border};border-radius:8px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;${clickable ? 'cursor:pointer' : ''}" ${clickable ? `onclick="event.stopPropagation();showDayTrades('${userId}','${date}')"` : ''} title="${d ? `${d.count} trade(s) — ${d.wins}W/${d.losses}L/${d.bes}BE` : 'Aucun trade'}">
           <div style="font-size:11px;font-weight:700;color:${d ? textColor : 'var(--text-4)'}">${dayNum}</div>
           ${d ? `<div style="font-size:9px;color:${textColor}">${d.count}T</div>` : ''}
+            ${d ? `<div style="font-size:9px;font-weight:700;color:${d.r > 0 ? 'var(--green)' : d.r < 0 ? 'var(--red)' : 'var(--text-4)'}">${d.r > 0 ? '+' : ''}${d.r % 1 === 0 ? d.r : d.r.toFixed(1)}R</div>` : ''}
         </div>`;
       }).join('')}
     </div>
