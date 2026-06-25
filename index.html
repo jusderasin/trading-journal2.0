@@ -78,11 +78,11 @@ body.light {
   --border: #e2e8f0;
   --border-light: #cbd5e1;
   --text-0: #0f172a;
-  --text-1: #1e293b;
+  --text-1: #141414;
   --text-2: #334155;
-  --text-3: #64748b;
+  --text-3: #5a5a55;
   --text-4: #94a3b8;
-  --accent-dim: #00d4a010;
+  --accent-dim: #00ff9d10;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1337,7 +1337,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%;
   font-size: 24px;
   cursor: pointer;
-  box-shadow: 0 4px 16px #00d4a050;
+  box-shadow: 0 4px 16px #00ff9d50;
   z-index: 200;
   display: none;
   align-items: center;
@@ -1345,7 +1345,7 @@ input[type="range"]::-webkit-slider-thumb {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.fab:hover { transform: scale(1.05); box-shadow: 0 6px 24px #00d4a070; }
+.fab:hover { transform: scale(1.05); box-shadow: 0 6px 24px #00ff9d70; }
 
 @media (max-width: 768px) { .fab { display: flex; } }
 
@@ -4250,7 +4250,7 @@ function renderEquityChart(period) {
   if (!ctx) return;
   const { labels, data } = getEquityData(allTrades, period);
   const lastVal = data[data.length - 1] || 0;
-  const color = lastVal >= 0 ? '#00d4a0' : '#f43f5e';
+  const color = lastVal >= 0 ? '#00ff9d' : '#ff3b5c';
 
   if (equityChart) equityChart.destroy();
   equityChart = new Chart(ctx, {
@@ -4273,7 +4273,7 @@ function renderEquityChart(period) {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + c.raw.toFixed(0) } } },
       scales: {
         x: { display: false },
-        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } }
+        y: { grid: { color: '#141414' }, ticks: { color: '#5a5a55', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } }
       }
     }
   });
@@ -4303,8 +4303,8 @@ function renderDailyChart() {
       labels: dates,
       datasets: [{
         data: vals,
-        backgroundColor: vals.map(v => v >= 0 ? '#00d4a030' : '#f43f5e20'),
-        borderColor: vals.map(v => v >= 0 ? '#00d4a0' : '#f43f5e'),
+        backgroundColor: vals.map(v => v >= 0 ? '#00ff9d30' : '#ff3b5c20'),
+        borderColor: vals.map(v => v >= 0 ? '#00ff9d' : '#ff3b5c'),
         borderWidth: 1,
         borderRadius: 4
       }]
@@ -4314,7 +4314,7 @@ function renderDailyChart() {
       plugins: { legend: { display: false } },
       scales: {
         x: { display: false },
-        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } }
+        y: { grid: { color: '#141414' }, ticks: { color: '#5a5a55', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } }
       }
     }
   });
@@ -4409,7 +4409,7 @@ function renderCalendar() {
       return s + (r);
     }, 0);
     const bg = dayTrades.length === 0 ? 'var(--bg-3)' : pnl > 0 ? 'var(--green-dim)' : pnl < 0 ? 'var(--red-dim)' : 'var(--bg-4)';
-    const border = dayTrades.length === 0 ? 'var(--border)' : pnl > 0 ? '#00d4a040' : pnl < 0 ? '#f43f5e40' : 'var(--border)';
+    const border = dayTrades.length === 0 ? 'var(--border)' : pnl > 0 ? '#00ff9d40' : pnl < 0 ? '#ff3b5c40' : 'var(--border)';
     const textColor = pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--text-3)';
     html += `<div style="background:${bg};border:1px solid ${border};border-radius:6px;padding:6px 4px;min-height:52px;cursor:${dayTrades.length > 0 ? 'pointer' : 'default'}">
       <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:2px">${d}</div>
@@ -5347,7 +5347,7 @@ function renderAnEquityChart(trades) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + c.raw.toFixed(0) } } },
-      scales: { x: { display: false }, y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } } }
+      scales: { x: { display: false }, y: { grid: { color: '#141414' }, ticks: { color: '#5a5a55', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } } }
     }
   });
 }
@@ -5371,7 +5371,7 @@ function renderAnDailyChart(trades) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { x: { ticks: { color: '#4a5568', font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } } }
+      scales: { x: { ticks: { color: '#4a5568', font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { grid: { color: '#141414' }, ticks: { color: '#5a5a55', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + v } } }
     }
   });
 }
@@ -5472,14 +5472,14 @@ function renderRrDistChart(trades) {
     type: 'bar',
     data: {
       labels: labels.map(l => l + 'R'),
-      datasets: [{ data: labels.map(l => buckets[l]), backgroundColor: '#00d4a025', borderColor: '#00d4a0', borderWidth: 1, borderRadius: 4 }]
+      datasets: [{ data: labels.map(l => buckets[l]), backgroundColor: '#00ff9d25', borderColor: '#00ff9d', borderWidth: 1, borderRadius: 4 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { display: false } },
-        y: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: '#1e293b' } }
+        x: { ticks: { color: '#5a5a55', font: { size: 11 } }, grid: { display: false } },
+        y: { ticks: { color: '#5a5a55', font: { size: 11 } }, grid: { color: '#141414' } }
       }
     }
   });
@@ -5502,14 +5502,14 @@ function renderWrSetupChart(trades) {
     type: 'bar',
     data: {
       labels,
-      datasets: [{ data, backgroundColor: data.map(v => v >= 50 ? '#00d4a030' : '#f43f5e20'), borderColor: data.map(v => v >= 50 ? '#00d4a0' : '#f43f5e'), borderWidth: 1, borderRadius: 4 }]
+      datasets: [{ data, backgroundColor: data.map(v => v >= 50 ? '#00ff9d30' : '#ff3b5c20'), borderColor: data.map(v => v >= 50 ? '#00ff9d' : '#ff3b5c'), borderWidth: 1, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#64748b', font: { size: 11 }, callback: v => v + '%' }, grid: { color: '#1e293b' }, max: 100 },
-        y: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { display: false } }
+        x: { ticks: { color: '#5a5a55', font: { size: 11 }, callback: v => v + '%' }, grid: { color: '#141414' }, max: 100 },
+        y: { ticks: { color: '#5a5a55', font: { size: 11 } }, grid: { display: false } }
       }
     }
   });
@@ -5586,13 +5586,13 @@ function renderDdChart(trades) {
   if (ddChart) ddChart.destroy();
   ddChart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ data, borderColor: '#f43f5e', backgroundColor: '#f43f5e15', fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }] },
+    data: { labels, datasets: [{ data, borderColor: '#ff3b5c', backgroundColor: '#ff3b5c15', fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
         x: { display: false },
-        y: { ticks: { color: '#64748b', font: { size: 11 }, callback: v => '$' + v }, grid: { color: '#1e293b' } }
+        y: { ticks: { color: '#5a5a55', font: { size: 11 }, callback: v => '$' + v }, grid: { color: '#141414' } }
       }
     }
   });
@@ -5612,7 +5612,7 @@ function renderLsChart(trades) {
     type: 'doughnut',
     data: {
       labels: [`Long (${longWr}% WR · ${longPnl>=0?'+':''}$${Math.round(longPnl)})`, `Short (${shortWr}% WR · ${shortPnl>=0?'+':''}$${Math.round(shortPnl)})`],
-      datasets: [{ data: [long.length, short.length], backgroundColor: ['#00d4a030', '#f43f5e20'], borderColor: ['#00d4a0', '#f43f5e'], borderWidth: 2 }]
+      datasets: [{ data: [long.length, short.length], backgroundColor: ['#00ff9d30', '#ff3b5c20'], borderColor: ['#00ff9d', '#ff3b5c'], borderWidth: 2 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -5843,7 +5843,7 @@ function renderBtgCalendar() {
     const dayTrades = byDay[dateStr] || [];
     const totalR = dayTrades.reduce((s, t) => s + parseFloat(t.rr || 0), 0);
     const bg = dayTrades.length === 0 ? 'var(--bg-3)' : totalR > 0 ? 'var(--green-dim)' : totalR < 0 ? 'var(--red-dim)' : 'var(--bg-4)';
-    const border = dayTrades.length === 0 ? 'var(--border)' : totalR > 0 ? '#00d4a040' : totalR < 0 ? '#f43f5e40' : 'var(--border)';
+    const border = dayTrades.length === 0 ? 'var(--border)' : totalR > 0 ? '#00ff9d40' : totalR < 0 ? '#ff3b5c40' : 'var(--border)';
     const textColor = totalR > 0 ? 'var(--green)' : totalR < 0 ? 'var(--red)' : 'var(--text-3)';
     html += `<div style="background:${bg};border:1px solid ${border};border-radius:6px;padding:6px 4px;min-height:52px">
       <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:2px">${d}</div>
@@ -7338,12 +7338,12 @@ tr:hover td{background:#0d1e36}
   .print-btn{display:none}
   .header,.badge,.kpi,.card,.mini{background:#11203a;border-color:#1e3050}
   .kpi-l,.mini-l,.logo-sub,.kpi-s{color:#8aa0bd}
-  .card-t{color:#00d4a0}
+  .card-t{color:#00ff9d}
   .kpi-v,.mini-v,.trader-name{color:#e8edf5}
-  .g{color:#00d4a0}.re{color:#ff5a72}.ye{color:#f59e0b}
-  .rpt-section-title{background:#0a1628;border-color:#00d4a0;color:#e8edf5}
+  .g{color:#00ff9d}.re{color:#ff5a72}.ye{color:#f59e0b}
+  .rpt-section-title{background:#0a1628;border-color:#00ff9d;color:#e8edf5}
   .rpt-body,.rpt-bullet{color:#b8c5d4}
-  .rpt-num{color:#00d4a0}
+  .rpt-num{color:#00ff9d}
   th{background:#0a1628;color:#8aa0bd}
   td{color:#b8c5d4}
   table,th,td{border-color:#1e3050}
@@ -8055,8 +8055,8 @@ function onSetupSelected() {
   `).join('');
 }
 
-console.log('%cTradingZone 🚀', 'color:#00d4a0;font-size:20px;font-weight:800');
-console.log('%cJournal de trading ultime', 'color:#64748b;font-size:12px');
+console.log('%cTradingZone 🚀', 'color:#00ff9d;font-size:20px;font-weight:800');
+console.log('%cJournal de trading ultime', 'color:#5a5a55;font-size:12px');
 </script>
 </body>
 </html>
