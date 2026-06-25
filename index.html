@@ -6696,7 +6696,6 @@ async function publishPost() {
       channel: document.getElementById('post-channel')?.value || 'general',
       is_public: true
     });
-  });
   if (error) return toast('Erreur: ' + error.message, 'error');
   document.getElementById('post-content').value = '';
   document.getElementById('post-image').value = '';
