@@ -2935,6 +2935,16 @@ input[type="range"]::-webkit-slider-thumb {
       <div class="form-group">
         <textarea id="post-content" rows="5" placeholder="Partage ton analyse, ton trade, tes insights..."></textarea>
       </div>
+       <div class="form-group">
+          <label class="form-label">Salon</label>
+          <select id="post-channel" style="width:100%;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);padding:10px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none">
+            <option value="general">💬 Général</option>
+            <option value="indices">📈 Indices US</option>
+            <option value="forex">💱 Forex</option>
+            <option value="crypto">₿ Crypto</option>
+            <option value="commodities">🛢️ Matières premières</option>
+          </select>
+        </div>
       <div class="form-group">
         <label class="form-label">Image</label>
         <div style="display:flex;gap:6px">
@@ -6680,10 +6690,12 @@ async function publishPost() {
   const content = document.getElementById('post-content').value.trim();
   if (!content) return toast('Écris quelque chose', 'error');
   const { error } = await sb.from('posts').insert({
-    user_id: currentUser.id,
-    content,
-    image_url: document.getElementById('post-image').value.trim() || null,
-    is_public: true
+      user_id: currentUser.id,
+      content,
+      image_url: document.getElementById('post-image').value.trim() || null,
+      channel: document.getElementById('post-channel')?.value || 'general',
+      is_public: true
+    });
   });
   if (error) return toast('Erreur: ' + error.message, 'error');
   document.getElementById('post-content').value = '';
