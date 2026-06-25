@@ -4162,18 +4162,18 @@ async function loadDashboard() {
   const stats = calcStats(allTrades);
 
   const fmtPnl = v => (parseFloat(v) >= 0 ? '+' : '') + '$' + parseFloat(v).toLocaleString();
-  document.getElementById('kpi-pnl').textContent = fmtPnl(stats.pnl);
+  animateValue(document.getElementById('kpi-pnl'), fmtPnl(stats.pnl));
   document.getElementById('kpi-pnl').className = 'kpi-value ' + (parseFloat(stats.pnl) >= 0 ? 'green' : 'red');
-  document.getElementById('kpi-wr').textContent = stats.wr + '%';
-  document.getElementById('kpi-wr-sub').textContent = stats.total + ' trades';
-  document.getElementById('kpi-pf').textContent = stats.pf;
-  document.getElementById('kpi-rr').textContent = stats.avgRr;
-  document.getElementById('kpi-dd').textContent = '-$' + stats.maxDd;
-  document.getElementById('kpi-best').textContent = '+$' + stats.best;
-  document.getElementById('kpi-worst').textContent = '-$' + Math.abs(stats.worst);
-  document.getElementById('kpi-green-days').textContent = stats.greenDays;
-  document.getElementById('kpi-red-days').textContent = stats.redDays;
-  document.getElementById('kpi-exp').textContent = fmtPnl(stats.exp);
+  animateValue(document.getElementById('kpi-wr'), stats.wr + '%');
+  animateValue(document.getElementById('kpi-wr-sub'), stats.total + ' trades');
+  animateValue(document.getElementById('kpi-pf'), stats.pf);
+  animateValue(document.getElementById('kpi-rr'), stats.avgRr);
+  animateValue(document.getElementById('kpi-dd'), '-$' + stats.maxDd);
+  animateValue(document.getElementById('kpi-best'), '+$' + stats.best);
+  animateValue(document.getElementById('kpi-worst'), '-$' + Math.abs(stats.worst));
+  animateValue(document.getElementById('kpi-green-days'), stats.greenDays);
+  animateValue(document.getElementById('kpi-red-days'), stats.redDays);
+  animateValue(document.getElementById('kpi-exp'), fmtPnl(stats.exp));
 
   renderRecentTrades();
   renderDashAccounts();
