@@ -1401,6 +1401,34 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .drop-zone input { display: none; }
+   /* === TERMINAL LOOK === */
+.kpi-label, .card-title, .nav-section, .form-label, .section-title,
+.data-table th, .account-broker, .kpi-sub {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.card-title, .section-title { letter-spacing: 1.5px; font-size: 12px; }
+.kpi-value { letter-spacing: 0; }
+.card, .kpi-card, .account-card, .post-card {
+  position: relative;
+}
+.card::before, .kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 28px; height: 2px;
+  background: var(--accent);
+}
+.btn-sm, .tab.active {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 11px;
+}
+.pill {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 2px;
+}
 </style>
 </head>
 
