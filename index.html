@@ -2282,6 +2282,7 @@ input[type="range"]::-webkit-slider-thumb {
               </div>
               <div style="display:flex;gap:8px;flex-shrink:0">
                 <button class="btn-sm" onclick="openAiReport()">📊 Ouvrir le rapport</button>
+                 <button class="btn-outline" onclick="deleteAiReport()" title="Supprimer ce rapport">🗑️</button>
               </div>
             </div>
           </div>
@@ -7174,9 +7175,6 @@ Termine par une phrase de motivation personnalisée pour ${profileName}.`;
     output.style.display = 'block';
     output.scrollIntoView({ behavior:'smooth', block:'start' });
 
-    // Sauvegarder pour le PDF
-    window._lastAiReport = { text: reportText, title: title.textContent, trades, stats };
-
     toast('Rapport généré ✓', 'success');
   } catch (err) {
     toast('Erreur réseau: ' + err.message, 'error');
@@ -7185,7 +7183,12 @@ Termine par une phrase de motivation personnalisée pour ${profileName}.`;
   btn.disabled = false;
   btn.textContent = '✨ Générer mon rapport de trading';
 }
-
+function deleteAiReport() {
+  window._lastAiReport = null;
+  const output = document.getElementById('ai-report-output');
+  if (output) output.style.display = 'none';
+  toast('Rapport supprimé', 'success');
+}
 async function downloadAiReportPdf() {
   openAiReport();
 }
