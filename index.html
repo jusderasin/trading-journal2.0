@@ -5300,17 +5300,17 @@ async function loadAnalytics() {
   const stats = calcStats(trades);
 
   // 8 KPIs — alignés sur le niveau Backtesting
-  document.getElementById('an-trades').textContent = stats.total;
+  animateValue(document.getElementById('an-trades'), stats.total);
   document.getElementById('an-trades-sub').textContent = `${stats.wins}W · ${stats.losses}L · ${stats.bes}BE`;
-  document.getElementById('an-wr').textContent = stats.wr + '%';
-  document.getElementById('an-pf').textContent = stats.pf;
+  animateValue(document.getElementById('an-wr'), stats.wr + '%');
+  animateValue(document.getElementById('an-pf'), stats.pf);
   const pnlVal = parseFloat(stats.pnl);
-  document.getElementById('an-pnl').textContent = (pnlVal >= 0 ? '+' : '') + '$' + Math.round(pnlVal).toLocaleString();
+  animateValue(document.getElementById('an-pnl'), (pnlVal >= 0 ? '+' : '') + '$' + Math.round(pnlVal).toLocaleString());
   document.getElementById('an-pnl').className = 'kpi-value ' + (pnlVal >= 0 ? 'green' : 'red');
-  document.getElementById('an-exp').textContent = '$' + stats.exp;
-  document.getElementById('an-sharpe').textContent = stats.sharpe;
-  document.getElementById('an-dd').textContent = '-$' + stats.maxDd;
-  document.getElementById('an-days').textContent = stats.tradingDays;
+  animateValue(document.getElementById('an-exp'), '$' + stats.exp);
+  animateValue(document.getElementById('an-sharpe'), stats.sharpe);
+  animateValue(document.getElementById('an-dd'), '-$' + stats.maxDd);
+  animateValue(document.getElementById('an-days'), stats.tradingDays);
 
   renderAnEquityChart(trades);
   renderAnDailyChart(trades);
