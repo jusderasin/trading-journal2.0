@@ -2239,20 +2239,42 @@ input[type="range"]::-webkit-slider-thumb {
             </div>
           </div>
 
-          <!-- Clé API Gemini -->
-          <div style="margin-bottom:16px;padding:12px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
-            <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px">🔑 Clé API Gemini <span style="font-weight:400;color:var(--text-3)">(Google AI Studio — gratuite)</span></div>
-            <div style="display:flex;gap:6px">
-              <input type="password" id="gemini-api-key" placeholder="Colle ta clé API ici (AIza...)" style="flex:1;background:var(--bg-2);border:1px solid var(--border);color:var(--text-0);padding:8px 12px;border-radius:8px;font-size:13px;font-family:var(--mono);outline:none">
-              <button class="btn-sm" onclick="saveGeminiKey()" style="flex-shrink:0">Enregistrer</button>
+          <!-- Clé API — masquée si déjà enregistrée -->
+          <div id="ai-key-section" style="margin-bottom:16px;padding:12px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border)">
+            <!-- État : pas de clé -->
+            <div id="ai-key-missing">
+              <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px">
+                🔑 Clé API IA requise
+                <span style="font-weight:400;color:var(--text-3)">— gratuite, 1 seule fois à configurer</span>
+              </div>
+              <div style="font-size:12px;color:var(--text-2);margin-bottom:10px;line-height:1.6">
+                Chaque utilisateur utilise sa propre clé gratuite pour que tout le monde ait son quota indépendant.<br>
+                <strong style="color:var(--accent)">2 minutes pour l'obtenir :</strong>
+                <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);font-weight:700"> console.groq.com/keys</a>
+                → Sign up → API Keys → Create → Copie la clé (gsk_...)
+              </div>
+              <div style="display:flex;gap:6px">
+                <input type="password" id="gemini-api-key" placeholder="Colle ta clé Groq ici (gsk_...)" style="flex:1;background:var(--bg-2);border:1px solid var(--border);color:var(--text-0);padding:8px 12px;border-radius:8px;font-size:13px;font-family:var(--mono);outline:none">
+                <button class="btn-sm" onclick="saveGeminiKey()" style="flex-shrink:0">Enregistrer</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:6px">✓ Gratuit · 14 400 analyses/jour · Ta clé reste sur ton appareil uniquement, jamais envoyée à nos serveurs</div>
             </div>
-            <div style="font-size:11px;color:var(--text-3);margin-top:6px">Obtiens ta clé gratuite sur <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com</a> · 1500 rapports/jour gratuits · Ta clé reste sur ton appareil uniquement</div>
-            <div id="gemini-key-status" style="font-size:11px;margin-top:4px;display:none"></div>
+            <!-- État : clé déjà enregistrée -->
+            <div id="ai-key-set" style="display:none;display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:16px">✅</span>
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:var(--text-0)">Clé API configurée</div>
+                  <div style="font-size:11px;color:var(--text-3)">Prête à générer tes rapports</div>
+                </div>
+              </div>
+              <button class="btn-outline" style="font-size:11px" onclick="resetAiKey()">🔄 Changer la clé</button>
+            </div>
           </div>
 
           <!-- Sélecteur de période -->
-          <div style="margin-bottom:16px">
-            <div class="form-label" style="margin-bottom:8px">Période à analyser</div>
+          <div style="margin-bottom:12px">
+            <div class="form-label" style="margin-bottom:8px">Période prédéfinie</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <button class="btn-outline ai-period-btn active" data-period="today" onclick="selectAiPeriod(this,'today')">Aujourd'hui</button>
               <button class="btn-outline ai-period-btn" data-period="week" onclick="selectAiPeriod(this,'week')">Cette semaine</button>
@@ -2260,6 +2282,22 @@ input[type="range"]::-webkit-slider-thumb {
               <button class="btn-outline ai-period-btn" data-period="3month" onclick="selectAiPeriod(this,'3month')">3 derniers mois</button>
               <button class="btn-outline ai-period-btn" data-period="year" onclick="selectAiPeriod(this,'year')">Cette année</button>
               <button class="btn-outline ai-period-btn" data-period="all" onclick="selectAiPeriod(this,'all')">Tout</button>
+              <button class="btn-outline ai-period-btn" data-period="custom" onclick="selectAiPeriod(this,'custom')">📅 Dates perso</button>
+            </div>
+          </div>
+
+          <!-- Plage de dates personnalisée -->
+          <div id="ai-custom-dates" style="display:none;background:var(--bg-3);border-radius:8px;padding:12px;margin-bottom:12px">
+            <div class="form-label" style="margin-bottom:8px">Plage de dates personnalisée</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div class="form-group" style="margin:0">
+                <label class="form-label" style="font-size:11px">Du</label>
+                <input type="date" id="ai-date-from" style="width:100%">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label" style="font-size:11px">Au</label>
+                <input type="date" id="ai-date-to" style="width:100%">
+              </div>
             </div>
           </div>
 
@@ -2270,12 +2308,10 @@ input[type="range"]::-webkit-slider-thumb {
 
           <!-- Zone de résultat -->
           <div id="ai-report-output" style="display:none;margin-top:16px">
-            <!-- Header résultat -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
               <div style="font-size:13px;font-weight:700;color:var(--text-0)" id="ai-report-title"></div>
               <button class="btn-outline" style="font-size:11px" onclick="downloadAiReportPdf()">📄 Télécharger PDF</button>
             </div>
-            <!-- Contenu du rapport -->
             <div id="ai-report-content" style="background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:20px;font-size:13px;line-height:1.7;color:var(--text-1);white-space:pre-wrap;max-height:600px;overflow-y:auto"></div>
           </div>
         </div>
@@ -6795,7 +6831,19 @@ function selectAiPeriod(btn, period) {
   document.querySelectorAll('.ai-period-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   aiReportPeriod = period;
-  // Reset le rapport précédent si la période change
+  // Afficher/cacher les champs de dates personnalisées
+  const customDates = document.getElementById('ai-custom-dates');
+  if (customDates) customDates.style.display = period === 'custom' ? 'block' : 'none';
+  // Pré-remplir les dates si vides
+  if (period === 'custom') {
+    const fromEl = document.getElementById('ai-date-from');
+    const toEl = document.getElementById('ai-date-to');
+    if (!toEl.value) toEl.value = new Date().toISOString().split('T')[0];
+    if (!fromEl.value) {
+      const d = new Date(); d.setDate(d.getDate() - 7);
+      fromEl.value = d.toISOString().split('T')[0];
+    }
+  }
   document.getElementById('ai-report-output').style.display = 'none';
 }
 
@@ -6812,13 +6860,15 @@ async function generateAiReport() {
   // Calcul des dates selon la période choisie
   const now = new Date();
   let fromDate = '';
+  let toDate = now.toISOString().split('T')[0];
   const periodLabels = {
     today: "Aujourd'hui",
     week: 'Cette semaine',
     month: 'Ce mois',
     '3month': 'Les 3 derniers mois',
     year: 'Cette année',
-    all: 'Tout historique'
+    all: 'Tout historique',
+    custom: 'Période personnalisée'
   };
 
   if (aiReportPeriod === 'today') {
@@ -6835,11 +6885,20 @@ async function generateAiReport() {
   } else if (aiReportPeriod === 'year') {
     const d = new Date(); d.setFullYear(d.getFullYear() - 1);
     fromDate = d.toISOString().split('T')[0];
+  } else if (aiReportPeriod === 'custom') {
+    fromDate = document.getElementById('ai-date-from')?.value || '';
+    toDate = document.getElementById('ai-date-to')?.value || toDate;
+    if (!fromDate) {
+      btn.disabled = false;
+      btn.textContent = '✨ Générer mon rapport de trading';
+      return toast('Entre une date de début', 'error');
+    }
   }
 
   // Récupérer les trades
   let q = sb.from('trades').select('*').eq('user_id', currentUser.id).order('date').order('entry_time');
   if (fromDate) q = q.gte('date', fromDate);
+  if (aiReportPeriod === 'custom' && toDate) q = q.lte('date', toDate);
   const { data: trades, error } = await q;
 
   if (error || !trades) {
@@ -6985,7 +7044,10 @@ Sois direct, honnête, et utilise des données chiffrées précises. Ne sois pas
 
     // Afficher le rapport
     const todayStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    title.textContent = `Rapport IA — ${periodLabels[aiReportPeriod]} — ${todayStr}`;
+    const periodLabel = aiReportPeriod === 'custom'
+      ? `Du ${fromDate} au ${toDate}`
+      : periodLabels[aiReportPeriod];
+    title.textContent = `Rapport IA — ${periodLabel} — ${todayStr}`;
     content.textContent = reportText;
     output.style.display = 'block';
     output.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7058,34 +7120,33 @@ async function downloadAiReportPdf() {
 function saveGeminiKey() {
   const key = document.getElementById('gemini-api-key').value.trim();
   if (!key) return toast('Entre une clé API valide', 'error');
-  if (!key.startsWith('AIza')) return toast('La clé Gemini doit commencer par "AIza..."', 'error');
+  if (!key.startsWith('gsk_') && !key.startsWith('AIza')) return toast('La clé doit commencer par "gsk_" (Groq) ou "AIza" (Gemini)', 'error');
   storage.setItem('tz-gemini-key', key);
   document.getElementById('gemini-api-key').value = '';
-  const status = document.getElementById('gemini-key-status');
-  status.style.display = 'block';
-  status.style.color = 'var(--green)';
-  status.textContent = '✓ Clé API Gemini enregistrée sur cet appareil';
-  toast('Clé API Gemini enregistrée ✓', 'success');
+  updateAiKeyDisplay(true);
+  toast('Clé API enregistrée ✓ — tu peux générer des rapports', 'success');
+}
+
+function resetAiKey() {
+  storage.removeItem('tz-gemini-key');
+  updateAiKeyDisplay(false);
+}
+
+function updateAiKeyDisplay(hasKey) {
+  const missing = document.getElementById('ai-key-missing');
+  const set = document.getElementById('ai-key-set');
+  if (!missing || !set) return;
+  missing.style.display = hasKey ? 'none' : 'block';
+  set.style.display = hasKey ? 'flex' : 'none';
 }
 
 async function loadSettings() {
-  // Custom tags/setups
   renderCustomTags();
-
-  // Theme
   document.getElementById('s-light-mode').checked = document.body.classList.contains('light');
-
-  // Quick RR mode
   document.getElementById('s-quick-rr').checked = storage.getItem('tz-quick-rr') === 'true';
-
-  // Clé Gemini : afficher le statut si déjà enregistrée
-  const existingKey = storage.getItem('tz-gemini-key');
-  const status = document.getElementById('gemini-key-status');
-  if (existingKey && status) {
-    status.style.display = 'block';
-    status.style.color = 'var(--green)';
-    status.textContent = '✓ Clé API Gemini enregistrée — prête à utiliser';
-  }
+  // Afficher l'état de la clé IA
+  const hasKey = !!storage.getItem('tz-gemini-key');
+  updateAiKeyDisplay(hasKey);
 }
 
 function toggleQuickRrMode() {
