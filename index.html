@@ -7745,7 +7745,41 @@ document.addEventListener('keydown', e => {
 // ============================================
 // TOAST
 // ============================================
-function toast(msg, type = 'success') {
+// ============================================
+// ANIMATION CHIFFRES (effet terminal "live")
+// ============================================
+function animateValue(el, finalText) {
+  if (!el) return;
+  const str = String(finalText);
+  // Extrait le nombre (avec signe et décimales), garde le reste comme template
+  const match = str.match(/-?[\d\s]+([.,]\d+)?/);
+  if (!match) { el.textContent = str; return; }
+  const numStr = match[0].replace(/\s/g, '').replace(',', '.');
+  const target = parseFloat(numStr);
+  if (isNaN(target)) { el.textContent = str; return; }
+  const decimals = (numStr.split('.')[1] || '').length;
+  const prefix = str.slice(0, match.index);
+  const suffix = str.slice(match.index + match[0].length);
+  const hadSpace = match[0].includes(' ');
+  const duration = 650;
+  const start = performance.now();
+  function frame(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const current = target * eased;
+    let display = decimals > 0 ? current.toFixed(decimals) : Math.round(current).toString();
+    if (hadSpace) {
+      const parts = display.split('.');
+      parts[0] = parseInt(parts[0]).toLocaleString('fr-FR').replace(/\u202f/g, ' ');
+      display = parts.join('.');
+    }
+    el.textContent = prefix + display + suffix;
+    if (p < 1) requestAnimationFrame(frame);
+    else el.textContent = str;
+  }
+  requestAnimationFrame(frame);
+}
+   function toast(msg, type = 'success') {
   const el = document.createElement('div');
   el.className = 'toast ' + type;
   el.innerHTML = `<span class="toast-icon">${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
