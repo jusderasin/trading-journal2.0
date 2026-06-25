@@ -6417,12 +6417,48 @@ async function exportBtCsv() {
 }
 
 // ============================================
-// COMMUNITY
+// ============================================
+// BLOCAGE / MASQUAGE COMMUNAUTÉ
+// ============================================
+let _myMutes = [];   // gens dont JE masque le contenu
+let _myBlocks = [];   // gens que J'AI bloqués
+let _blockedByOthers = []; // gens qui M'ONT bloqué
+
+async function loadBlocks() {
+  if (!currentUser) return;
+  const { data: mine } = await sb.from('blocks').select('target_id, type').eq('actor_id', currentUser.id);
+  _myMutes = (mine || []).filter(b => b.type === 'mute').map(b => b.target_id);
+  _myBlocks = (mine || []).filter(b => b.type === 'block').map(b => b.target_id);
+  const { data: against } = await sb.from('blocks').select('actor_id').eq('target_id', currentUser.id).eq('type', 'block');
+  _blockedByOthers = (against || []).map(b => b.actor_id);
+}
+
+async function muteUser(targetId, name) {
+  if (!confirm(`Masquer les publications de ${name || 'ce trader'} ? Tu ne verras plus son contenu (il ne le saura pas).`)) return;
+  const { error } = await sb.from('blocks').insert({ actor_id: currentUser.id, target_id: targetId, type: 'mute' });
+  if (error && !error.message.includes('duplicate')) return toast('Erreur: ' + error.message, 'error');
+  toast('Trader masqué', 'success');
+  await loadBlocks();
+  await loadCommunity();
+}
+
+async function blockUser(targetId, name) {
+  if (!confirm(`Bloquer ${name || 'ce trader'} ? Il ne pourra plus voir tes publications.`)) return;
+  const { error } = await sb.from('blocks').insert({ actor_id: currentUser.id, target_id: targetId, type: 'block' });
+  if (error && !error.message.includes('duplicate')) return toast('Erreur: ' + error.message, 'error');
+  toast('Trader bloqué', 'success');
+  await loadBlocks();
+  await loadCommunity();
+}// COMMUNITY
 // ============================================
 async function loadCommunity() {
   const feed = document.getElementById('posts-feed');
   feed.innerHTML = '<div class="page-loader"><div class="spinner"></div></div>';
-  const { data, error } = await sb.from('posts').select('*, profiles(display_name, username, avatar_url)').eq('is_public', true).order('created_at', { ascending: false }).limit(50);
+  await loadBlocks();
+    let query = sb.from('posts').select('*, profiles(display_name, username, avatar_url)').eq('is_public', true);
+    const hidden = [...new Set([..._myMutes, ..._blockedByOthers])];
+    if (hidden.length) query = query.not('user_id', 'in', `(${hidden.join(',')})`);
+    const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
   if (error) { feed.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erreur chargement</div><div class="empty-sub">${error.message}</div></div>`; return; }
   if (!data?.length) {
     feed.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Aucune publication</div><div class="empty-sub">Sois le premier à partager !</div></div>';
@@ -6444,7 +6480,10 @@ async function loadCommunity() {
         ${isOwnPost ? `<div style="display:flex;gap:4px;flex-shrink:0">
           <button class="btn-icon" style="width:30px;height:30px;font-size:13px" onclick="startEditPost('${p.id}')" title="Modifier la publication">✏️</button>
           <button class="btn-icon" style="width:30px;height:30px;font-size:13px;color:var(--red)" onclick="deletePost('${p.id}')" title="Supprimer la publication">🗑️</button>
-        </div>` : ''}
+        </div>` : `<div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-icon" style="width:30px;height:30px;font-size:13px" onclick="muteUser('${p.user_id}', '${name.replace(/'/g, "\\'")}')" title="Masquer ce trader">🙈</button>
+          <button class="btn-icon" style="width:30px;height:30px;font-size:13px;color:var(--red)" onclick="blockUser('${p.user_id}', '${name.replace(/'/g, "\\'")}')" title="Bloquer ce trader">🚫</button>
+        </div>`}}
       </div>
       <div class="post-content" id="post-content-${p.id}" data-raw="${p.content.replace(/"/g, '&quot;')}">${p.content}</div>
       ${p.image_url ? `<img src="${p.image_url}" class="post-img" onclick="openLightbox('${p.image_url.replace(/'/g, "\\'")}')" onerror="this.style.display='none'">` : ''}
