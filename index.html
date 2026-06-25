@@ -7282,17 +7282,21 @@ tr:hover td{background:#0d1e36}
 .rpt-body{color:#b8c5d4;margin:3px 0}
 .footer{text-align:center;padding:20px;color:#3d5270;font-size:11px;margin-top:16px;border-top:1px solid #1a2a4a}
 @media print{
-  body{background:#fff;color:#1a202c}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+  body{background:#0c1628;color:#e8edf5}
   .page{padding:15px}
   .print-btn{display:none}
-  .kpi,.card,.mini,.badge,.header{background:#f8fafc;border-color:#e2e8f0}
-  .kpi-l,.mini-l,.card-t,.logo-sub,.kpi-s{color:#718096}
-  .kpi-v,.mini-v,.trader-name{color:#1a202c}
-  .g{color:#00a070}.re{color:#c53030}
-  .rpt-section-title{background:#f0fff4;border-color:#00a070;color:#1a202c}
-  .rpt-body,.rpt-bullet{color:#4a5568}
-  th{background:#f8fafc}
-  td{color:#4a5568}
+  .header,.badge,.kpi,.card,.mini{background:#11203a;border-color:#1e3050}
+  .kpi-l,.mini-l,.logo-sub,.kpi-s{color:#8aa0bd}
+  .card-t{color:#00d4a0}
+  .kpi-v,.mini-v,.trader-name{color:#e8edf5}
+  .g{color:#00d4a0}.re{color:#ff5a72}.ye{color:#f59e0b}
+  .rpt-section-title{background:#0a1628;border-color:#00d4a0;color:#e8edf5}
+  .rpt-body,.rpt-bullet{color:#b8c5d4}
+  .rpt-num{color:#00d4a0}
+  th{background:#0a1628;color:#8aa0bd}
+  td{color:#b8c5d4}
+  table,th,td{border-color:#1e3050}
   @page{margin:1cm;size:A4}
 }
 </style>
