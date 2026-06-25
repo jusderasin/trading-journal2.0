@@ -2279,7 +2279,7 @@ input[type="range"]::-webkit-slider-thumb {
               <div style="font-size:13px;font-weight:700;color:var(--text-0)" id="ai-report-title"></div>
               <button class="btn-outline" style="font-size:11px" onclick="downloadAiReportPdf()">📄 Télécharger PDF</button>
             </div>
-            <div id="ai-report-content" style="background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:20px;font-size:13px;line-height:1.7;color:var(--text-1);white-space:pre-wrap;max-height:600px;overflow-y:auto"></div>
+            <div id="ai-report-content" style="background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:20px;font-size:13px;line-height:1.7;color:var(--text-1);max-height:700px;overflow-y:auto"></div>
           </div>
         </div>
 
@@ -6880,102 +6880,224 @@ async function generateAiReport() {
     return toast('Aucun trade sur cette période', 'error');
   }
 
-  // Calculer les statistiques
+  // ============================================================
+  // CALCULS ULTRA-DÉTAILLÉS pour le rapport pro
+  // ============================================================
   const stats = calcStats(trades);
   const negEmotions = ['FOMO', 'Impatient', 'Stressé', 'Revanche'];
+  const sortedTrades = [...trades].sort((a,b) => (a.date+(a.entry_time||'')).localeCompare(b.date+(b.entry_time||'')));
 
-  // Agrégats émotions
+  // Émotions
   const emotionCounts = {};
   trades.forEach(t => {
     let arr = [];
     try { arr = t.emotions ? (Array.isArray(t.emotions) ? t.emotions : JSON.parse(t.emotions)) : []; } catch {}
-    arr.forEach(tag => { emotionCounts[tag] = (emotionCounts[tag] || 0) + 1; });
+    arr.forEach(tag => { emotionCounts[tag] = (emotionCounts[tag]||0) + 1; });
   });
 
-  // Agrégats par heure
+  // Par heure
   const byHour = {};
   trades.forEach(t => {
     if (!t.entry_time) return;
     const h = parseInt(t.entry_time.split(':')[0]);
-    if (!byHour[h]) byHour[h] = { wins: 0, losses: 0, r: 0 };
-    byHour[h].r += parseFloat(t.rr || 0);
-    if (t.result === 'WIN') byHour[h].wins++;
-    else if (t.result === 'LOSS') byHour[h].losses++;
+    if (!byHour[h]) byHour[h] = { wins:0, losses:0, bes:0, r:0, pnl:0, count:0 };
+    const r = parseFloat(t.rr||0);
+    byHour[h].r += r;
+    byHour[h].pnl += r * parseFloat(t.one_r||200);
+    byHour[h].count++;
+    if (t.result==='WIN') byHour[h].wins++;
+    else if (t.result==='LOSS') byHour[h].losses++;
+    else byHour[h].bes++;
   });
 
-  // Agrégats par setup
+  // Par setup avec RR moyen
   const bySetup = {};
   trades.forEach(t => {
     const s = t.scenario || 'Sans setup';
-    if (!bySetup[s]) bySetup[s] = { wins: 0, total: 0, r: 0 };
+    if (!bySetup[s]) bySetup[s] = { wins:0, losses:0, bes:0, total:0, r:0, pnl:0 };
     bySetup[s].total++;
-    bySetup[s].r += parseFloat(t.rr || 0);
-    if (t.result === 'WIN') bySetup[s].wins++;
+    const r = parseFloat(t.rr||0);
+    bySetup[s].r += r;
+    bySetup[s].pnl += r * parseFloat(t.one_r||200);
+    if (t.result==='WIN') bySetup[s].wins++;
+    else if (t.result==='LOSS') bySetup[s].losses++;
+    else bySetup[s].bes++;
   });
 
-  // Trades erreurs
-  const errorTrades = trades.filter(t => t.is_error);
+  // Par direction
+  const longs = trades.filter(t=>t.direction==='LONG');
+  const shorts = trades.filter(t=>t.direction==='SHORT');
+  const longR = longs.reduce((s,t)=>s+parseFloat(t.rr||0),0);
+  const shortR = shorts.reduce((s,t)=>s+parseFloat(t.rr||0),0);
+  const longWr = longs.length>0 ? Math.round(longs.filter(t=>t.result==='WIN').length/longs.length*100) : 0;
+  const shortWr = shorts.length>0 ? Math.round(shorts.filter(t=>t.result==='SHORT').length/shorts.length*100) : 0;
 
-  // Séries de pertes consécutives
-  const sortedTrades = [...trades].sort((a, b) => (a.date + (a.entry_time||'')).localeCompare(b.date + (b.entry_time||'')));
-  let maxLossStreak = 0, currentLossStreak = 0;
+  // Par jour
+  const byDay = {};
   sortedTrades.forEach(t => {
-    if (t.result === 'LOSS') { currentLossStreak++; maxLossStreak = Math.max(maxLossStreak, currentLossStreak); }
-    else currentLossStreak = 0;
+    if (!byDay[t.date]) byDay[t.date] = { r:0, pnl:0, wins:0, losses:0, count:0 };
+    const r = parseFloat(t.rr||0);
+    byDay[t.date].r += r;
+    byDay[t.date].pnl += r * parseFloat(t.one_r||200);
+    byDay[t.date].count++;
+    if (t.result==='WIN') byDay[t.date].wins++;
+    else if (t.result==='LOSS') byDay[t.date].losses++;
+  });
+  const daysSorted = Object.entries(byDay).sort((a,b)=>a[0].localeCompare(b[0]));
+  const bestDay = daysSorted.reduce((best,d) => d[1].pnl > (best?.[1].pnl||0) ? d : best, null);
+  const worstDay = daysSorted.reduce((worst,d) => d[1].pnl < (worst?.[1].pnl||0) ? d : worst, null);
+
+  // Erreurs
+  const errorTrades = trades.filter(t=>t.is_error);
+
+  // Equity curve R cumulés
+  let cumR = 0;
+  const equityCurve = sortedTrades.map(t => { cumR += parseFloat(t.rr||0); return cumR.toFixed(2); });
+  const peakR = Math.max(...equityCurve.map(Number));
+  const finalR = parseFloat(equityCurve[equityCurve.length-1]||0);
+
+  // Séries
+  let maxWinStreak=0, maxLossStreak=0, curWin=0, curLoss=0;
+  sortedTrades.forEach(t => {
+    if (t.result==='WIN') { curWin++; maxWinStreak=Math.max(maxWinStreak,curWin); curLoss=0; }
+    else if (t.result==='LOSS') { curLoss++; maxLossStreak=Math.max(maxLossStreak,curLoss); curWin=0; }
+    else { curWin=0; curLoss=0; }
   });
 
-  // Construire le prompt pour Claude
+  // Trades avec checklist OK vs non
+  const checklistOk = trades.filter(t=>t.checklist_ok===true);
+  const checklistNok = trades.filter(t=>t.checklist_ok===false);
+  const checklistOkWr = checklistOk.length>0 ? Math.round(checklistOk.filter(t=>t.result==='WIN').length/checklistOk.length*100) : null;
+  const checklistNokWr = checklistNok.length>0 ? Math.round(checklistNok.filter(t=>t.result==='WIN').length/checklistNok.length*100) : null;
+
+  // Qualité moyenne d'exécution
+  const tradesWithQuality = trades.filter(t=>t.quality);
+  const avgQuality = tradesWithQuality.length>0 ? (tradesWithQuality.reduce((s,t)=>s+parseInt(t.quality||5),0)/tradesWithQuality.length).toFixed(1) : 'N/A';
+  const highQualityTrades = trades.filter(t=>parseInt(t.quality||0)>=8);
+  const lowQualityTrades = trades.filter(t=>parseInt(t.quality||10)<=3);
+  const highQWr = highQualityTrades.length>0 ? Math.round(highQualityTrades.filter(t=>t.result==='WIN').length/highQualityTrades.length*100) : null;
+
+  // Top 5 meilleurs et pires trades
+  const top5wins = [...sortedTrades].filter(t=>t.result==='WIN').sort((a,b)=>parseFloat(b.rr)-parseFloat(a.rr)).slice(0,5);
+  const top5losses = [...sortedTrades].filter(t=>t.result==='LOSS').sort((a,b)=>parseFloat(a.rr)-parseFloat(b.rr)).slice(0,5);
+
   const profileName = currentProfile?.display_name || currentProfile?.username || 'Trader';
-  const strategy = currentProfile?.strategy || 'Non renseignée';
+  const strategy = currentProfile?.strategy || 'CVD Divergence / Futures MNQ';
+  const periodLabel2 = aiReportPeriod==='custom' ? `Du ${fromDate} au ${toDate}` : (periodLabels[aiReportPeriod]||'');
 
-  const prompt = `Tu es un coach de trading professionnel expert. Voici les données complètes d'un trader sur la période "${periodLabels[aiReportPeriod]}" (${fromDate || 'depuis le début'} → ${now.toISOString().split('T')[0]}).
+  const prompt = `Tu es un analyste de trading professionnel de haut niveau, spécialisé dans les Futures (MNQ/NQ) et les stratégies de scalping. Tu dois générer un rapport d'analyse ULTRA-PROFESSIONNEL et ULTRA-DÉTAILLÉ pour le trader ${profileName}.
 
-# PROFIL TRADER
-- Nom : ${profileName}
+═══════════════════════════════════════════
+DONNÉES BRUTES — PÉRIODE : ${periodLabel2}
+═══════════════════════════════════════════
+
+## PROFIL
+- Trader : ${profileName}
 - Stratégie : ${strategy}
-- Instrument principal : MNQ/NQ (Futures)
+- Instrument : MNQ/NQ Futures (scalping)
+- Période analysée : ${fromDate || 'début'} → ${toDate}
 
-# STATISTIQUES CLÉS
-- Total trades : ${stats.total} (${stats.wins}W · ${stats.losses}L · ${stats.bes}BE)
+## STATISTIQUES GLOBALES
+- Trades total : ${stats.total} | W: ${stats.wins} | L: ${stats.losses} | BE: ${stats.bes}
 - Win Rate : ${stats.wr}%
 - Profit Factor : ${stats.pf}
-- RR Moyen : ${stats.avgRr}
-- PnL Total : $${stats.pnl}
-- Max Drawdown : $${stats.maxDd}
-- Expectancy : $${stats.exp}
-- Jours verts / rouges : ${stats.greenDays} / ${stats.redDays}
-- Sharpe Ratio : ${stats.sharpe}
+- RR Moyen : ${stats.avgRr}R
+- PnL Total : $${parseInt(stats.pnl||0).toLocaleString()}
+- Total R cumulé : ${finalR >= 0 ? '+' : ''}${finalR}R
+- R Max atteint (peak) : +${peakR}R
+- Max Drawdown : -$${Math.abs(parseInt(stats.maxDd||0))}
+- Expectancy : $${parseInt(stats.exp||0)}/trade | ${parseFloat(stats.avgRr||0).toFixed(2)}R/trade
+- Sharpe Ratio : ${stats.sharpe || 'N/A'}
+- Jours verts : ${stats.greenDays} | Jours rouges : ${stats.redDays}
+- Qualité d'exécution moyenne : ${avgQuality}/10
+- Série max WIN : ${maxWinStreak} | Série max LOSS : ${maxLossStreak}
+- Erreurs de trading : ${errorTrades.length}/${stats.total} (${stats.total>0?Math.round(errorTrades.length/stats.total*100):0}%)
 
-# PERFORMANCE PAR SETUP
-${Object.entries(bySetup).map(([s, d]) => `- ${s} : ${d.total} trades, ${d.total > 0 ? Math.round(d.wins/d.total*100) : 0}% WR, ${d.r >= 0 ? '+' : ''}${d.r.toFixed(1)}R`).join('\n')}
+## BIAIS DIRECTIONNEL
+- LONG : ${longs.length} trades | ${longWr}% WR | ${longR>=0?'+':''}${longR.toFixed(1)}R | $${(longR*(parseFloat(trades[0]?.one_r||200))).toFixed(0)}
+- SHORT : ${shorts.length} trades | ${shortWr}% WR | ${shortR>=0?'+':''}${shortR.toFixed(1)}R
 
-# PERFORMANCE PAR HEURE (heure de Paris)
-${Object.entries(byHour).sort((a,b) => parseInt(a[0])-parseInt(b[0])).map(([h, d]) => `- ${h}h : ${d.wins}W/${d.losses}L, ${d.r >= 0 ? '+' : ''}${d.r.toFixed(1)}R`).join('\n')}
+## PERFORMANCE PAR SETUP (classé par R net)
+${Object.entries(bySetup).sort((a,b)=>b[1].r-a[1].r).map(([s,d]) => {
+  const wr = d.total>0?Math.round(d.wins/d.total*100):0;
+  const rrMoy = d.total>0?(d.r/d.total).toFixed(2):0;
+  return `- ${s}\n  → ${d.total} trades | ${wr}% WR | RR moy: ${rrMoy}R | Total: ${d.r>=0?'+':''}${d.r.toFixed(1)}R ($${parseInt(d.pnl)})`;
+}).join('\n')}
 
-# ÉMOTIONS RESSENTIES
-${Object.entries(emotionCounts).sort((a,b) => b[1]-a[1]).map(([tag, count]) => `- ${tag} : ${count} fois (${negEmotions.includes(tag) ? '⚠️ négatif' : '✅ positif'})`).join('\n') || '- Aucune émotion renseignée'}
+## PERFORMANCE PAR HEURE (heure Paris)
+${Object.entries(byHour).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).map(([h,d]) => {
+  const wr = d.count>0?Math.round(d.wins/d.count*100):0;
+  return `- ${h}h00 : ${d.count} trades | ${wr}% WR (${d.wins}W/${d.losses}L/${d.bes}BE) | ${d.r>=0?'+':''}${d.r.toFixed(1)}R ($${parseInt(d.pnl)})`;
+}).join('\n')}
 
-# ERREURS DE TRADING
-- Trades marqués comme erreur : ${errorTrades.length} / ${stats.total}
-${errorTrades.slice(0,5).map(t => `  · ${t.date} ${t.entry_time || ''} ${t.direction} ${t.result} ${t.rr}R — ${t.notes || 'pas de note'}`).join('\n')}
+## MEILLEURE / PIRE JOURNÉE
+- Meilleure journée : ${bestDay ? `${bestDay[0]} → +$${parseInt(bestDay[1].pnl)} | ${bestDay[1].wins}W/${bestDay[1].losses}L | +${bestDay[1].r.toFixed(1)}R` : 'N/A'}
+- Pire journée : ${worstDay ? `${worstDay[0]} → -$${Math.abs(parseInt(worstDay[1].pnl))} | ${worstDay[1].wins}W/${worstDay[1].losses}L | ${worstDay[1].r.toFixed(1)}R` : 'N/A'}
 
-# SÉRIE MAX PERTES CONSÉCUTIVES
-${maxLossStreak} pertes d'affilée
+## TOP 5 MEILLEURS TRADES
+${top5wins.map(t => `- ${t.date} ${t.entry_time||''} | ${t.direction} | ${t.result} | +${t.rr}R | +$${Math.round(parseFloat(t.rr)*parseFloat(t.one_r||200))} | Setup: ${t.scenario||'—'}`).join('\n') || '- Aucun'}
 
----
+## TOP 5 PIRES TRADES
+${top5losses.map(t => `- ${t.date} ${t.entry_time||''} | ${t.direction} | ${t.result} | ${t.rr}R | -$${Math.abs(Math.round(parseFloat(t.rr)*parseFloat(t.one_r||200)))} | Setup: ${t.scenario||'—'} | Notes: ${t.notes||'—'}`).join('\n') || '- Aucun'}
 
-Génère un rapport d'analyse de trading COMPLET, PROFESSIONNEL et PERSONNALISÉ en français. Structure ton rapport avec ces sections :
+## IMPACT CHECKLIST
+${checklistOk.length>0 ? `- Trades avec checklist validée : ${checklistOk.length} → ${checklistOkWr}% WR` : '- Données checklist insuffisantes'}
+${checklistNok.length>0 ? `- Trades sans checklist : ${checklistNok.length} → ${checklistNokWr}% WR` : ''}
 
-1. 📊 RÉSUMÉ EXÉCUTIF (3-4 phrases percutantes sur la semaine)
-2. 💪 POINTS FORTS (ce qui marche bien, avec chiffres précis)
-3. ⚠️ POINTS D'AMÉLIORATION (problèmes identifiés, avec exemples précis tirés des données)
-4. 🕐 ANALYSE TEMPORELLE (meilleures/pires heures de trading avec recommandations)
-5. 🎯 ANALYSE PAR SETUP (quel setup performer, lequel éviter)
-6. 🧠 ANALYSE PSYCHOLOGIQUE (émotions et leur impact sur la performance)
-7. 📈 RECOMMANDATIONS CONCRÈTES (3-5 actions précises à mettre en place dès la semaine prochaine)
-8. 🎯 OBJECTIF POUR LA PROCHAINE PÉRIODE
+## IMPACT QUALITÉ D'EXÉCUTION
+- Trades qualité ≥8/10 : ${highQualityTrades.length} → ${highQWr !== null ? highQWr + '% WR' : 'N/A'}
+- Trades qualité ≤3/10 : ${lowQualityTrades.length}
 
-Sois direct, honnête, et utilise des données chiffrées précises. Ne sois pas complaisant : si quelque chose ne va pas, dis-le clairement avec bienveillance.`;
+## ÉMOTIONS (par fréquence)
+${Object.entries(emotionCounts).sort((a,b)=>b[1]-a[1]).map(([tag,count]) => `- ${negEmotions.includes(tag)?'⚠️':'✅'} ${tag} : ${count} fois (${stats.total>0?Math.round(count/stats.total*100):0}% des trades)`).join('\n') || '- Aucune émotion renseignée'}
+
+## ERREURS DE TRADING DÉTAILLÉES
+${errorTrades.slice(0,8).map(t => `- ${t.date} ${t.entry_time||''} | ${t.direction} ${t.result} ${t.rr}R | Notes: ${t.notes||'pas de note'}`).join('\n') || '- Aucune erreur marquée'}
+
+═══════════════════════════════════════════
+INSTRUCTIONS POUR LE RAPPORT
+═══════════════════════════════════════════
+
+Génère un rapport d'analyse ULTRA-PROFESSIONNEL, ULTRA-DÉTAILLÉ et PERSONNALISÉ en français, comme si tu étais un analyste de prop firm analysant les résultats d'un trader.
+
+Utilise OBLIGATOIREMENT les données chiffrées précises fournies. Cite les heures, les setups, les montants exacts. Sois direct et sans complaisance.
+
+Structure OBLIGATOIRE avec ces sections exactes :
+
+### 1. 📊 RÉSUMÉ EXÉCUTIF
+Synthèse percutante en 5-6 lignes : chiffres clés, tendance globale, verdict clair sur la période.
+
+### 2. 📈 TABLEAU DE BORD PERFORMANCE
+Analyse chiffrée détaillée : WR, PF, expectancy, RR moyen, PnL, R cumulé, peak, drawdown. Compare avec les benchmarks d'un trader prop firm profitable (WR>50%, PF>1.5, expectancy>0).
+
+### 3. 🎯 ANALYSE PAR SETUP — CLASSEMENT
+Classe chaque setup du meilleur au pire avec verdict (À GARDER / À AMÉLIORER / À ÉLIMINER). Cite les chiffres exacts de chaque setup.
+
+### 4. 🕐 ANALYSE TEMPORELLE — SESSIONS
+Identifie les créneaux horaires rentables vs déficitaires. Recommande des horaires précis à trader ou éviter.
+
+### 5. 📐 ANALYSE DIRECTIONNELLE
+Long vs Short : quel biais est rentable, quel biais coûte de l'argent. Recommandation concrète.
+
+### 6. 🧠 ANALYSE PSYCHOLOGIQUE & ÉMOTIONS
+Corrélation entre émotions et résultats. Impact de l'impatience/FOMO/revanche sur le PnL. Chiffres à l'appui.
+
+### 7. ⚠️ ERREURS & DISCIPLINE
+Analyse des erreurs marquées, impact de la checklist, corrélation qualité d'exécution / résultats.
+
+### 8. 💪 POINTS FORTS À CAPITALISER
+Ce qui fonctionne vraiment bien — avec chiffres précis. Ne pas négliger les aspects positifs.
+
+### 9. 🔴 POINTS CRITIQUES À CORRIGER
+Les 3-5 problèmes les plus importants, avec leur coût exact en dollars/R sur la période.
+
+### 10. 📋 PLAN D'ACTION SEMAINE PROCHAINE
+5 actions CONCRÈTES et MESURABLES à mettre en place immédiatement. Chaque action doit être précise (pas "améliore ta discipline" mais "ne trade plus entre 12h-14h car -$X sur la période").
+
+### 11. 🎯 OBJECTIF CHIFFRÉ PROCHAINE PÉRIODE
+Un objectif précis avec critères de succès mesurables (ex: WR ≥55%, max 2 erreurs/semaine, stop trading après -3R/jour).
+
+Termine par une phrase de motivation personnalisée pour ${profileName}.`;
 
   try {
     // Appel au Cloudflare Worker proxy — la clé Groq reste côté serveur, jamais exposée
@@ -6996,13 +7118,51 @@ Sois direct, honnête, et utilise des données chiffrées précises. Ne sois pas
 
     const reportText = data.text || 'Erreur lors de la génération';
 
+    // Parser le Markdown en HTML propre
+    function markdownToHtml(text) {
+      return text
+        .split('\n')
+        .map(line => {
+          // Titres ### avec emoji
+          if (line.match(/^###\s+/)) {
+            const content = line.replace(/^###\s+/, '');
+            return `<div style="font-size:14px;font-weight:700;color:var(--text-0);margin:20px 0 8px;padding:10px 14px;background:var(--bg-2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0">${content}</div>`;
+          }
+          // Titres ##
+          if (line.match(/^##\s+/)) {
+            return `<div style="font-size:15px;font-weight:800;color:var(--accent);margin:16px 0 8px">${line.replace(/^##\s+/, '')}</div>`;
+          }
+          // Titres #
+          if (line.match(/^#\s+/)) {
+            return `<div style="font-size:16px;font-weight:800;color:var(--text-0);margin:16px 0 10px;border-bottom:1px solid var(--border);padding-bottom:8px">${line.replace(/^#\s+/, '')}</div>`;
+          }
+          // Listes numérotées
+          if (line.match(/^\d+\.\s+/)) {
+            const content = line.replace(/^\d+\.\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-0)">$1</strong>');
+            const num = line.match(/^(\d+)\./)?.[1];
+            return `<div style="display:flex;gap:10px;margin:5px 0;padding:6px 10px;background:var(--bg-2);border-radius:6px"><span style="font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:700;flex-shrink:0;padding-top:1px">${num}.</span><span style="color:var(--text-1)">${content}</span></div>`;
+          }
+          // Listes à puces
+          if (line.match(/^[-•*]\s+/)) {
+            const content = line.replace(/^[-•*]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-0)">$1</strong>');
+            return `<div style="display:flex;gap:8px;margin:4px 0;padding:4px 0"><span style="color:var(--accent);flex-shrink:0">▸</span><span style="color:var(--text-1)">${content}</span></div>`;
+          }
+          // Ligne vide
+          if (line.trim() === '') return '<div style="height:6px"></div>';
+          // Texte normal avec bold
+          const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-0)">$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+          return `<div style="color:var(--text-2);line-height:1.7;margin:3px 0">${formatted}</div>`;
+        })
+        .join('');
+    }
+
     // Afficher le rapport
     const todayStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     const periodLabel = aiReportPeriod === 'custom'
       ? `Du ${fromDate} au ${toDate}`
       : periodLabels[aiReportPeriod];
     title.textContent = `Rapport IA — ${periodLabel} — ${todayStr}`;
-    content.textContent = reportText;
+    content.innerHTML = markdownToHtml(reportText);
     output.style.display = 'block';
     output.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
