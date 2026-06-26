@@ -6848,36 +6848,47 @@ async function toggleTraderActivity(userId) {
       }).join('')}
     </div>
       ${(() => {
+  // Equity par TRADE (pas par jour) : la courbe remplit toute la largeur
+  const allDayTrades = [];
+  days.forEach(date => {
+    const d = byDay[date];
+    if (d && d.trades) d.trades.forEach(t => allDayTrades.push(t));
+  });
+  if (!allDayTrades.length) return '';
   let cum = 0;
-  const pts = days.map(date => { cum += (byDay[date]?.r || 0); return cum; });
-  const min = Math.min(0, ...pts), max = Math.max(0, ...pts);
+  const pts = [0];
+  allDayTrades.forEach(t => { cum += parseFloat(t.rr || 0); pts.push(cum); });
+  const min = Math.min(...pts), max = Math.max(...pts);
   const range = (max - min) || 1;
-  const W = 100, H = 40;
+  const W = 100, H = 40, padY = 4;
+  const innerH = H - padY * 2;
   const xy = pts.map((v, i) => {
-    const x = (i / (pts.length - 1)) * W;
-    const y = H - ((v - min) / range) * H;
+    const x = pts.length > 1 ? (i / (pts.length - 1)) * W : 0;
+    const y = padY + (innerH - ((v - min) / range) * innerH);
     return { x, y };
   });
   const coords = xy.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
   const last = pts[pts.length - 1] || 0;
   const peak = Math.max(0, ...pts);
   const lineColor = last > 0 ? '#00ff9d' : last < 0 ? '#ff3b5c' : '#888880';
-  const zeroY = (H - ((0 - min) / range) * H).toFixed(1);
+  const zeroY = (padY + (innerH - ((0 - min) / range) * innerH)).toFixed(1);
   const lastPt = xy[xy.length - 1];
   const areaPts = coords + ' ' + W + ',' + H + ' 0,' + H;
   const peakLabel = peak % 1 === 0 ? peak : peak.toFixed(1);
   const lastLabel = (last >= 0 ? '+' : '') + (last % 1 === 0 ? last : last.toFixed(1));
   const lastCol = last >= 0 ? 'var(--green)' : 'var(--red)';
-  return '<div style="margin-top:14px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:12px">'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-    + '<span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">R cumule</span>'
-    + '<span style="font-size:11px;color:var(--text-4)">Peak <span style="font-family:var(--mono);color:var(--green)">+' + peakLabel + 'R</span> &middot; Final <span style="font-family:var(--mono);color:' + lastCol + '">' + lastLabel + 'R</span></span>'
+  const dots = xy.map(p => '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="0.9" fill="' + lineColor + '" fill-opacity="0.5" vector-effect="non-scaling-stroke"/>').join('');
+  return '<div style="margin-top:14px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:14px 16px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    + '<span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Equity &middot; R cumule</span>'
+    + '<span style="font-size:11px;color:var(--text-4)">Peak <span style="font-family:var(--mono);color:var(--green)">+' + peakLabel + 'R</span> &middot; Final <span style="font-family:var(--mono);color:' + lastCol + '">' + lastLabel + 'R</span> &middot; ' + allDayTrades.length + ' trades</span>'
     + '</div>'
-    + '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" style="width:100%;height:64px;display:block;overflow:visible">'
-    + '<line x1="0" y1="' + zeroY + '" x2="' + W + '" y2="' + zeroY + '" stroke="var(--border-light)" stroke-width="0.4" stroke-dasharray="2,2"/>'
-    + '<polygon points="' + areaPts + '" fill="' + lineColor + '" fill-opacity="0.12"/>'
-    + '<polyline points="' + coords + '" fill="none" stroke="' + lineColor + '" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
-    + '<circle cx="' + lastPt.x.toFixed(1) + '" cy="' + lastPt.y.toFixed(1) + '" r="2" fill="' + lineColor + '" vector-effect="non-scaling-stroke"/>'
+    + '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" style="width:100%;height:90px;display:block;overflow:visible">'
+    + '<line x1="0" y1="' + zeroY + '" x2="' + W + '" y2="' + zeroY + '" stroke="var(--border-light)" stroke-width="0.3" stroke-dasharray="1.5,1.5"/>'
+    + '<polygon points="' + areaPts + '" fill="' + lineColor + '" fill-opacity="0.07"/>'
+    + '<polyline points="' + coords + '" fill="none" stroke="' + lineColor + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+    + dots
+    + '<circle cx="' + lastPt.x.toFixed(1) + '" cy="' + lastPt.y.toFixed(1) + '" r="2.2" fill="' + lineColor + '" vector-effect="non-scaling-stroke"/>'
     + '</svg>'
     + '</div>';
 })()}
