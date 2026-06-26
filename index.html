@@ -2445,6 +2445,13 @@ input[type="range"]::-webkit-slider-thumb {
           <input type="time" id="t-time">
         </div>
       </div>
+       <!-- ROW PnL -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">PnL net ($) <span style="font-size:10px;color:var(--text-3);font-weight:400">— montant final encaissé</span></label>
+          <input type="number" id="t-pnl" placeholder="Ex: 250 ou -120" step="0.01" style="font-family:var(--mono);font-size:15px;font-weight:700">
+        </div>
+      </div>
 
       <!-- ROW 3: Date + Compte -->
       <div class="form-row">
@@ -4630,6 +4637,7 @@ async function editTrade(id) {
   // Le RR réel est fixé APRÈS selectResult, qui sinon écraserait cette valeur
   // par son préremplissage par défaut en mode rapide (ex: -1 générique pour LOSS)
   document.getElementById('t-rr').value = trade.rr ?? '';
+  document.getElementById('t-pnl').value = trade.pnl ?? '';
   updatePnlPreview();
   const chk = trade.checklist_ok;
   selectChecklist(chk === null || chk === undefined ? null : chk === true || chk === 'true');
@@ -4656,6 +4664,7 @@ async function saveTrade() {
     entry_time: document.getElementById('t-time').value || null,
     direction,
     result,
+    pnl: parseFloat(document.getElementById('t-pnl').value) || 0,
     rr,
     scenario: document.getElementById('t-scenario').value || null,
     notes: document.getElementById('t-notes').value || null,
