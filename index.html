@@ -6848,7 +6848,6 @@ async function toggleTraderActivity(userId) {
       }).join('')}
     </div>
       ${(() => {
-  // Equity par TRADE (pas par jour) : la courbe remplit toute la largeur
   const allDayTrades = [];
   days.forEach(date => {
     const d = byDay[date];
@@ -6858,42 +6857,58 @@ async function toggleTraderActivity(userId) {
   let cum = 0;
   const pts = [0];
   allDayTrades.forEach(t => { cum += parseFloat(t.rr || 0); pts.push(cum); });
-  const min = Math.min(...pts), max = Math.max(...pts);
-  const range = (max - min) || 1;
-  const W = 100, H = 40, padY = 4;
-  const innerH = H - padY * 2;
-  const xy = pts.map((v, i) => {
-    const x = pts.length > 1 ? (i / (pts.length - 1)) * W : 0;
-    const y = padY + (innerH - ((v - min) / range) * innerH);
-    return { x, y };
-  });
-  const coords = xy.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
   const last = pts[pts.length - 1] || 0;
   const peak = Math.max(0, ...pts);
-  const lineColor = last > 0 ? '#00ff9d' : last < 0 ? '#ff3b5c' : '#888880';
-  const zeroY = (padY + (innerH - ((0 - min) / range) * innerH)).toFixed(1);
-  const lastPt = xy[xy.length - 1];
-  const areaPts = coords + ' ' + W + ',' + H + ' 0,' + H;
   const peakLabel = peak % 1 === 0 ? peak : peak.toFixed(1);
   const lastLabel = (last >= 0 ? '+' : '') + (last % 1 === 0 ? last : last.toFixed(1));
   const lastCol = last >= 0 ? 'var(--green)' : 'var(--red)';
-  const dots = xy.map(p => '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="0.9" fill="' + lineColor + '" fill-opacity="0.5" vector-effect="non-scaling-stroke"/>').join('');
+  // On stocke les points pour les dessiner après injection dans le DOM
+  window._lbEquityData = window._lbEquityData || {};
+  window._lbEquityData[userId] = pts;
   return '<div style="margin-top:14px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:14px 16px">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
     + '<span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Equity &middot; R cumule</span>'
     + '<span style="font-size:11px;color:var(--text-4)">Peak <span style="font-family:var(--mono);color:var(--green)">+' + peakLabel + 'R</span> &middot; Final <span style="font-family:var(--mono);color:' + lastCol + '">' + lastLabel + 'R</span> &middot; ' + allDayTrades.length + ' trades</span>'
     + '</div>'
-    + '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" style="width:100%;height:90px;display:block;overflow:visible">'
-    + '<line x1="0" y1="' + zeroY + '" x2="' + W + '" y2="' + zeroY + '" stroke="var(--border-light)" stroke-width="0.3" stroke-dasharray="1.5,1.5"/>'
-    + '<polygon points="' + areaPts + '" fill="' + lineColor + '" fill-opacity="0.07"/>'
-    + '<polyline points="' + coords + '" fill="none" stroke="' + lineColor + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
-    + dots
-    + '<circle cx="' + lastPt.x.toFixed(1) + '" cy="' + lastPt.y.toFixed(1) + '" r="2.2" fill="' + lineColor + '" vector-effect="non-scaling-stroke"/>'
-    + '</svg>'
+    + '<div style="height:120px;position:relative"><canvas id="lb-equity-' + userId + '"></canvas></div>'
     + '</div>';
 })()}
     <div id="day-detail-${userId}" style="margin-top:14px"></div>
   `;
+   // Dessine la courbe equity avec Chart.js (même style que l'onglet Analytics)
+  setTimeout(() => {
+    const cv = document.getElementById('lb-equity-' + userId);
+    const pts = (window._lbEquityData || {})[userId];
+    if (!cv || !pts) return;
+    const last = pts[pts.length - 1] || 0;
+    const color = last > 0 ? '#00ff9d' : last < 0 ? '#ff3b5c' : '#888880';
+    if (window._lbCharts && window._lbCharts[userId]) window._lbCharts[userId].destroy();
+    window._lbCharts = window._lbCharts || {};
+    window._lbCharts[userId] = new Chart(cv, {
+      type: 'line',
+      data: {
+        labels: pts.map((_, i) => i),
+        datasets: [{
+          data: pts,
+          borderColor: color,
+          backgroundColor: color + '15',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
+          pointHoverRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => (c.raw >= 0 ? '+' : '') + c.raw.toFixed(1) + 'R' } } },
+        scales: {
+          x: { display: false },
+          y: { grid: { color: '#141414' }, ticks: { color: '#5a5a55', font: { family: 'JetBrains Mono', size: 11 }, callback: v => v + 'R' } }
+        }
+      }
+    });
+  }, 50);
 }
 
 // Cache des trades groupés par jour, pour affichage du détail sans re-requêter Supabase
