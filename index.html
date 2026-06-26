@@ -6848,27 +6848,39 @@ async function toggleTraderActivity(userId) {
       }).join('')}
     </div>
       ${(() => {
-        let cum = 0;
-        const pts = days.map(date => { cum += (byDay[date]?.r || 0); return cum; });
-        const min = Math.min(0, ...pts), max = Math.max(0, ...pts);
-        const range = (max - min) || 1;
-        const W = 100, H = 40;
-        const coords = pts.map((v, i) => {
-          const x = (i / (pts.length - 1)) * W;
-          const y = H - ((v - min) / range) * H;
-          return `${x.toFixed(1)},${y.toFixed(1)}`;
-        });
-        const last = pts[pts.length - 1] || 0;
-        const lineColor = last > 0 ? 'var(--green)' : last < 0 ? 'var(--red)' : 'var(--text-3)';
-        const zeroY = (H - ((0 - min) / range) * H).toFixed(1);
-        return `<div style="margin-top:14px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:12px">
-          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">R cumulé · ${last > 0 ? '+' : ''}${last % 1 === 0 ? last : last.toFixed(1)}R</div>
-          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:60px;display:block">
-            <line x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}" stroke="var(--border-light)" stroke-width="0.4" stroke-dasharray="2,2"/>
-            <polyline points="${coords.join(' ')}" fill="none" stroke="${lineColor}" stroke-width="1" vector-effect="non-scaling-stroke"/>
-          </svg>
-        </div>`;
-      })()}
+  let cum = 0;
+  const pts = days.map(date => { cum += (byDay[date]?.r || 0); return cum; });
+  const min = Math.min(0, ...pts), max = Math.max(0, ...pts);
+  const range = (max - min) || 1;
+  const W = 100, H = 40;
+  const xy = pts.map((v, i) => {
+    const x = (i / (pts.length - 1)) * W;
+    const y = H - ((v - min) / range) * H;
+    return { x, y };
+  });
+  const coords = xy.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+  const last = pts[pts.length - 1] || 0;
+  const peak = Math.max(0, ...pts);
+  const lineColor = last > 0 ? '#00ff9d' : last < 0 ? '#ff3b5c' : '#888880';
+  const zeroY = (H - ((0 - min) / range) * H).toFixed(1);
+  const lastPt = xy[xy.length - 1];
+  const areaPts = coords + ' ' + W + ',' + H + ' 0,' + H;
+  const peakLabel = peak % 1 === 0 ? peak : peak.toFixed(1);
+  const lastLabel = (last >= 0 ? '+' : '') + (last % 1 === 0 ? last : last.toFixed(1));
+  const lastCol = last >= 0 ? 'var(--green)' : 'var(--red)';
+  return '<div style="margin-top:14px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+    + '<span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">R cumule</span>'
+    + '<span style="font-size:11px;color:var(--text-4)">Peak <span style="font-family:var(--mono);color:var(--green)">+' + peakLabel + 'R</span> &middot; Final <span style="font-family:var(--mono);color:' + lastCol + '">' + lastLabel + 'R</span></span>'
+    + '</div>'
+    + '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" style="width:100%;height:64px;display:block;overflow:visible">'
+    + '<line x1="0" y1="' + zeroY + '" x2="' + W + '" y2="' + zeroY + '" stroke="var(--border-light)" stroke-width="0.4" stroke-dasharray="2,2"/>'
+    + '<polygon points="' + areaPts + '" fill="' + lineColor + '" fill-opacity="0.12"/>'
+    + '<polyline points="' + coords + '" fill="none" stroke="' + lineColor + '" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+    + '<circle cx="' + lastPt.x.toFixed(1) + '" cy="' + lastPt.y.toFixed(1) + '" r="2" fill="' + lineColor + '" vector-effect="non-scaling-stroke"/>'
+    + '</svg>'
+    + '</div>';
+})()}
     <div id="day-detail-${userId}" style="margin-top:14px"></div>
   `;
 }
