@@ -6795,7 +6795,7 @@ async function toggleTraderActivity(userId) {
   if (!trades) {
     const since = new Date(); since.setDate(since.getDate() - 35);
     const { data, error } = await sb.from('trades').select('id, date, entry_time, direction, result, rr, one_r, scenario, notes, screenshot_url, quality')
-      .eq('user_id', userId).eq('is_public', true).gte('date', since.toISOString().split('T')[0]).order('date');
+      .eq('user_id', userId).gte('date', since.toISOString().split('T')[0]).order('date');
     if (error) { container.innerHTML = `<div style="font-size:12px;color:var(--text-3)">Activité non disponible</div>`; return; }
     trades = data || [];
     _traderActivityCache[userId] = trades;
