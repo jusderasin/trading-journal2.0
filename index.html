@@ -6799,6 +6799,12 @@ async function toggleTraderActivity(userId) {
   document.querySelectorAll('[id^="trader-activity-"]').forEach(el => el.style.display = 'none');
   if (isOpen) return;
   container.style.display = 'block';
+   // Récupère le réglage "partager screenshots" du propriétaire (pour cacher ses images si décoché)
+    window._canSeeScreens = window._canSeeScreens || {};
+    if (window._canSeeScreens[userId] === undefined) {
+      const { data: prof } = await sb.from('profiles').select('share_screenshots').eq('id', userId).single();
+      window._canSeeScreens[userId] = prof?.share_screenshots ?? true;
+    }
   container.innerHTML = '<div class="page-loader" style="height:80px"><div class="spinner"></div></div>';
 
   let trades = _traderActivityCache[userId];
@@ -6954,7 +6960,7 @@ function showDayTrades(userId, date) {
           ${t.scenario ? `<span style="font-size:11px;color:var(--text-3);flex-shrink:0">${t.scenario}</span>` : ''}
           ${t.entry_time ? `<span style="font-size:11px;color:var(--text-4);flex-shrink:0">${t.entry_time}</span>` : ''}
           <span style="flex:1"></span>
-          ${t.screenshot_url ? `<button class="btn-icon" style="width:26px;height:26px;font-size:12px;flex-shrink:0" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
+          ${(t.screenshot_url && (userId === currentUser.id || (window._canSeeScreens && window._canSeeScreens[userId]))) ? `<button class="btn-icon" style="width:26px;height:26px;font-size:12px;flex-shrink:0" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
         </div>
         ${t.notes ? `<div style="font-size:12px;color:var(--text-2);padding:4px 0 8px;font-style:italic">"${t.notes}"</div>` : ''}`;
       }).join('')}
