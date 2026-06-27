@@ -3415,6 +3415,7 @@ async function loadProfilePage() {
   document.getElementById('p-share-equity').checked = p.share_equity || false;
   document.getElementById('p-share-pnl').checked = p.share_pnl || false;
   document.getElementById('p-share-trades').checked = p.share_trades || false;
+  document.getElementById('p-share-screenshots').checked = p.share_screenshots ?? true;
 
   const big = document.getElementById('profile-avatar-big');
   const removeBtn = document.getElementById('btn-remove-avatar');
@@ -3447,6 +3448,7 @@ async function loadProfilePage() {
 async function saveProfile() {
   const isPublic = document.getElementById('p-is-public').checked;
   const shareTrades = document.getElementById('p-share-trades').checked;
+  const shareScreenshots = document.getElementById('p-share-screenshots').checked;
   const displayName = document.getElementById('p-display-name').value.trim();
   const updates = {
     display_name: displayName,
@@ -3458,6 +3460,7 @@ async function saveProfile() {
     share_pf: document.getElementById('p-share-pf').checked,
     share_equity: document.getElementById('p-share-equity').checked,
     share_pnl: document.getElementById('p-share-pnl').checked,
+    share_screenshots: shareScreenshots,
     share_trades: shareTrades
   };
   const { error } = await sb.from('profiles').update(updates).eq('id', currentUser.id);
