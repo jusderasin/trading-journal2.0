@@ -2122,6 +2122,8 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn-sm" onclick="openNewPost()">+ Publier</button>
       </div>
 
+      <div class="tabs" id="community-channels" style="overflow-x:auto;max-width:100%;margin-bottom:16px"></div>
+
       <div class="gap-16" id="posts-feed">
         <div class="empty-state">
           <div class="empty-icon">👥</div>
@@ -2948,6 +2950,7 @@ input[type="range"]::-webkit-slider-thumb {
             <option value="forex">💱 Forex</option>
             <option value="crypto">₿ Crypto</option>
             <option value="commodities">🛢️ Matières premières</option>
+            <option value="propfirm">🏦 Prop Firm</option>
           </select>
         </div>
       <div class="form-group">
@@ -6493,11 +6496,42 @@ async function blockUser(targetId, name) {
   await loadCommunity();
 }// COMMUNITY
 // ============================================
+const COMMUNITY_CHANNELS = [
+  { id: 'all', label: '🌐 Tous' },
+  { id: 'general', label: '💬 Général' },
+  { id: 'indices', label: '📈 Indices US' },
+  { id: 'forex', label: '💱 Forex' },
+  { id: 'crypto', label: '₿ Crypto' },
+  { id: 'commodities', label: '🛢️ Matières' },
+  { id: 'propfirm', label: '🏦 Prop Firm' }
+];
+let communityChannel = 'all';
+
+function channelLabel(id) {
+  const c = COMMUNITY_CHANNELS.find(x => x.id === id);
+  return c ? c.label : '💬 Général';
+}
+
+function renderCommunityTabs() {
+  const el = document.getElementById('community-channels');
+  if (!el) return;
+  el.innerHTML = COMMUNITY_CHANNELS.map(c => `<div class="tab ${c.id === communityChannel ? 'active' : ''}" onclick="setCommunityChannel('${c.id}', this)">${c.label}</div>`).join('');
+}
+
+function setCommunityChannel(ch, el) {
+  communityChannel = ch;
+  document.querySelectorAll('#community-channels .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  loadCommunity();
+}
+
 async function loadCommunity() {
   const feed = document.getElementById('posts-feed');
+  renderCommunityTabs();
   feed.innerHTML = '<div class="page-loader"><div class="spinner"></div></div>';
   await loadBlocks();
     let query = sb.from('posts').select('*, profiles(display_name, username, avatar_url)').eq('is_public', true);
+    if (communityChannel !== 'all') query = query.eq('channel', communityChannel);
     const hidden = [...new Set([..._myMutes, ..._blockedByOthers])];
     if (hidden.length) query = query.not('user_id', 'in', `(${hidden.join(',')})`);
     const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
@@ -6517,7 +6551,7 @@ async function loadCommunity() {
         <div class="post-avatar">${p.profiles?.avatar_url ? `<img src="${p.profiles.avatar_url}" alt="${initials}">` : initials}</div>
         <div style="flex:1">
           <div class="post-user">${name}</div>
-          <div class="post-time">${ago}${p.edited ? ' · modifié' : ''}</div>
+          <div class="post-time">${ago}${p.edited ? ' · modifié' : ''} · <span style="color:var(--accent)">${channelLabel(p.channel || 'general')}</span></div>
         </div>
         ${isOwnPost ? `<div style="display:flex;gap:4px;flex-shrink:0">
           <button class="btn-icon" style="width:30px;height:30px;font-size:13px" onclick="startEditPost('${p.id}')" title="Modifier la publication">CHERCHE</button>
