@@ -4124,6 +4124,19 @@ async function loadTrades(filters = {}) {
   return data || [];
 }
 
+function dedupeByGroup(trades) {
+  const seen = new Set();
+  return (trades || []).filter(t => {
+    if (!t.group_id) return true;
+    if (seen.has(t.group_id)) return false;
+    seen.add(t.group_id);
+    return true;
+  });
+}
+function journalViewTrades() {
+  const acc = document.getElementById('filter-account')?.value || '';
+  return acc ? allTrades : dedupeByGroup(allTrades);
+}
 function calcStats(trades) {
   const wins = trades.filter(t => t.result === 'WIN');
   const losses = trades.filter(t => t.result === 'LOSS');
@@ -4177,7 +4190,7 @@ function calcStats(trades) {
 // ============================================
 async function loadDashboard() {
   allTrades = await loadTrades();
-  const stats = calcStats(allTrades);
+  const stats = calcStats(dedupeByGroup(allTrades));
 
   const fmtPnl = v => (parseFloat(v) >= 0 ? '+' : '') + '$' + parseFloat(v).toLocaleString();
   animateValue(document.getElementById('kpi-pnl'), fmtPnl(stats.pnl));
@@ -4201,7 +4214,7 @@ async function loadDashboard() {
 
 function renderRecentTrades() {
   const el = document.getElementById('recent-trades-list');
-  const recent = allTrades.slice(0, 8);
+  const recent = dedupeByGroup(allTrades).slice(0, 8);
   if (!recent.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">Aucun trade</div></div>'; return; }
   el.innerHTML = `<table class="data-table">
     <thead><tr><th>Date</th><th>Dir</th><th>Résultat</th><th>RR</th><th>PnL</th></tr></thead>
@@ -4266,7 +4279,7 @@ function getEquityData(trades, period) {
 function renderEquityChart(period) {
   const ctx = document.getElementById('chart-equity');
   if (!ctx) return;
-  const { labels, data } = getEquityData(allTrades, period);
+  const { labels, data } = getEquityData(dedupeByGroup(allTrades), period);
   const lastVal = data[data.length - 1] || 0;
   const color = lastVal >= 0 ? '#00ff9d' : '#ff3b5c';
 
@@ -4301,7 +4314,7 @@ function renderDailyChart() {
   const ctx = document.getElementById('chart-daily');
   if (!ctx) return;
   const byDay = {};
-  const recent = allTrades.filter(t => {
+  const recent = dedupeByGroup(allTrades).filter(t => {
     const d = new Date(t.date);
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
     return d >= cutoff;
@@ -4350,7 +4363,7 @@ async function loadJournal() {
     to: document.getElementById('filter-to')?.value || ''
   };
   allTrades = await loadTrades(filters);
-  document.getElementById('journal-count').textContent = allTrades.length + ' trade(s)';
+  document.getElementById('journal-count').textContent = journalViewTrades().length + ' trade(s)';
 
   if (journalView === 'list') renderJournalTable();
   else renderCalendar();
@@ -4358,14 +4371,15 @@ async function loadJournal() {
 
 function renderJournalTable() {
   const wrap = document.getElementById('journal-table-wrap');
-  if (!allTrades.length) {
+  const list = journalViewTrades();
+  if (!list.length) {
     wrap.innerHTML = '<div class="empty-state" style="padding:60px"><div class="empty-icon">📝</div><div class="empty-title">Aucun trade</div><div class="empty-sub">Ajoute ton premier trade</div></div>';
     return;
   }
   const negEmotions = ['FOMO', 'Impatient', 'Stressé', 'Revanche'];
   wrap.innerHTML = `<table class="data-table">
     <thead><tr><th>Date</th><th>Heure</th><th>Instrument</th><th>Direction</th><th>Setup</th><th>Résultat</th><th>RR</th><th>PnL</th><th>Émotions</th><th>Actions</th></tr></thead>
-    <tbody>${allTrades.map(t => {
+    <tbody>${list.map(t => {
       const pnl = parseFloat(t.one_r || 0) * parseFloat(t.rr || 0);
       let emotionsArr = [];
       try { emotionsArr = t.emotions ? (Array.isArray(t.emotions) ? t.emotions : JSON.parse(t.emotions)) : []; } catch { emotionsArr = []; }
@@ -4410,7 +4424,7 @@ function renderCalendar() {
   label.textContent = months[calMonth] + ' ' + calYear;
 
   const byDay = {};
-  allTrades.forEach(t => { byDay[t.date] = (byDay[t.date] || []).concat(t); });
+  journalViewTrades().forEach(t => { byDay[t.date] = (byDay[t.date] || []).concat(t); });
 
   const first = new Date(calYear, calMonth, 1).getDay();
   const days = new Date(calYear, calMonth + 1, 0).getDate();
@@ -4690,11 +4704,15 @@ async function saveTrade() {
   let error;
 
   if (editingTradeId) {
-    // Édition : met à jour uniquement ce trade, avec le premier compte coché
-    const selectedAccs = getSelectedAccounts();
-    const accountId = selectedAccs[0]?.id || null;
-    const oneR = oneRManual || selectedAccs[0]?.one_r || 200;
-    ({ error } = await sb.from('trades').update({ ...baseData, one_r: oneR, challenge_name: accountId }).eq('id', editingTradeId));
+    const orig = allTrades.find(t => t.id === editingTradeId);
+    if (orig && orig.group_id) {
+      ({ error } = await sb.from('trades').update({ ...baseData }).eq('group_id', orig.group_id));
+    } else {
+      const selectedAccs = getSelectedAccounts();
+      const accountId = selectedAccs[0]?.id || null;
+      const oneR = oneRManual || selectedAccs[0]?.one_r || 200;
+      ({ error } = await sb.from('trades').update({ ...baseData, one_r: oneR, challenge_name: accountId }).eq('id', editingTradeId));
+    }
     if (!error) toast('Trade modifié ✓', 'success');
   } else {
     // Ajout : créer un trade par compte sélectionné
@@ -4711,10 +4729,12 @@ async function saveTrade() {
       if (!error) toast('Trade enregistré ✓', 'success');
     } else {
       // Plusieurs comptes → N inserts
+      const gid = (crypto.randomUUID ? crypto.randomUUID() : 'g' + Date.now() + Math.random().toString(36).slice(2));
       const inserts = selectedAccs.map(a => ({
         ...baseData,
         one_r: oneRManual || a.one_r,
-        challenge_name: a.id
+        challenge_name: a.id,
+        group_id: gid
       }));
       ({ error } = await sb.from('trades').insert(inserts));
       if (!error) toast(`${selectedAccs.length} trades enregistrés (un par compte) ✓`, 'success');
@@ -4735,7 +4755,9 @@ async function saveTrade() {
 
 async function deleteTrade(id) {
   if (!confirm('Supprimer ce trade ?')) return;
-  await sb.from('trades').delete().eq('id', id);
+  const _t = allTrades.find(x => x.id === id);
+  if (_t && _t.group_id) await sb.from('trades').delete().eq('group_id', _t.group_id);
+  else await sb.from('trades').delete().eq('id', id);
   toast('Trade supprimé', 'success');
   await loadDashboard();
   if (currentPage === 'journal') loadJournal();
@@ -5316,7 +5338,7 @@ async function loadAnalytics() {
   else if (period === '3month') { const d = new Date(); d.setMonth(d.getMonth() - 3); fromDate = d.toISOString().split('T')[0]; }
   else if (period === 'year') { const d = new Date(); d.setFullYear(d.getFullYear() - 1); fromDate = d.toISOString().split('T')[0]; }
 
-  const trades = await loadTrades({ account: accountFilter, from: fromDate });
+  const trades = dedupeByGroup(await loadTrades({ account: accountFilter, from: fromDate }));
   const stats = calcStats(trades);
 
   // 8 KPIs — alignés sur le niveau Backtesting
@@ -7779,7 +7801,7 @@ async function checkUnreadNotifs() {
 // BADGES
 // ============================================
 async function checkBadges() {
-  const stats = calcStats(allTrades);
+  const stats = calcStats(dedupeByGroup(allTrades));
   const { data: existing } = await sb.from('user_badges').select('badge_id').eq('user_id', currentUser.id);
   const existingIds = new Set((existing || []).map(b => b.badge_id));
 
