@@ -13,6 +13,11 @@
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script type="module">
+  import createGlobe from 'https://cdn.jsdelivr.net/npm/cobe@0.6.3/+esm';
+  window.createGlobe = createGlobe;
+  document.dispatchEvent(new Event('cobe-ready'));
+</script>
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1468,6 +1473,12 @@ body { font-variant-numeric: tabular-nums; }
   animation: auraShiny 6s linear infinite;
 }
 /* =================== /AURA RESKIN ===================== */
+
+/* ===================== GLOBE COMMUNAUTÉ ===================== */
+.community-globe-wrap { position: relative; width: 100%; max-width: 440px; margin: 0 auto 22px; aspect-ratio: 1 / 1; }
+.community-globe { width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s ease; touch-action: none; }
+.community-globe-cap { text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 0.18em; color: var(--accent); opacity: 0.85; margin-top: 2px; }
+/* ==================== /GLOBE COMMUNAUTÉ ==================== */
 </style>
 </head>
 
@@ -2166,6 +2177,11 @@ body { font-variant-numeric: tabular-nums; }
           <div class="section-sub">Échange avec les autres traders</div>
         </div>
         <button class="btn-sm" onclick="openNewPost()">+ Publier</button>
+      </div>
+
+      <div class="community-globe-wrap">
+        <canvas id="community-globe" class="community-globe"></canvas>
+        <div class="community-globe-cap">RÉSEAU DE TRADERS · EN DIRECT</div>
       </div>
 
       <div class="tabs" id="community-channels" style="overflow-x:auto;max-width:100%;margin-bottom:16px"></div>
@@ -6571,9 +6587,65 @@ function setCommunityChannel(ch, el) {
   loadCommunity();
 }
 
+let _globeInited = false;
+function initCommunityGlobe() {
+  const canvas = document.getElementById('community-globe');
+  if (!canvas || _globeInited || typeof window.createGlobe !== 'function') return;
+  const markers = [
+    { location: [51.51, -0.13], size: 0.045 },   // Londres
+    { location: [40.71, -74.01], size: 0.05 },   // New York
+    { location: [41.88, -87.63], size: 0.04 },   // Chicago
+    { location: [35.68, 139.65], size: 0.045 },  // Tokyo
+    { location: [1.35, 103.82], size: 0.035 },   // Singapour
+    { location: [48.85, 2.35], size: 0.04 },     // Paris
+    { location: [-33.87, 151.21], size: 0.035 }, // Sydney
+  ];
+  function start() {
+    const width = canvas.offsetWidth;
+    if (width === 0 || _globeInited) return;
+    let phi = 0;
+    let pointer = null, dragPhi = 0, dragTheta = 0, basePhi = 0, baseTheta = 0, paused = false;
+    const globe = window.createGlobe(canvas, {
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+      width: width, height: width,
+      phi: 0, theta: 0.2, dark: 1, diffuse: 1.5,
+      mapSamples: 16000, mapBrightness: 8,
+      baseColor: [0.28, 0.32, 0.40],
+      markerColor: [0.20, 0.82, 0.95],
+      glowColor: [0.05, 0.08, 0.12],
+      markers: markers,
+    });
+    _globeInited = true;
+    canvas.style.cursor = 'grab';
+    canvas.addEventListener('pointerdown', (e) => { pointer = { x: e.clientX, y: e.clientY }; canvas.style.cursor = 'grabbing'; paused = true; });
+    window.addEventListener('pointerup', () => {
+      if (pointer) { basePhi += dragPhi; baseTheta += dragTheta; dragPhi = 0; dragTheta = 0; }
+      pointer = null; canvas.style.cursor = 'grab'; paused = false;
+    }, { passive: true });
+    window.addEventListener('pointermove', (e) => {
+      if (pointer) { dragPhi = (e.clientX - pointer.x) / 300; dragTheta = (e.clientY - pointer.y) / 1000; }
+    }, { passive: true });
+    (function frame() {
+      if (!paused) phi += 0.004;
+      globe.update({ phi: phi + basePhi + dragPhi, theta: 0.2 + baseTheta + dragTheta });
+      requestAnimationFrame(frame);
+    })();
+    setTimeout(() => { canvas.style.opacity = '1'; }, 0);
+  }
+  if (canvas.offsetWidth > 0) {
+    start();
+  } else {
+    const ro = new ResizeObserver((entries) => {
+      if (entries[0] && entries[0].contentRect.width > 0) { ro.disconnect(); start(); }
+    });
+    ro.observe(canvas);
+  }
+}
+
 async function loadCommunity() {
   const feed = document.getElementById('posts-feed');
   renderCommunityTabs();
+  initCommunityGlobe();
   feed.innerHTML = '<div class="page-loader"><div class="spinner"></div></div>';
   await loadBlocks();
     let query = sb.from('posts').select('*, profiles(display_name, username, avatar_url)').eq('is_public', true);
