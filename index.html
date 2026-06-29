@@ -1437,10 +1437,12 @@ input[type="range"]::-webkit-slider-thumb {
 /* ===================== AURA RESKIN ===================== */
 body { font-variant-numeric: tabular-nums; }
 
-.aura-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.aura-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #07090d; }
+#bg-globe { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 92vmin; height: 92vmin; opacity: 0; transition: opacity 1.4s ease; }
 .aura-bg video { width: 100%; height: 100%; object-fit: cover; }
 .aura-bg-tint { position: absolute; inset: 0;
-  background: radial-gradient(130% 130% at 50% 0%, rgba(8,10,14,0.74), rgba(8,10,14,0.9) 55%, #0a0b0e 100%); }
+  background: radial-gradient(100% 100% at 50% 50%, rgba(8,10,14,0.38) 0%, rgba(8,10,14,0.72) 58%, rgba(8,10,14,0.92) 100%); }
+@media (min-width: 900px) { #auth-screen { justify-content: flex-end; padding-right: 7vw; } }
 
 #app, #auth-screen { position: relative; z-index: 1; }
 #auth-screen { background: transparent; }
@@ -1486,7 +1488,7 @@ body { font-variant-numeric: tabular-nums; }
 <body>
 
 <div class="aura-bg" aria-hidden="true">
-  <video autoplay loop muted playsinline src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064122_c4750c0e-7476-4b44-94a2-a85a65c63bf2.mp4"></video>
+  <canvas id="bg-globe"></canvas>
   <div class="aura-bg-tint"></div>
 </div>
 
@@ -1494,8 +1496,6 @@ body { font-variant-numeric: tabular-nums; }
      AUTH SCREEN
      ============================================ -->
 <div id="auth-screen">
-  <video class="auth-video" autoplay loop muted playsinline src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064122_c4750c0e-7476-4b44-94a2-a85a65c63bf2.mp4"></video>
-  <div class="auth-video-tint" aria-hidden="true"></div>
   <div class="auth-box">
     <div class="auth-logo">
       <div class="logo-mark" style="background:none;box-shadow:none">
@@ -2178,11 +2178,6 @@ body { font-variant-numeric: tabular-nums; }
           <div class="section-sub">Échange avec les autres traders</div>
         </div>
         <button class="btn-sm" onclick="openNewPost()">+ Publier</button>
-      </div>
-
-      <div class="community-globe-wrap">
-        <canvas id="community-globe" class="community-globe"></canvas>
-        <div class="community-globe-cap">RÉSEAU DE TRADERS · EN DIRECT</div>
       </div>
 
       <div class="tabs" id="community-channels" style="overflow-x:auto;max-width:100%;margin-bottom:16px"></div>
@@ -6589,8 +6584,8 @@ function setCommunityChannel(ch, el) {
 }
 
 let _globeInited = false;
-function initCommunityGlobe() {
-  const canvas = document.getElementById('community-globe');
+function initBgGlobe() {
+  const canvas = document.getElementById('bg-globe');
   if (!canvas || _globeInited || typeof window.createGlobe !== 'function') return;
   const markers = [
     { location: [51.51, -0.13], size: 0.045 },   // Londres
@@ -6606,7 +6601,7 @@ function initCommunityGlobe() {
     if (width === 0 || _globeInited) return;
     let phi = 0;
     let pointer = null, dragPhi = 0, dragTheta = 0, basePhi = 0, baseTheta = 0, paused = false;
-    const globe = window.createGlobe(canvas, {
+    window.createGlobe(canvas, {
       devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       width: width, height: width,
       phi: 0, theta: 0.2, dark: 1, diffuse: 1.5,
@@ -6615,23 +6610,14 @@ function initCommunityGlobe() {
       markerColor: [0.20, 0.82, 0.95],
       glowColor: [0.05, 0.08, 0.12],
       markers: markers,
+      onRender: (state) => {
+        phi += 0.004;
+        state.phi = phi;
+        state.theta = 0.2;
+      },
     });
     _globeInited = true;
-    canvas.style.cursor = 'grab';
-    canvas.addEventListener('pointerdown', (e) => { pointer = { x: e.clientX, y: e.clientY }; canvas.style.cursor = 'grabbing'; paused = true; });
-    window.addEventListener('pointerup', () => {
-      if (pointer) { basePhi += dragPhi; baseTheta += dragTheta; dragPhi = 0; dragTheta = 0; }
-      pointer = null; canvas.style.cursor = 'grab'; paused = false;
-    }, { passive: true });
-    window.addEventListener('pointermove', (e) => {
-      if (pointer) { dragPhi = (e.clientX - pointer.x) / 300; dragTheta = (e.clientY - pointer.y) / 1000; }
-    }, { passive: true });
-    (function frame() {
-      if (!paused) phi += 0.004;
-      globe.update({ phi: phi + basePhi + dragPhi, theta: 0.2 + baseTheta + dragTheta });
-      requestAnimationFrame(frame);
-    })();
-    setTimeout(() => { canvas.style.opacity = '1'; }, 0);
+    setTimeout(() => { canvas.style.opacity = '0.62'; }, 0);
   }
   if (canvas.offsetWidth > 0) {
     start();
@@ -6642,12 +6628,13 @@ function initCommunityGlobe() {
     ro.observe(canvas);
   }
 }
-document.addEventListener('cobe-ready', initCommunityGlobe);
+document.addEventListener('cobe-ready', initBgGlobe);
+window.addEventListener('DOMContentLoaded', initBgGlobe);
+window.addEventListener('load', initBgGlobe);
 
 async function loadCommunity() {
   const feed = document.getElementById('posts-feed');
   renderCommunityTabs();
-  initCommunityGlobe();
   feed.innerHTML = '<div class="page-loader"><div class="spinner"></div></div>';
   await loadBlocks();
     let query = sb.from('posts').select('*, profiles(display_name, username, avatar_url)').eq('is_public', true);
