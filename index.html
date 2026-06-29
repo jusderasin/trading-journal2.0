@@ -1475,9 +1475,11 @@ body { font-variant-numeric: tabular-nums; }
 /* =================== /AURA RESKIN ===================== */
 
 /* ===================== GLOBE COMMUNAUTÉ ===================== */
-.community-globe-wrap { position: relative; width: 100%; max-width: 440px; margin: 0 auto 22px; aspect-ratio: 1 / 1; }
-.community-globe { width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s ease; touch-action: none; }
-.community-globe-cap { text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 0.18em; color: var(--accent); opacity: 0.85; margin-top: 2px; }
+.community-globe-wrap { position: relative; width: 100%; max-width: 560px; margin: 8px auto 28px; aspect-ratio: 1 / 1; }
+.community-globe-wrap::before { content: ''; position: absolute; inset: -8%; border-radius: 50%; z-index: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(0,210,255,0.18), rgba(0,210,255,0.05) 45%, transparent 70%); filter: blur(20px); }
+.community-globe { position: relative; z-index: 1; width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s ease; touch-action: none; }
+.community-globe-cap { position: relative; z-index: 1; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: var(--accent); opacity: 0.85; margin-top: 6px; }
 /* ==================== /GLOBE COMMUNAUTÉ ==================== */
 </style>
 </head>
@@ -6641,6 +6643,7 @@ function initCommunityGlobe() {
     ro.observe(canvas);
   }
 }
+document.addEventListener('cobe-ready', initCommunityGlobe);
 
 async function loadCommunity() {
   const feed = document.getElementById('posts-feed');
