@@ -29,17 +29,17 @@
    Dark fintech, accent vert néon, mono data
    ============================================ */
 :root {
-  --bg-0: #050505;
-  --bg-1: #0a0a0a;
-  --bg-2: #0a0a0a;
-  --bg-3: #0f0f0f;
-  --bg-4: #141414;
-  --border: #1c1c1c;
-  --border-light: #2a2a2a;
+  --bg-0: #0a0c10;
+  --bg-1: #0e1116;
+  --bg-2: #12151b;
+  --bg-3: #171b22;
+  --bg-4: #1e2330;
+  --border: rgba(255,255,255,0.09);
+  --border-light: rgba(255,255,255,0.18);
 
-  --text-0: #f5f5f0;
-  --text-1: #b8b8b0;
-  --text-2: #888880;
+  --text-0: #f2f5fa;
+  --text-1: #c3c9d4;
+  --text-2: #8b92a1;
   --text-3: #5a5a55;
   --text-4: #3a3a37;
 
@@ -53,15 +53,15 @@
   --purple: #b07cff;
   --cyan: #00e5d4;
 
-  --accent: #ff9500;
-  --accent-dim: #ff950012;
-  --accent-glow: 0 0 16px #ff950022;
+  --accent: #00d2ff;
+  --accent-dim: rgba(0,210,255,0.10);
+  --accent-glow: 0 0 24px rgba(0,210,255,0.28);
 
-  --radius: 2px;
-  --radius-lg: 3px;
-  --shadow: 0 4px 32px rgba(0,0,0,0.7);
+  --radius: 12px;
+  --radius-lg: 18px;
+  --shadow: 0 8px 40px rgba(0,0,0,0.5);
 
-  --font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
 
   --sidebar-w: 200px;
@@ -1429,10 +1429,46 @@ input[type="range"]::-webkit-slider-thumb {
   letter-spacing: 0.5px;
   border-radius: 2px;
 }
+
+/* ===================== AURA RESKIN ===================== */
+body { font-variant-numeric: tabular-nums; }
+
+.aura-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.aura-bg video { width: 100%; height: 100%; object-fit: cover; }
+.aura-bg-tint { position: absolute; inset: 0;
+  background: radial-gradient(130% 130% at 50% 0%, rgba(8,10,14,0.74), rgba(8,10,14,0.9) 55%, #0a0b0e 100%); }
+
+#app, #auth-screen { position: relative; z-index: 1; }
+#auth-screen { background: transparent; }
+
+.sidebar { background: rgba(12,14,19,0.66); -webkit-backdrop-filter: blur(18px) saturate(120%); backdrop-filter: blur(18px) saturate(120%); }
+.topbar { background: rgba(10,12,16,0.55); -webkit-backdrop-filter: blur(18px) saturate(120%); backdrop-filter: blur(18px) saturate(120%); }
+
+.card, .kpi-card {
+  background: rgba(20,24,32,0.46);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  backdrop-filter: blur(16px) saturate(125%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 36px rgba(0,0,0,0.35);
+}
+
+@keyframes auraShiny { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+.sidebar-logo span, .auth-logo h1 {
+  background-image: linear-gradient(to right, #0B2551 0%, #A4F4FD 28%, #00d2ff 50%, #A4F4FD 72%, #0B2551 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+  animation: auraShiny 6s linear infinite;
+}
+/* =================== /AURA RESKIN ===================== */
 </style>
 </head>
 
 <body>
+
+<div class="aura-bg" aria-hidden="true">
+  <video autoplay loop muted playsinline src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064122_c4750c0e-7476-4b44-94a2-a85a65c63bf2.mp4"></video>
+  <div class="aura-bg-tint"></div>
+</div>
 
 <!-- ============================================
      AUTH SCREEN
