@@ -3278,6 +3278,20 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 // ============================================
+// SÉCURITÉ — Échappement HTML (anti-XSS)
+// Toute donnée utilisateur injectée en innerHTML DOIT passer par esc()
+// ============================================
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ============================================
 // APP STATE
 // ============================================
 let currentUser = null;
@@ -3455,7 +3469,7 @@ async function loadProfile() {
     document.getElementById('sidebar-role').textContent = data.role || 'Free';
     const avatarEl = document.getElementById('sidebar-avatar');
     if (data.avatar_url) {
-      avatarEl.innerHTML = `<img src="${data.avatar_url}" alt="avatar">`;
+      avatarEl.innerHTML = `<img src="${esc(data.avatar_url)}" alt="avatar">`;
     } else {
       avatarEl.textContent = name[0].toUpperCase();
     }
@@ -3481,7 +3495,7 @@ async function loadProfilePage() {
   const big = document.getElementById('profile-avatar-big');
   const removeBtn = document.getElementById('btn-remove-avatar');
   if (p.avatar_url) {
-    big.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    big.innerHTML = `<img src="${esc(p.avatar_url)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
     if (removeBtn) removeBtn.style.display = 'block';
   } else {
     big.textContent = (p.display_name || p.username || '?')[0].toUpperCase();
@@ -4461,7 +4475,7 @@ function renderJournalTable() {
           <div style="display:flex;gap:4px">
             <button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="editTrade('${t.id}')">✏️</button>
             <button class="btn-icon" style="width:28px;height:28px;font-size:13px;color:var(--red)" onclick="deleteTrade('${t.id}')">🗑️</button>
-            ${t.screenshot_url ? `<button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
+            ${t.screenshot_url ? `<button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="openLightbox('${esc(t.screenshot_url.replace(/'/g, "\\'"))}')">📸</button>` : ''}
           </div>
         </td>
       </tr>`;
@@ -6100,7 +6114,7 @@ function renderBtSessionDetail(session, trades) {
           <td class="mono" style="font-weight:700;color:${cumR >= 0 ? 'var(--green)' : 'var(--red)'}">${cumR >= 0 ? '+' : ''}${cumR.toFixed(1)}R</td>
           <td>
             <div style="display:flex;gap:4px">
-              ${t.screenshot_url ? `<button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
+              ${t.screenshot_url ? `<button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="openLightbox('${esc(t.screenshot_url.replace(/'/g, "\\'"))}')">📸</button>` : ''}
               <button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="editBtTrade('${t.id}')">✏️</button>
               <button class="btn-icon" style="width:24px;height:24px;font-size:11px;color:var(--red)" onclick="deleteBtTrade('${t.id}')">✕</button>
             </div>
@@ -6655,10 +6669,10 @@ async function loadCommunity() {
     const isOwnPost = p.user_id === currentUser.id;
     return `<div class="post-card">
       <div class="post-header">
-        <div class="post-avatar">${p.profiles?.avatar_url ? `<img src="${p.profiles.avatar_url}" alt="${initials}">` : initials}</div>
+        <div class="post-avatar">${p.profiles?.avatar_url ? `<img src="${esc(p.profiles.avatar_url)}" alt="${esc(initials)}">` : esc(initials)}</div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span class="post-user">${name}</span>
+            <span class="post-user">${esc(name)}</span>
             <span class="pill" style="background:var(--accent-dim);color:var(--accent)">${channelLabel(p.channel || 'general')}</span>
           </div>
           <div class="post-time">${ago}${p.edited ? ' · modifié' : ''}</div>
@@ -6667,12 +6681,12 @@ async function loadCommunity() {
           <button class="btn-icon" style="width:30px;height:30px;font-size:13px" onclick="startEditPost('${p.id}')" title="Modifier la publication">✏️</button>
           <button class="btn-icon" style="width:30px;height:30px;font-size:13px;color:var(--red)" onclick="deletePost('${p.id}')" title="Supprimer la publication">🗑️</button>
         </div>` : `<div style="display:flex;gap:4px;flex-shrink:0">
-          <button class="btn-icon" style="width:30px;height:30px;font-size:13px" onclick="muteUser('${p.user_id}', '${name.replace(/'/g, "\\'")}')" title="Masquer ce trader">🙈</button>
-          <button class="btn-icon" style="width:30px;height:30px;font-size:13px;color:var(--red)" onclick="blockUser('${p.user_id}', '${name.replace(/'/g, "\\'")}')" title="Bloquer ce trader">🚫</button>
+          <button class="btn-icon" style="width:30px;height:30px;font-size:13px" onclick="muteUser('${p.user_id}', '${esc(name.replace(/'/g, "\\'"))}')" title="Masquer ce trader">🙈</button>
+          <button class="btn-icon" style="width:30px;height:30px;font-size:13px;color:var(--red)" onclick="blockUser('${p.user_id}', '${esc(name.replace(/'/g, "\\'"))}')" title="Bloquer ce trader">🚫</button>
         </div>`}
       </div>
-      <div class="post-content" id="post-content-${p.id}" data-raw="${p.content.replace(/"/g, '&quot;')}">${p.content}</div>
-      ${p.image_url ? `<img src="${p.image_url}" class="post-img" onclick="openLightbox('${p.image_url.replace(/'/g, "\\'")}')" onerror="this.style.display='none'">` : ''}
+      <div class="post-content" id="post-content-${p.id}" data-raw="${esc(p.content)}">${esc(p.content)}</div>
+      ${p.image_url ? `<img src="${esc(p.image_url)}" class="post-img" onclick="openLightbox('${esc(p.image_url.replace(/'/g, "\\'"))}')" onerror="this.style.display='none'">` : ''}
       <div class="post-actions">
         <div class="post-action" onclick="toggleLike('${p.id}', this)">❤️ ${p.likes_count || 0}</div>
         <div class="post-action" onclick="toggleComments('${p.id}')">💬 <span id="comments-count-${p.id}">${p.comments_count || 0}</span></div>
@@ -6698,14 +6712,14 @@ function startEditPost(postId) {
   if (!el) return;
   const raw = el.dataset.raw || '';
   el.innerHTML = `
-    <textarea id="post-edit-input-${postId}" rows="3" style="width:100%;background:var(--bg-3);border:1px solid var(--accent);color:var(--text-0);padding:10px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none;resize:vertical">${raw}</textarea>
+    <textarea id="post-edit-input-${postId}" rows="3" style="width:100%;background:var(--bg-3);border:1px solid var(--accent);color:var(--text-0);padding:10px 12px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none;resize:vertical"></textarea>
     <div style="display:flex;gap:6px;margin-top:8px">
       <button class="btn-sm" style="font-size:12px;padding:6px 12px" onclick="saveEditPost('${postId}')">Enregistrer</button>
       <button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="loadCommunity()">Annuler</button>
     </div>
   `;
   const ta = document.getElementById('post-edit-input-' + postId);
-  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  if (ta) { ta.value = raw; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
 }
 
 async function saveEditPost(postId) {
@@ -6747,17 +6761,17 @@ async function loadComments(postId) {
         const initials = name[0].toUpperCase();
         const isOwn = c.user_id === currentUser.id;
         return `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)" id="comment-row-${c.id}">
-          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">${c.profiles?.avatar_url ? `<img src="${c.profiles.avatar_url}" style="width:100%;height:100%;object-fit:cover">` : initials}</div>
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">${c.profiles?.avatar_url ? `<img src="${esc(c.profiles.avatar_url)}" style="width:100%;height:100%;object-fit:cover">` : esc(initials)}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-size:12px;font-weight:600;color:var(--text-0)">${name}</span>
+              <span style="font-size:12px;font-weight:600;color:var(--text-0)">${esc(name)}</span>
               <span style="font-size:10px;color:var(--text-4)">${getTimeAgo(new Date(c.created_at))}${c.edited ? ' · modifié' : ''}</span>
               ${isOwn ? `<div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
                 <button onclick="startEditComment('${c.id}','${postId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0;line-height:1" title="Modifier">✏️</button>
                 <button onclick="deleteComment('${c.id}','${postId}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0;line-height:1" title="Supprimer">✕</button>
               </div>` : ''}
             </div>
-            <div style="font-size:13px;color:var(--text-1);margin-top:2px;word-break:break-word" id="comment-content-${c.id}" data-raw="${c.content.replace(/"/g, '&quot;')}">${c.content}</div>
+            <div style="font-size:13px;color:var(--text-1);margin-top:2px;word-break:break-word" id="comment-content-${c.id}" data-raw="${esc(c.content)}">${esc(c.content)}</div>
           </div>
         </div>`;
       }).join('');
@@ -6779,9 +6793,9 @@ async function submitComment(postId) {
   const { error } = await sb.from('comments').insert({ post_id: postId, user_id: currentUser.id, content });
   if (error) return toast('Erreur: ' + error.message, 'error');
 
-  // Incrémenter le compteur sur le post
-  const { data: post } = await sb.from('posts').select('comments_count').eq('id', postId).single();
-  const newCount = (post?.comments_count || 0) + 1;
+  // Recompte réel depuis la table comments — évite les race conditions
+  const { count } = await sb.from('comments').select('id', { count: 'exact', head: true }).eq('post_id', postId);
+  const newCount = count || 0;
   await sb.from('posts').update({ comments_count: newCount }).eq('id', postId);
 
   const countEl = document.getElementById('comments-count-' + postId);
@@ -6796,8 +6810,9 @@ async function deleteComment(commentId, postId) {
   const { error } = await sb.from('comments').delete().eq('id', commentId).eq('user_id', currentUser.id);
   if (error) return toast('Erreur: ' + error.message, 'error');
 
-  const { data: post } = await sb.from('posts').select('comments_count').eq('id', postId).single();
-  const newCount = Math.max(0, (post?.comments_count || 1) - 1);
+  // Recompte réel depuis la table comments — évite les race conditions
+  const { count } = await sb.from('comments').select('id', { count: 'exact', head: true }).eq('post_id', postId);
+  const newCount = count || 0;
   await sb.from('posts').update({ comments_count: newCount }).eq('id', postId);
 
   const countEl = document.getElementById('comments-count-' + postId);
@@ -6815,13 +6830,13 @@ function startEditComment(commentId, postId) {
   const raw = el.dataset.raw || '';
   el.innerHTML = `
     <div style="display:flex;gap:6px;margin-top:4px">
-      <input type="text" id="comment-edit-input-${commentId}" value="${raw}" style="flex:1;background:var(--bg-3);border:1px solid var(--accent);color:var(--text-0);padding:6px 10px;border-radius:6px;font-size:12px;font-family:var(--font);outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();saveEditComment('${commentId}','${postId}');}">
+      <input type="text" id="comment-edit-input-${commentId}" style="flex:1;background:var(--bg-3);border:1px solid var(--accent);color:var(--text-0);padding:6px 10px;border-radius:6px;font-size:12px;font-family:var(--font);outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();saveEditComment('${commentId}','${postId}');}">
       <button class="btn-sm" style="font-size:11px;padding:5px 10px;flex-shrink:0" onclick="saveEditComment('${commentId}','${postId}')">OK</button>
       <button class="btn-outline" style="font-size:11px;padding:5px 10px;flex-shrink:0" onclick="loadComments('${postId}')">✕</button>
     </div>
   `;
   const inp = document.getElementById('comment-edit-input-' + commentId);
-  if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  if (inp) { inp.value = raw; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
 }
 
 async function saveEditComment(commentId, postId) {
@@ -6846,11 +6861,13 @@ async function toggleLike(postId, el) {
   const { data: existing } = await sb.from('likes').select('id').eq('post_id', postId).eq('user_id', currentUser.id).single();
   if (existing) {
     await sb.from('likes').delete().eq('id', existing.id);
-    await sb.from('posts').update({ likes_count: Math.max(0, parseInt(el.textContent.match(/\d+/)?.[0] || 1) - 1) }).eq('id', postId);
   } else {
     await sb.from('likes').insert({ post_id: postId, user_id: currentUser.id });
-    await sb.from('posts').update({ likes_count: parseInt(el.textContent.match(/\d+/)?.[0] || 0) + 1 }).eq('id', postId);
   }
+  // Recompte réel depuis la table likes — évite les race conditions
+  // et les compteurs faussés par des lectures périmées
+  const { count } = await sb.from('likes').select('id', { count: 'exact', head: true }).eq('post_id', postId);
+  await sb.from('posts').update({ likes_count: count || 0 }).eq('id', postId);
   el.classList.toggle('liked');
   await loadCommunity();
 }
@@ -6899,7 +6916,7 @@ async function loadLeaderboard() {
 
   const fmtVal = t => metric === 'win_rate' ? (t.win_rate || 0).toFixed(1) + '%' : metric === 'profit_factor' ? (t.profit_factor || 0).toFixed(2) : (t.total_r || 0).toFixed(1) + 'R';
   const getName = t => t.profiles?.display_name || t.profiles?.username || t.pseudo || 'Trader';
-  const getAvatarHtml = (t, size) => t.profiles?.avatar_url ? `<img src="${t.profiles.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : getName(t)[0].toUpperCase();
+  const getAvatarHtml = (t, size) => t.profiles?.avatar_url ? `<img src="${esc(t.profiles.avatar_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : esc(getName(t)[0].toUpperCase());
 
   // ── PODIUM TOP 3 ──────────────────────────────────────
   if (data.length >= 1) {
@@ -6916,7 +6933,7 @@ async function loadLeaderboard() {
           const t = top3[origIdx];
           if (!t) return '';
           const rank = origIdx + 1;
-          const name = getName(t);
+          const name = esc(getName(t));
           const isFirst = rank === 1;
           const avatarSize = isFirst ? 64 : 52;
           return `
@@ -6937,7 +6954,7 @@ async function loadLeaderboard() {
   // ── LISTE COMPLÈTE ────────────────────────────────────
   el.innerHTML = data.map((t, i) => {
     const rank = i + 1;
-    const name = getName(t);
+    const name = esc(getName(t));
     const rankClass = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
     const userId = t.user_id;
     const canShowActivity = t.profiles?.share_trades;
@@ -7123,12 +7140,12 @@ function showDayTrades(userId, date) {
           <span class="pill ${pillColor}" style="flex-shrink:0">${t.result}</span>
           <span style="font-family:var(--mono);font-size:12px;color:${rrVal >= 0 ? 'var(--green)' : 'var(--red)'};flex-shrink:0">${rrVal >= 0 ? '+' : ''}${rrVal}R</span>
           <span style="font-family:var(--mono);font-size:12px;color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'};flex-shrink:0">${pnl >= 0 ? '+' : ''}$${Math.round(Math.abs(pnl))}</span>
-          ${t.scenario ? `<span style="font-size:11px;color:var(--text-3);flex-shrink:0">${t.scenario}</span>` : ''}
+          ${t.scenario ? `<span style="font-size:11px;color:var(--text-3);flex-shrink:0">${esc(t.scenario)}</span>` : ''}
           ${t.entry_time ? `<span style="font-size:11px;color:var(--text-4);flex-shrink:0">${t.entry_time}</span>` : ''}
           <span style="flex:1"></span>
-          ${(t.screenshot_url && (userId === currentUser.id || (window._canSeeScreens && window._canSeeScreens[userId]))) ? `<button class="btn-icon" style="width:26px;height:26px;font-size:12px;flex-shrink:0" onclick="openLightbox('${t.screenshot_url.replace(/'/g, "\\'")}')">📸</button>` : ''}
+          ${(t.screenshot_url && (userId === currentUser.id || (window._canSeeScreens && window._canSeeScreens[userId]))) ? `<button class="btn-icon" style="width:26px;height:26px;font-size:12px;flex-shrink:0" onclick="openLightbox('${esc(t.screenshot_url.replace(/'/g, "\\'"))}')">📸</button>` : ''}
         </div>
-        ${t.notes ? `<div style="font-size:12px;color:var(--text-2);padding:4px 0 8px;font-style:italic">"${t.notes}"</div>` : ''}`;
+        ${t.notes ? `<div style="font-size:12px;color:var(--text-2);padding:4px 0 8px;font-style:italic">"${esc(t.notes)}"</div>` : ''}`;
       }).join('')}
     </div>
   `;
@@ -7920,8 +7937,8 @@ async function loadNotifications() {
     <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);opacity:${n.read ? 0.6 : 1}">
       <div style="font-size:20px">${n.type === 'prop_alert' ? '⚠️' : n.type === 'badge' ? '🏆' : '🔔'}</div>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--text-0)">${n.title}</div>
-        <div style="font-size:12px;color:var(--text-3)">${n.body || ''}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-0)">${esc(n.title)}</div>
+        <div style="font-size:12px;color:var(--text-3)">${esc(n.body || '')}</div>
         <div style="font-size:11px;color:var(--text-4);margin-top:2px">${getTimeAgo(new Date(n.created_at))}</div>
       </div>
       ${!n.read ? '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:4px;flex-shrink:0"></div>' : ''}
