@@ -10,6 +10,14 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY; // On réutilise le même secret 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const PERIOD = process.env.PERIOD || 'week'; // week | month | year
 
+// ⚠️ IMPORTANT : onboarding@resend.dev est l'adresse SANDBOX de Resend.
+// En sandbox, Resend n'autorise l'envoi QU'À l'adresse email du compte Resend.
+// Les autres utilisateurs ne reçoivent RIEN (échec silencieux).
+// Pour envoyer à tout le monde : vérifie un domaine dans Resend
+// (https://resend.com/domains) puis mets le secret GitHub FROM_EMAIL,
+// ex: "TradingZone <rapports@tondomaine.com>"
+const FROM_EMAIL = process.env.FROM_EMAIL || 'TradingZone <onboarding@resend.dev>';
+
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   global: { fetch }
 });
@@ -189,18 +197,26 @@ async function sendEmail(toEmail, toName, reportText, period) {
   const periodLabel = { week: 'Hebdomadaire', month: 'Mensuel', year: 'Annuel' };
   const subjectPeriod = PERIOD_LABELS[period];
 
+  // Échappement HTML — le rapport IA peut contenir des notes de trades
+  // écrites par l'utilisateur (donc potentiellement du HTML/JS malveillant)
+  const escHtml = s => String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
   // Convertir le texte du rapport en HTML basique
   const reportHtml = reportText
     .split('\n')
     .map(line => {
       if (line.startsWith('# ') || line.match(/^[📊💪⚠️🕐🎯🧠📈🏆]/)) {
-        return `<h2 style="color:#00c896;font-size:16px;margin:24px 0 8px;border-bottom:1px solid #1e2535;padding-bottom:6px">${line.replace(/^#+ /, '')}</h2>`;
+        return `<h2 style="color:#00c896;font-size:16px;margin:24px 0 8px;border-bottom:1px solid #1e2535;padding-bottom:6px">${escHtml(line.replace(/^#+ /, ''))}</h2>`;
       }
       if (line.startsWith('- ') || line.startsWith('· ')) {
-        return `<li style="margin:4px 0;color:#b0bacf">${line.slice(2)}</li>`;
+        return `<li style="margin:4px 0;color:#b0bacf">${escHtml(line.slice(2))}</li>`;
       }
       if (line.trim() === '') return '<br>';
-      return `<p style="margin:6px 0;color:#b0bacf;line-height:1.6">${line}</p>`;
+      return `<p style="margin:6px 0;color:#b0bacf;line-height:1.6">${escHtml(line)}</p>`;
     })
     .join('\n');
 
@@ -227,7 +243,7 @@ async function sendEmail(toEmail, toName, reportText, period) {
 
     <!-- Salutation -->
     <p style="font-size:15px;color:#b0bacf;margin-bottom:24px">
-      Bonjour <strong style="color:#e8edf5">${toName}</strong> 👋<br>
+      Bonjour <strong style="color:#e8edf5">${escHtml(toName)}</strong> 👋<br>
       Voici ton rapport de trading personnalisé généré par intelligence artificielle.
     </p>
 
@@ -263,7 +279,7 @@ async function sendEmail(toEmail, toName, reportText, period) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: 'TradingZone <onboarding@resend.dev>',
+      from: FROM_EMAIL,
       to: [toEmail],
       subject: `${periodEmoji[period]} Ton rapport ${periodLabel[period]} TradingZone — ${subjectPeriod}`,
       html
@@ -293,6 +309,17 @@ async function main() {
 
   for (const profile of profiles) {
     try {
+      // ── Consentement email (RGPD) ─────────────────────────────
+      // Si la colonne wants_email_reports existe et vaut false → on skip.
+      // Pour un vrai opt-in strict (recommandé), ajoute la colonne :
+      //   ALTER TABLE profiles ADD COLUMN wants_email_reports boolean DEFAULT false;
+      // puis remplace la condition par :
+      //   if (profile.wants_email_reports !== true) { ... continue; }
+      if (profile.wants_email_reports === false) {
+        console.log(`  🔕  ${profile.username || profile.id} — rapports email désactivés, ignoré`);
+        continue;
+      }
+
       // Récupérer l'email de l'utilisateur depuis auth.users
       const { data: { user }, error: userErr } = await sb.auth.admin.getUserById(profile.id);
       if (userErr || !user?.email) {
