@@ -3278,6 +3278,53 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 // ============================================
+// SCREENSHOTS — stockés dans des tables annexes
+// Les images ne sont JAMAIS chargées dans les listes (egress).
+// On ne charge que le flag has_screenshot, et l'image à la demande.
+// ============================================
+async function fetchTradeShot(id) {
+  const { data } = await sb.from('trade_screenshots').select('data').eq('trade_id', id).maybeSingle();
+  return data?.data || null;
+}
+async function fetchBtShot(id) {
+  const { data } = await sb.from('bt_trade_screenshots').select('data').eq('bt_trade_id', id).maybeSingle();
+  return data?.data || null;
+}
+async function openTradeShot(id) {
+  const d = await fetchTradeShot(id);
+  if (d) openLightbox(d); else toast('Screenshot introuvable', 'error');
+}
+async function openBtShot(id) {
+  const d = await fetchBtShot(id);
+  if (d) openLightbox(d); else toast('Screenshot introuvable', 'error');
+}
+// Écrit (ou supprime) le screenshot pour un ou plusieurs trades
+async function saveTradeShot(ids, dataUrl) {
+  ids = (ids || []).filter(Boolean);
+  if (!ids.length) return;
+  if (dataUrl) {
+    await sb.from('trade_screenshots').upsert(
+      ids.map(id => ({ trade_id: id, user_id: currentUser.id, data: dataUrl })),
+      { onConflict: 'trade_id' }
+    );
+  } else {
+    await sb.from('trade_screenshots').delete().in('trade_id', ids);
+  }
+  await sb.from('trades').update({ has_screenshot: !!dataUrl }).in('id', ids);
+}
+async function saveBtShot(id, dataUrl) {
+  if (!id) return;
+  if (dataUrl) {
+    await sb.from('bt_trade_screenshots').upsert(
+      { bt_trade_id: id, user_id: currentUser.id, data: dataUrl }, { onConflict: 'bt_trade_id' }
+    );
+  } else {
+    await sb.from('bt_trade_screenshots').delete().eq('bt_trade_id', id);
+  }
+  await sb.from('bt_trades').update({ has_screenshot: !!dataUrl }).eq('id', id);
+}
+
+// ============================================
 // SÉCURITÉ — Échappement HTML (anti-XSS)
 // Toute donnée utilisateur injectée en innerHTML DOIT passer par esc()
 // ============================================
@@ -4475,7 +4522,7 @@ function renderJournalTable() {
           <div style="display:flex;gap:4px">
             <button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="editTrade('${t.id}')">✏️</button>
             <button class="btn-icon" style="width:28px;height:28px;font-size:13px;color:var(--red)" onclick="deleteTrade('${t.id}')">🗑️</button>
-            ${t.screenshot_url ? `<button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="openLightbox('${esc(t.screenshot_url.replace(/'/g, "\\'"))}')">📸</button>` : ''}
+            ${t.has_screenshot ? `<button class="btn-icon" style="width:28px;height:28px;font-size:13px" onclick="openTradeShot('${t.id}')">📸</button>` : ''}
           </div>
         </td>
       </tr>`;
@@ -4713,18 +4760,21 @@ async function editTrade(id) {
   document.getElementById('t-one-r-manual').value = trade.one_r || '';
   document.getElementById('t-scenario').value = trade.scenario || '';
   document.getElementById('t-notes').value = trade.notes || '';
-  document.getElementById('t-screenshot').value = trade.screenshot_url || '';
+  document.getElementById('t-screenshot').value = '';
   document.getElementById('t-quality').value = trade.quality || 5;
   document.getElementById('t-quality-val').textContent = trade.quality || 5;
   let emotionsArr = [];
   try { emotionsArr = trade.emotions ? (Array.isArray(trade.emotions) ? trade.emotions : JSON.parse(trade.emotions)) : []; } catch { emotionsArr = []; }
   setEmotions(emotionsArr);
   setTradeError(trade.is_error === true || trade.is_error === 'true');
-  if (trade.screenshot_url) {
-    document.getElementById('screenshot-img').src = trade.screenshot_url;
-    document.getElementById('screenshot-preview').style.display = 'block';
-  } else {
-    document.getElementById('screenshot-preview').style.display = 'none';
+  document.getElementById('screenshot-preview').style.display = 'none';
+  if (trade.has_screenshot) {
+    fetchTradeShot(trade.id).then(d => {
+      if (!d || editingTradeId !== trade.id) return;
+      document.getElementById('t-screenshot').value = d;
+      document.getElementById('screenshot-img').src = d;
+      document.getElementById('screenshot-preview').style.display = 'block';
+    });
   }
   // Décocher tous les comptes puis cocher celui du trade
   document.querySelectorAll('.t-account-check').forEach(cb => {
@@ -4767,7 +4817,7 @@ async function saveTrade() {
     rr,
     scenario: document.getElementById('t-scenario').value || null,
     notes: document.getElementById('t-notes').value || null,
-    screenshot_url: screenshotUrl || null,
+    has_screenshot: !!screenshotUrl,
     checklist_ok: checklistOk,
     quality: parseInt(document.getElementById('t-quality').value) || 5,
     emotions: selectedEmotions,
@@ -4778,15 +4828,19 @@ async function saveTrade() {
   document.getElementById('save-trade-btn').disabled = true;
   let error;
 
+  let _shotIds = [];
   if (editingTradeId) {
     const orig = allTrades.find(t => t.id === editingTradeId);
     if (orig && orig.group_id) {
       ({ error } = await sb.from('trades').update({ ...baseData }).eq('group_id', orig.group_id));
+      const { data: _g } = await sb.from('trades').select('id').eq('group_id', orig.group_id);
+      _shotIds = (_g || []).map(r => r.id);
     } else {
       const selectedAccs = getSelectedAccounts();
       const accountId = selectedAccs[0]?.id || null;
       const oneR = oneRManual || selectedAccs[0]?.one_r || 200;
       ({ error } = await sb.from('trades').update({ ...baseData, one_r: oneR, challenge_name: accountId }).eq('id', editingTradeId));
+      _shotIds = [editingTradeId];
     }
     if (!error) toast('Trade modifié ✓', 'success');
   } else {
@@ -4795,12 +4849,14 @@ async function saveTrade() {
     if (selectedAccs.length === 0) {
       // Aucun compte sélectionné → un seul trade sans compte
       const oneR = oneRManual || 200;
-      ({ error } = await sb.from('trades').insert({ ...baseData, one_r: oneR, challenge_name: null }));
+      const _r = await sb.from('trades').insert({ ...baseData, one_r: oneR, challenge_name: null }).select('id');
+      error = _r.error; _shotIds = (_r.data || []).map(r => r.id);
       if (!error) toast('Trade enregistré ✓', 'success');
     } else if (selectedAccs.length === 1) {
       // Un seul compte
       const oneR = oneRManual || selectedAccs[0].one_r;
-      ({ error } = await sb.from('trades').insert({ ...baseData, one_r: oneR, challenge_name: selectedAccs[0].id }));
+      const _r = await sb.from('trades').insert({ ...baseData, one_r: oneR, challenge_name: selectedAccs[0].id }).select('id');
+      error = _r.error; _shotIds = (_r.data || []).map(r => r.id);
       if (!error) toast('Trade enregistré ✓', 'success');
     } else {
       // Plusieurs comptes → N inserts
@@ -4811,10 +4867,13 @@ async function saveTrade() {
         challenge_name: a.id,
         group_id: gid
       }));
-      ({ error } = await sb.from('trades').insert(inserts));
+      const _r = await sb.from('trades').insert(inserts).select('id');
+      error = _r.error; _shotIds = (_r.data || []).map(r => r.id);
       if (!error) toast(`${selectedAccs.length} trades enregistrés (un par compte) ✓`, 'success');
     }
   }
+
+  if (!error) await saveTradeShot(_shotIds, screenshotUrl || null);
 
   document.getElementById('save-trade-btn').disabled = false;
 
@@ -5328,7 +5387,7 @@ function buildTradeRow(t) {
     'PnL ($)': Math.round(pnl),
     Setup: t.scenario || '',
     Notes: (t.notes || '').replace(/,/g, ';'),
-    Screenshot: t.screenshot_url || '',
+    Screenshot: t.has_screenshot ? 'Oui' : 'Non',
     Qualité: t.quality || '',
     Instrument: t.instrument || ''
   };
@@ -6114,7 +6173,7 @@ function renderBtSessionDetail(session, trades) {
           <td class="mono" style="font-weight:700;color:${cumR >= 0 ? 'var(--green)' : 'var(--red)'}">${cumR >= 0 ? '+' : ''}${cumR.toFixed(1)}R</td>
           <td>
             <div style="display:flex;gap:4px">
-              ${t.screenshot_url ? `<button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="openLightbox('${esc(t.screenshot_url.replace(/'/g, "\\'"))}')">📸</button>` : ''}
+              ${t.has_screenshot ? `<button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="openBtShot('${t.id}')">📸</button>` : ''}
               <button class="btn-icon" style="width:24px;height:24px;font-size:11px" onclick="editBtTrade('${t.id}')">✏️</button>
               <button class="btn-icon" style="width:24px;height:24px;font-size:11px;color:var(--red)" onclick="deleteBtTrade('${t.id}')">✕</button>
             </div>
@@ -6479,12 +6538,15 @@ function editBtTrade(id) {
     document.getElementById('btt-result').value = t.result || 'WIN';
     document.getElementById('btt-scenario').value = t.scenario || '';
     document.getElementById('btt-notes').value = t.notes || '';
-    document.getElementById('btt-screenshot').value = t.screenshot_url || '';
-    if (t.screenshot_url) {
-      document.getElementById('btt-screenshot-img').src = t.screenshot_url;
-      document.getElementById('btt-screenshot-preview').style.display = 'block';
-    } else {
-      document.getElementById('btt-screenshot-preview').style.display = 'none';
+    document.getElementById('btt-screenshot').value = '';
+    document.getElementById('btt-screenshot-preview').style.display = 'none';
+    if (t.has_screenshot) {
+      fetchBtShot(t.id).then(d => {
+        if (!d || editingBtTradeId !== t.id) return;
+        document.getElementById('btt-screenshot').value = d;
+        document.getElementById('btt-screenshot-img').src = d;
+        document.getElementById('btt-screenshot-preview').style.display = 'block';
+      });
     }
     // Changer le titre du modal
     document.querySelector('#modal-bt-trade .modal-title').textContent = 'Modifier le Trade BT';
@@ -6502,18 +6564,22 @@ async function saveBtTrade() {
     rr: parseFloat(document.getElementById('btt-rr').value || 0),
     scenario: document.getElementById('btt-scenario').value || null,
     notes: document.getElementById('btt-notes').value || null,
-    screenshot_url: document.getElementById('btt-screenshot').value.trim() || null
+    has_screenshot: !!document.getElementById('btt-screenshot').value.trim()
   };
+  const _btShot = document.getElementById('btt-screenshot').value.trim() || null;
 
   let error;
   if (editingBtTradeId) {
     // Mode édition
     ({ error } = await sb.from('bt_trades').update(data).eq('id', editingBtTradeId).eq('user_id', currentUser.id));
+    if (!error) await saveBtShot(editingBtTradeId, _btShot);
     editingBtTradeId = null;
     document.querySelector('#modal-bt-trade .modal-title').textContent = 'Trade Backtest';
   } else {
     // Mode ajout
-    ({ error } = await sb.from('bt_trades').insert({ ...data, user_id: currentUser.id, session_id: currentBtSession.id }));
+    const _r = await sb.from('bt_trades').insert({ ...data, user_id: currentUser.id, session_id: currentBtSession.id }).select('id');
+    error = _r.error;
+    if (!error) await saveBtShot(_r.data?.[0]?.id, _btShot);
   }
 
   if (error) return toast('Erreur: ' + error.message, 'error');
@@ -6993,7 +7059,7 @@ async function toggleTraderActivity(userId) {
   let trades = _traderActivityCache[userId];
   if (!trades) {
     const since = new Date(); since.setDate(since.getDate() - 35);
-    const { data, error } = await sb.from('trades').select('id, group_id, date, entry_time, direction, result, rr, one_r, scenario, notes, screenshot_url, quality')
+    const { data, error } = await sb.from('trades').select('id, group_id, date, entry_time, direction, result, rr, one_r, scenario, notes, has_screenshot, quality')
       .eq('user_id', userId).gte('date', since.toISOString().split('T')[0]).order('date');
     if (error) { container.innerHTML = `<div style="font-size:12px;color:var(--text-3)">Activité non disponible</div>`; return; }
     trades = dedupeByGroup(data || []);
@@ -7143,7 +7209,7 @@ function showDayTrades(userId, date) {
           ${t.scenario ? `<span style="font-size:11px;color:var(--text-3);flex-shrink:0">${esc(t.scenario)}</span>` : ''}
           ${t.entry_time ? `<span style="font-size:11px;color:var(--text-4);flex-shrink:0">${t.entry_time}</span>` : ''}
           <span style="flex:1"></span>
-          ${(t.screenshot_url && (userId === currentUser.id || (window._canSeeScreens && window._canSeeScreens[userId]))) ? `<button class="btn-icon" style="width:26px;height:26px;font-size:12px;flex-shrink:0" onclick="openLightbox('${esc(t.screenshot_url.replace(/'/g, "\\'"))}')">📸</button>` : ''}
+          ${(t.has_screenshot && (userId === currentUser.id || (window._canSeeScreens && window._canSeeScreens[userId]))) ? `<button class="btn-icon" style="width:26px;height:26px;font-size:12px;flex-shrink:0" onclick="openTradeShot('${t.id}')">📸</button>` : ''}
         </div>
         ${t.notes ? `<div style="font-size:12px;color:var(--text-2);padding:4px 0 8px;font-style:italic">"${esc(t.notes)}"</div>` : ''}`;
       }).join('')}
